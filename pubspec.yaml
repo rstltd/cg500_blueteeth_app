@@ -43,6 +43,12 @@ dependencies:
   
   # Shared preferences for data persistence
   shared_preferences: ^2.3.2
+  
+  # Update and version management
+  package_info_plus: ^8.0.2
+  path_provider: ^2.1.4
+  http: ^1.2.2
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

@@ -1,0 +1,45 @@
+# Shorebird configuration for hot updates
+# This file configures Shorebird Code Push for Flutter
+
+# App identifier (you'll get this when you create a Shorebird app)
+app_id: your_shorebird_app_id_here
+
+# Flavors configuration (optional)
+# flavors:
+#   development:
+#     app_id: your_dev_app_id
+#   production:
+#     app_id: your_prod_app_id
+
+# Auto-update configuration
+auto_update:
+  # Check for updates on app start
+  check_on_start: true
+  
+  # Check for updates on app resume
+  check_on_resume: true
+  
+  # Install updates automatically (if false, user must confirm)
+  install_automatically: false
+  
+  # Show progress during update download
+  show_progress: true
+
+# Update check intervals
+update_check_interval: 1h  # Check every hour when app is active
+
+# Rollback configuration
+rollback:
+  # Enable automatic rollback on crash
+  auto_rollback_on_crash: true
+  
+  # Number of crashes before rollback
+  crash_threshold: 3
+
+# Debugging and logging
+debug:
+  # Enable debug logging
+  verbose_logging: false
+  
+  # Log update events
+  log_updates: true
