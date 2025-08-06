@@ -29,13 +29,13 @@ gh repo view rstltd/cg500_blueteeth_app
 ### 發布新版本 (推薦)
 ```bash
 # 補丁版本 (1.0.0 → 1.0.1)
-python scripts/github_release.py patch
+python scripts/simple_release.py patch
 
 # 小版本 (1.0.1 → 1.1.0)  
-python scripts/github_release.py minor
+python scripts/simple_release.py minor
 
 # 大版本 (1.1.0 → 2.0.0)
-python scripts/github_release.py major
+python scripts/simple_release.py major
 ```
 
 ### 自動化流程包含：
@@ -137,7 +137,7 @@ GitHub Releases API 對 private 倉庫有限制：
 建議先測試整個流程：
 ```bash
 # 建立測試版本
-python scripts/github_release.py patch
+python scripts/simple_release.py patch
 
 # 檢查 GitHub Releases 頁面
 # 測試 APP 的更新檢查功能
@@ -166,7 +166,7 @@ python scripts/github_release.py patch
 ## 🎉 開始使用
 
 1. 確認前置準備完成
-2. 執行第一次發布：`python scripts/github_release.py patch`
+2. 執行第一次發布：`python scripts/simple_release.py patch`
 3. 測試 APP 的更新檢查功能
 4. 享受零維護成本的自動更新系統！
 
