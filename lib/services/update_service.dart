@@ -16,10 +16,11 @@ class UpdateService {
 
   final SmartNotificationService _notificationService = SmartNotificationService();
   
-  // Update server configuration
-  static const String _updateServerUrl = 'https://your-update-server.com/api';
-  static const String _versionCheckEndpoint = '$_updateServerUrl/version';
-  static const String _downloadEndpoint = '$_updateServerUrl/download';
+  // GitHub repository configuration
+  static const String _githubOwner = 'rstltd';
+  static const String _githubRepo = 'cg500_blueteeth_app';
+  static const String _githubApiUrl = 'https://api.github.com';
+  static const String _releasesEndpoint = '$_githubApiUrl/repos/$_githubOwner/$_githubRepo/releases/latest';
   
   // Local version info
   String? _currentVersion;
@@ -49,39 +50,63 @@ class UpdateService {
     }
   }
 
-  /// Check for available updates
+  /// Check for available updates via GitHub Releases
   Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
     try {
-      Logger.info('Checking for updates...');
+      Logger.info('Checking for updates via GitHub Releases...');
       
       final response = await http.get(
-        Uri.parse(_versionCheckEndpoint),
+        Uri.parse(_releasesEndpoint),
         headers: {
-          'Content-Type': 'application/json',
-          'Current-Version': _currentVersion ?? '1.0.0',
-          'Current-Build': _currentBuildNumber ?? '1',
-          'Platform': Platform.isAndroid ? 'android' : 'ios',
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'CG500-BLE-App',
         },
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final updateInfo = UpdateInfo.fromJson(data);
+        
+        // Parse GitHub release data
+        final latestVersion = _cleanVersionTag(data['tag_name'] ?? '1.0.0');
+        final currentVersion = _currentVersion ?? '1.0.0';
+        
+        // Find APK asset
+        final assets = data['assets'] as List<dynamic>? ?? [];
+        final apkAsset = assets.firstWhere(
+          (asset) => (asset['name'] as String).toLowerCase().endsWith('.apk'),
+          orElse: () => null,
+        );
+        
+        if (apkAsset == null) {
+          Logger.warning('No APK file found in latest release');
+          return null;
+        }
+        
+        final updateInfo = UpdateInfo(
+          latestVersion: latestVersion,
+          currentVersion: currentVersion,
+          downloadUrl: apkAsset['browser_download_url'] ?? '',
+          downloadSize: apkAsset['size'] ?? 0,
+          releaseNotes: data['body'] ?? 'No release notes available',
+          isForced: _isForceUpdate(data['body'] ?? ''),
+          updateType: _determineUpdateType(currentVersion, latestVersion),
+          releaseDate: DateTime.tryParse(data['published_at'] ?? '') ?? DateTime.now(),
+        );
         
         if (updateInfo.hasUpdate) {
-          Logger.info('Update available: ${updateInfo.latestVersion}');
+          Logger.info('Update available: $currentVersion -> $latestVersion');
           
           if (showNotification) {
             _notificationService.showInfo(
               title: 'Update Available',
-              message: 'Version ${updateInfo.latestVersion} is now available',
+              message: 'Version $latestVersion is now available',
             );
           }
           
           _updateController.add(updateInfo);
           return updateInfo;
         } else {
-          Logger.info('App is up to date');
+          Logger.info('App is up to date ($currentVersion)');
           if (showNotification) {
             _notificationService.showSuccess(
               title: 'Up to Date',
@@ -89,8 +114,10 @@ class UpdateService {
             );
           }
         }
+      } else if (response.statusCode == 404) {
+        Logger.warning('No releases found or repository not accessible');
       } else {
-        Logger.error('Update check failed: ${response.statusCode}');
+        Logger.error('GitHub API error: ${response.statusCode}');
       }
     } catch (e) {
       Logger.error('Error checking for updates', error: e);
@@ -105,14 +132,19 @@ class UpdateService {
     return null;
   }
 
-  /// Download APK update
+  /// Download APK update directly from GitHub
   Future<bool> downloadUpdate(UpdateInfo updateInfo) async {
     try {
-      Logger.info('Starting download for version ${updateInfo.latestVersion}');
+      Logger.info('Downloading from GitHub: ${updateInfo.downloadUrl}');
       
+      // Download directly from GitHub's download URL
       final response = await http.get(
-        Uri.parse('$_downloadEndpoint/${updateInfo.downloadUrl}'),
-      );
+        Uri.parse(updateInfo.downloadUrl),
+        headers: {
+          'Accept': 'application/octet-stream',
+          'User-Agent': 'CG500-BLE-App',
+        },
+      ).timeout(const Duration(minutes: 5));
 
       if (response.statusCode != 200) {
         throw Exception('Download failed: ${response.statusCode}');
@@ -120,7 +152,7 @@ class UpdateService {
 
       // Get app documents directory
       final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/update_${updateInfo.latestVersion}.apk';
+      final filePath = '${directory.path}/cg500_ble_app_${updateInfo.latestVersion}.apk';
       final file = File(filePath);
 
       // Write APK file
@@ -133,7 +165,7 @@ class UpdateService {
         filePath: filePath,
       ));
 
-      Logger.info('Update downloaded to: $filePath');
+      Logger.info('APK downloaded successfully: $filePath (${_formatBytes(response.bodyBytes.length)})');
       
       _notificationService.showSuccess(
         title: 'Download Complete',
@@ -194,6 +226,52 @@ class UpdateService {
     } catch (e) {
       Logger.error('Failed to cleanup downloads', error: e);
     }
+  }
+
+  /// Clean version tag (remove 'v' prefix if present)
+  String _cleanVersionTag(String tag) {
+    return tag.startsWith('v') ? tag.substring(1) : tag;
+  }
+
+  /// Determine if this is a forced update based on release notes
+  bool _isForceUpdate(String releaseNotes) {
+    final lowerNotes = releaseNotes.toLowerCase();
+    return lowerNotes.contains('[forced]') || 
+           lowerNotes.contains('[critical]') ||
+           lowerNotes.contains('security fix') ||
+           lowerNotes.contains('critical fix');
+  }
+
+  /// Determine update type based on version difference
+  UpdateType _determineUpdateType(String currentVersion, String latestVersion) {
+    try {
+      final current = currentVersion.split('.').map(int.parse).toList();
+      final latest = latestVersion.split('.').map(int.parse).toList();
+      
+      // Ensure both lists have at least 3 elements (major.minor.patch)
+      while (current.length < 3) current.add(0);
+      while (latest.length < 3) latest.add(0);
+      
+      // Major version change
+      if (latest[0] > current[0]) return UpdateType.recommended;
+      
+      // Minor version change  
+      if (latest[1] > current[1]) return UpdateType.recommended;
+      
+      // Patch version change
+      if (latest[2] > current[2]) return UpdateType.optional;
+      
+      return UpdateType.optional;
+    } catch (e) {
+      return UpdateType.optional;
+    }
+  }
+
+  /// Format bytes for display
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 
   /// Dispose resources
