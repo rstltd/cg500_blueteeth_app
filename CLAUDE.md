@@ -24,6 +24,13 @@ This is a Flutter mobile application named `cg500_blueteeth_app` - appears to be
 - `flutter pub upgrade` - Upgrade dependencies to latest versions
 - `flutter clean` - Clean build artifacts
 
+### Release and Deployment
+- `python scripts/simple_release.py patch` - Build and release patch version (1.0.0 → 1.0.1)
+- `python scripts/simple_release.py minor` - Build and release minor version (1.0.1 → 1.1.0)
+- `python scripts/simple_release.py major` - Build and release major version (1.1.0 → 2.0.0)
+- `python scripts/update_version.py current` - Show current version
+- `python scripts/update_version.py patch` - Increment patch version only (no release)
+
 ## Architecture
 
 ### Project Structure
@@ -57,6 +64,8 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - **Core**: Flutter SDK (^3.8.1)
 - **BLE**: flutter_blue_plus (^1.32.12) - Primary BLE communication library
 - **Permissions**: permission_handler (^11.3.1) - Handle Bluetooth and location permissions
+- **Update System**: package_info_plus (^8.0.2), path_provider (^2.1.4), http (^1.2.2), url_launcher (^6.3.0)
+- **Storage**: shared_preferences (^2.3.2) - Local data persistence
 - **Icons**: cupertino_icons (^1.0.8)
 - **Testing**: flutter_test, flutter_lints (^5.0.0)
 
@@ -88,6 +97,7 @@ The application has been refactored to follow MVC (Model-View-Controller) archit
 #### 2. **Services Layer** (`lib/services/`)
 - **`ble_service.dart`** - Core BLE operations with Nordic UART Service implementation
 - **`smart_notification_service.dart`** - Intelligent notification filtering with debouncing and duplicate prevention
+- **`update_service.dart`** - GitHub Releases-based automatic update system
 - **`permission_service.dart`** - Bluetooth and location permission management
 - **`notification_service.dart`** - Base notification system with categorized message types
 - **`theme_service.dart`** - Dark/light theme management with persistence
@@ -128,12 +138,14 @@ The application has been refactored to follow MVC (Model-View-Controller) archit
 - **MTU Auto-Configuration**: Automatic 517-byte MTU setting for optimal data transfer
 - **Error Handling System**: Categorized error responses with user-friendly messaging
 - **Animation Framework**: Custom painters for radar effects and status indicators
+- **Automatic Update System**: GitHub Releases integration with in-app update notifications and APK installation
 
 #### **Improved Maintainability:**
 - **Single Responsibility**: Each class focused on specific functionality
 - **Dependency Injection**: Loosely coupled components
 - **Error Handling**: Centralized error management and user notifications
 - **Testing**: Clear interfaces enable comprehensive unit testing
+- **Zero-Cost Deployment**: Automated release system using GitHub infrastructure
 
 ### Development Workflow:
 
@@ -152,6 +164,7 @@ All major features are implemented and functional. The app provides:
 - Intelligent user notification system
 - Multi-platform responsive design
 - Comprehensive error handling and user feedback
+- Automated update system with GitHub Releases integration
 
 ## BLE Usage Guide
 
@@ -213,3 +226,41 @@ RSSI thresholds optimized for typical BLE operating ranges:
 - Good: ≥-70dBm  
 - Fair: ≥-85dBm
 - Poor: <-85dBm
+
+## Deployment and Release System
+
+### GitHub-Based Zero-Cost Deployment
+The application uses a complete GitHub Releases-based deployment system that eliminates the need for additional servers:
+
+#### Automated Release Process:
+- **One-command release**: `python scripts/simple_release.py patch|minor|major`
+- **Automatic version management**: Updates `pubspec.yaml` with semantic versioning
+- **APK building**: Clean Flutter release build with optimized size
+- **GitHub Release creation**: Automated release notes and APK upload
+- **Git integration**: Commits version changes and pushes to repository
+
+#### In-App Update System:
+- **Automatic update checking**: Queries GitHub Releases API on app startup
+- **Smart update notifications**: Categorized update types (optional, recommended, forced)
+- **Seamless APK installation**: Downloads and installs updates directly from GitHub
+- **Private repository support**: Works with private repositories via GitHub API
+
+#### Update Service Architecture:
+- **UpdateService** (`lib/services/update_service.dart`): Core update management
+- **UpdateInfo model**: Version comparison and release metadata
+- **GitHub API integration**: Repository: `rstltd/cg500_blueteeth_app`
+- **Download management**: Progress tracking and error handling
+- **Platform channel**: Android APK installation via native code
+
+#### Prerequisites for Deployment:
+1. **GitHub CLI**: `winget install GitHub.cli`
+2. **Authentication**: `gh auth login`
+3. **Repository access**: Configured for `rstltd/cg500_blueteeth_app`
+
+#### Version Management:
+- **Semantic versioning**: major.minor.patch+build format
+- **Automatic increments**: patch (bugs), minor (features), major (breaking changes)
+- **Release notes**: Auto-generated from git commit history
+- **Force updates**: Support for critical updates via commit message tags
+
+This system provides professional-grade deployment capabilities without server maintenance costs, leveraging GitHub's infrastructure for reliable global distribution.
