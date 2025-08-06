@@ -424,27 +424,23 @@ class ErrorHandlingService {
 
   /// Report error to analytics or crash reporting service
   void _reportError(AppError error) {
-    // Implement error reporting logic here
-    debugPrint('Reporting error: ${error.code} - ${error.message}');
+    // TODO: Implement error reporting integration
     // You could integrate with Firebase Crashlytics, Sentry, or other services
   }
 
   /// Open system Bluetooth settings
   void _openBluetoothSettings() {
-    // Implementation would depend on platform
-    debugPrint('Opening Bluetooth settings');
+    // TODO: Implement platform-specific Bluetooth settings navigation
   }
 
   /// Open app settings
   void _openAppSettings() {
-    // Implementation would depend on platform
-    debugPrint('Opening app settings');
+    // TODO: Implement platform-specific app settings navigation
   }
 
   /// Open network settings
   void _openNetworkSettings() {
-    // Implementation would depend on platform
-    debugPrint('Opening network settings');
+    // TODO: Implement platform-specific network settings navigation
   }
 
   /// Clear error history

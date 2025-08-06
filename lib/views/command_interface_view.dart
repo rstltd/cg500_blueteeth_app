@@ -3,6 +3,7 @@ import '../controllers/simple_ble_controller.dart';
 import '../models/ble_device.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
+import '../utils/logger.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/responsive_layout.dart';
 
@@ -40,19 +41,19 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
       setState(() {
         _isInitialized = success;
       });
-      debugPrint('Command Interface: Controller initialized = $success');
+      Logger.ui('Controller initialized = $success');
     } else {
       setState(() {
         _isInitialized = true;
       });
-      debugPrint('Command Interface: Controller already initialized');
+      Logger.ui('Controller already initialized');
     }
     
-    // Debug: Check connection status
+    // Check connection status for UI initialization
     final connectedDevice = _controller.connectedDevice;
-    debugPrint('Command Interface: Connected device = ${connectedDevice?.displayName ?? 'None'}');
-    debugPrint('Command Interface: Connection state = ${connectedDevice?.connectionState}');
-    debugPrint('Command Interface: Command info = ${_controller.getCommandInfo()}');
+    if (connectedDevice != null) {
+      Logger.ui('Connected to: ${connectedDevice.displayName}');
+    }
     
     // Wait a moment to ensure all state updates are processed
     await Future.delayed(const Duration(milliseconds: 500));
@@ -211,7 +212,7 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
             builder: (context, snapshot) {
               // Check both stream data and direct controller state
               bool isConnected = snapshot.hasData || _controller.connectedDevice != null;
-              debugPrint('Header StreamBuilder: hasData=${snapshot.hasData}, current=${_controller.connectedDevice?.displayName}');
+              // Connection status indicator in header
               
               return Row(
                 children: [
@@ -248,11 +249,8 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
       child: StreamBuilder<BleDeviceModel?>(
         stream: _controller.connectedDeviceStream,
         builder: (context, snapshot) {
-          debugPrint('CommandInterface StreamBuilder: hasData=${snapshot.hasData}, data=${snapshot.data?.displayName}');
-          
           if (!snapshot.hasData) {
             final currentDevice = _controller.connectedDevice;
-            debugPrint('Stream has no data, but current device = ${currentDevice?.displayName}');
             
             if (currentDevice != null) {
               return _buildDeviceStatusPanel(currentDevice);

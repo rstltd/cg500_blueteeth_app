@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 enum NotificationType {
   info,
@@ -172,9 +171,7 @@ class NotificationService {
     _notifications.add(notification);
     _notificationController.add(notification);
     
-    debugPrint(
-      '${notification.type.name.toUpperCase()}: ${notification.title} - ${notification.message}'
-    );
+    // Note: Consider using Logger for debug output if needed
 
     // Auto-remove notification after duration
     if (notification.duration != null) {

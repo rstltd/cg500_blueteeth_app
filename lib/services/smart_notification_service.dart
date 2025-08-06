@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
 
 /// Smart notification service that filters and manages notifications
@@ -195,7 +194,6 @@ class SmartNotificationService {
     
     // Silence non-critical operations
     if (_silentOperations.contains(title)) {
-      debugPrint('SILENT: $title - $message');
       return false;
     }
     
@@ -214,13 +212,11 @@ class SmartNotificationService {
       
       // Prevent duplicate notifications within threshold
       if (timeSinceLastNotification < _duplicateThreshold) {
-        debugPrint('DUPLICATE FILTERED: $title - $message');
         return false;
       }
       
       // Prevent same message type spam
       if (lastMessage == message && timeSinceLastNotification < const Duration(seconds: 5)) {
-        debugPrint('SPAM FILTERED: $title - $message');
         return false;
       }
     }

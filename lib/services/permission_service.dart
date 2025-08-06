@@ -1,5 +1,5 @@
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/foundation.dart';
+import '../utils/logger.dart';
 
 class PermissionService {
   static final PermissionService _instance = PermissionService._internal();
@@ -17,14 +17,14 @@ class PermissionService {
 
       Map<Permission, PermissionStatus> statuses = await permissions.request();
       
-      debugPrint('Permission statuses: $statuses');
+      Logger.debug('Permission statuses: $statuses');
 
       return statuses.values.every((status) => 
           status == PermissionStatus.granted || 
           status == PermissionStatus.limited);
           
     } catch (e) {
-      debugPrint('Error requesting permissions: $e');
+      Logger.error('Failed to request permissions', error: e);
       return false;
     }
   }
@@ -41,14 +41,14 @@ class PermissionService {
       for (Permission permission in permissions) {
         PermissionStatus status = await permission.status;
         if (status != PermissionStatus.granted && status != PermissionStatus.limited) {
-          debugPrint('Missing permission: $permission, status: $status');
+          Logger.debug('Missing permission: $permission, status: $status');
           return false;
         }
       }
       
       return true;
     } catch (e) {
-      debugPrint('Error checking permissions: $e');
+      Logger.error('Failed to check permissions', error: e);
       return false;
     }
   }
@@ -70,7 +70,7 @@ class PermissionService {
   }
 
   Future<bool> openAppSettings() async {
-    return await openAppSettings();
+    return await Permission.bluetooth.request().isGranted;
   }
 
   String getPermissionStatusDescription(PermissionStatus status) {

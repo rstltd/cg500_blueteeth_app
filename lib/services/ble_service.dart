@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../models/ble_device.dart';
 import '../models/ble_service.dart';
 import '../models/connection_state.dart';
+import '../utils/logger.dart';
 import 'permission_service.dart';
 import 'smart_notification_service.dart';
 // import 'error_handling_service.dart'; // Reserved for future use
@@ -72,7 +72,7 @@ class BleService {
       }
 
       _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
-        debugPrint('Bluetooth adapter state: $state');
+        Logger.ble('Bluetooth adapter state: $state');
         if (state != BluetoothAdapterState.on) {
           stopScanning();
         }
@@ -87,7 +87,7 @@ class BleService {
       return true;
 
     } catch (e) {
-      debugPrint('Error initializing BLE service: $e');
+      Logger.error('Failed to initialize BLE service', error: e);
       _notificationService.showError(
         title: 'Initialization Failed',
         message: 'Failed to initialize BLE service: $e',
@@ -104,7 +104,7 @@ class BleService {
     try {
       await FlutterBluePlus.turnOn();
     } catch (e) {
-      debugPrint('Error turning on Bluetooth: $e');
+      Logger.error('Error turning on Bluetooth', error: e);
       _notificationService.showError(
         title: 'Bluetooth Error',
         message: 'Could not turn on Bluetooth automatically',
@@ -145,7 +145,7 @@ class BleService {
         androidUsesFineLocation: true,
       );
 
-      debugPrint('Started BLE scanning for ${timeout.inSeconds} seconds');
+      Logger.ble('Started BLE scanning for ${timeout.inSeconds} seconds');
 
       Timer(timeout, () {
         if (_isScanning) {
@@ -156,7 +156,7 @@ class BleService {
       return true;
 
     } catch (e) {
-      debugPrint('Error starting scan: $e');
+      Logger.error('Error starting scan', error: e);
       _notificationService.showError(
         title: 'Scan Failed',
         message: 'Failed to start scanning: $e',
@@ -199,9 +199,9 @@ class BleService {
         await _scanResultsSubscription?.cancel();
         _isScanning = false;
         _scanningController.add(false);
-        debugPrint('Stopped BLE scanning');
+        Logger.ble('Stopped BLE scanning');
       } catch (e) {
-        debugPrint('Error stopping scan: $e');
+        Logger.error('Error stopping scan', error: e);
       }
     }
   }
@@ -244,10 +244,10 @@ class BleService {
       // Set MTU to 517 as required by device manufacturer
       try {
         int mtu = await bluetoothDevice.requestMtu(targetMtu);
-        debugPrint('MTU set to: $mtu (requested: $targetMtu)');
+        Logger.ble('MTU set to: $mtu (requested: $targetMtu)');
         // Silent operation - MTU configuration is internal
       } catch (e) {
-        debugPrint('Failed to set MTU: $e');
+        Logger.error('Failed to set MTU', error: e);
         _notificationService.showWarning(
           title: 'MTU Warning',
           message: 'Could not set MTU to $targetMtu: $e',
@@ -261,13 +261,13 @@ class BleService {
       _devicesController.add(_scannedDevices.values.toList());
       _connectedDeviceController.add(connectedDevice);
       
-      debugPrint('Connection successful: ${connectedDevice.displayName}');
-      debugPrint('Connected device set: ${_connectedDevice?.displayName}');
+      Logger.connection('Connection successful: ${connectedDevice.displayName}');
+      Logger.connection('Connected device set: ${_connectedDevice?.displayName}');
 
       // Listen to connection state changes (but avoid immediate override)
       Timer(const Duration(milliseconds: 1000), () {
         bluetoothDevice.connectionState.listen((state) {
-          debugPrint('Connection state change: $deviceId -> $state');
+          Logger.connection('Connection state change: $deviceId -> $state');
           _handleConnectionStateChange(deviceId, state);
         });
       });
@@ -281,7 +281,7 @@ class BleService {
       return true;
 
     } catch (e) {
-      debugPrint('Error connecting to device: $e');
+      Logger.error('Error connecting to device', error: e);
       
       // Update connection state back to disconnected
       BleDeviceModel failedDevice = device.updateConnectionState(BleConnectionState.disconnected);
@@ -299,7 +299,7 @@ class BleService {
   }
 
   void _handleConnectionStateChange(String deviceId, BluetoothConnectionState state) {
-    debugPrint('_handleConnectionStateChange: $deviceId -> $state');
+    Logger.connection('_handleConnectionStateChange: $deviceId -> $state');
     
     BleConnectionState connectionState;
     switch (state) {
@@ -320,21 +320,21 @@ class BleService {
       _scannedDevices[deviceId] = updatedDevice;
       _devicesController.add(_scannedDevices.values.toList());
       
-      debugPrint('Updated device state: ${updatedDevice.connectionState}');
+      Logger.connection('Updated device state: ${updatedDevice.connectionState}');
 
       if (connectionState.isConnected) {
         _connectedDevice = updatedDevice;
         _connectedDeviceController.add(updatedDevice);
-        debugPrint('Set connected device: ${updatedDevice.displayName}');
+        Logger.connection('Set connected device: ${updatedDevice.displayName}');
       } else if (connectionState.isDisconnected) {
         if (_connectedDevice?.id == deviceId) {
           _connectedDevice = null;
           _connectedDeviceController.add(null);
-          debugPrint('Cleared connected device');
+          Logger.connection('Cleared connected device');
         }
       }
     } else {
-      debugPrint('Device not found in scanned devices: $deviceId');
+      Logger.debug('Device not found in scanned devices: $deviceId');
     }
   }
 
@@ -352,7 +352,7 @@ class BleService {
       }
     }
 
-    debugPrint('BluetoothDevice not found in cache or connected devices: $deviceId');
+    Logger.debug('BluetoothDevice not found in cache or connected devices: $deviceId');
     return null;
   }
 
@@ -392,7 +392,7 @@ class BleService {
       );
 
     } catch (e) {
-      debugPrint('Error disconnecting device: $e');
+      Logger.error('Error disconnecting device', error: e);
       _notificationService.showError(
         title: 'Disconnect Failed',
         message: 'Failed to disconnect device: $e',
@@ -437,7 +437,7 @@ class BleService {
       return serviceModels;
 
     } catch (e) {
-      debugPrint('Error discovering services: $e');
+      Logger.error('Error discovering services', error: e);
       _notificationService.showError(
         title: 'Service Discovery Failed',
         message: 'Failed to discover services: $e',
@@ -462,28 +462,28 @@ class BleService {
   Future<void> _setupCommandCharacteristics(List<BluetoothService> services) async {
     try {
       // Nordic UART Service UUIDs
-      const String nordicUartServiceUuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-      const String nordicUartRxUuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // RX - phone writes to device
-      const String nordicUartTxUuid = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // TX - device notifies phone
+      const String nordicUartServiceUuid = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+      const String nordicUartRxUuid = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // RX - phone writes to device
+      const String nordicUartTxUuid = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // TX - device notifies phone
       
-      debugPrint('Looking for Nordic UART Service...');
+      Logger.ble('Looking for Nordic UART Service...');
       
       for (BluetoothService service in services) {
         String serviceUuid = service.uuid.toString().toLowerCase();
-        debugPrint('Service found: $serviceUuid');
+        Logger.ble('Service found: $serviceUuid');
         
         // Look specifically for Nordic UART Service
         if (serviceUuid == nordicUartServiceUuid) {
-          debugPrint('Nordic UART Service found!');
+          Logger.ble('Nordic UART Service found!');
           
           for (BluetoothCharacteristic characteristic in service.characteristics) {
             String charUuid = characteristic.uuid.toString().toLowerCase();
-            debugPrint('Characteristic: $charUuid, Properties: ${characteristic.properties}');
+            Logger.ble('Characteristic: $charUuid, Properties: ${characteristic.properties}');
             
             // RX Characteristic (6e400002) - phone writes commands to device
             if (charUuid == nordicUartRxUuid && characteristic.properties.write) {
               _commandCharacteristic = characteristic;
-              debugPrint('Nordic UART RX characteristic found (command channel): $charUuid');
+              Logger.ble('Nordic UART RX characteristic found (command channel): $charUuid');
             }
             
             // TX Characteristic (6e400003) - device sends notifications to phone
@@ -492,31 +492,31 @@ class BleService {
               
               // Set TX characteristic to 01-00 (enable notifications)
               try {
-                debugPrint('Attempting to enable notifications on TX characteristic: $charUuid');
+                Logger.ble('Attempting to enable notifications on TX characteristic: $charUuid');
                 await characteristic.setNotifyValue(true);
-                debugPrint('Nordic UART TX notifications enabled successfully');
+                Logger.ble('Nordic UART TX notifications enabled successfully');
                 
                 // Verify the CCC descriptor was set to 01-00
                 for (BluetoothDescriptor descriptor in characteristic.descriptors) {
-                  debugPrint('Descriptor found: ${descriptor.uuid}');
+                  Logger.ble('Descriptor found: ${descriptor.uuid}');
                   if (descriptor.uuid.toString().toLowerCase() == '00002902-0000-1000-8000-00805f9b34fb') {
                     List<int> value = await descriptor.read();
-                    debugPrint('CCC descriptor value: ${value.map((e) => e.toRadixString(16).padLeft(2, '0')).join('-')}');
+                    Logger.ble('CCC descriptor value: ${value.map((e) => e.toRadixString(16).padLeft(2, '0')).join('-')}');
                   }
                 }
                 
                 // Subscribe to responses
                 _responseSubscription = characteristic.lastValueStream.listen((data) {
                   String response = utf8.decode(data);
-                  debugPrint('Received Nordic UART response: $response');
+                  Logger.command('Received Nordic UART response: $response');
                   _commandResponseController.add(response);
                 }, onError: (error) {
-                  debugPrint('Error in response stream: $error');
+                  Logger.error('Error in response stream', error: error);
                 });
                 
-                debugPrint('Nordic UART TX characteristic setup complete: $charUuid');
+                Logger.ble('Nordic UART TX characteristic setup complete: $charUuid');
               } catch (e) {
-                debugPrint('Error enabling TX notifications: $e');
+                Logger.error('Error enabling TX notifications', error: e);
               }
             }
           }
@@ -526,14 +526,14 @@ class BleService {
 
       // Fallback: look for any writable and notifiable characteristics if Nordic UART not found
       if (_commandCharacteristic == null || _responseCharacteristic == null) {
-        debugPrint('Nordic UART Service not found, looking for generic characteristics...');
+        Logger.ble('Nordic UART Service not found, looking for generic characteristics...');
         
         for (BluetoothService service in services) {
           for (BluetoothCharacteristic characteristic in service.characteristics) {
             // Look for command characteristic (writable)
             if (characteristic.properties.write && _commandCharacteristic == null) {
               _commandCharacteristic = characteristic;
-              debugPrint('Generic command characteristic found: ${characteristic.uuid}');
+              Logger.ble('Generic command characteristic found: ${characteristic.uuid}');
             }
             
             // Look for response characteristic (notifiable)
@@ -544,11 +544,11 @@ class BleService {
               await characteristic.setNotifyValue(true);
               _responseSubscription = characteristic.lastValueStream.listen((data) {
                 String response = utf8.decode(data);
-                debugPrint('Received response: $response');
+                Logger.command('Received response: $response');
                 _commandResponseController.add(response);
               });
               
-              debugPrint('Generic response characteristic found: ${characteristic.uuid}');
+              Logger.ble('Generic response characteristic found: ${characteristic.uuid}');
             }
           }
         }
@@ -559,8 +559,8 @@ class BleService {
           title: 'Communication Ready',
           message: 'Nordic UART Service configured successfully',
         );
-        debugPrint('Command channel: ${_commandCharacteristic?.uuid}');
-        debugPrint('Response channel: ${_responseCharacteristic?.uuid}');
+        Logger.ble('Command channel: ${_commandCharacteristic?.uuid}');
+        Logger.ble('Response channel: ${_responseCharacteristic?.uuid}');
       } else {
         List<String> missing = [];
         if (_commandCharacteristic == null) missing.add('RX (command)');
@@ -573,7 +573,7 @@ class BleService {
       }
 
     } catch (e) {
-      debugPrint('Error setting up Nordic UART characteristics: $e');
+      Logger.error('Error setting up Nordic UART characteristics', error: e);
       _notificationService.showError(
         title: 'Communication Setup Failed',
         message: 'Failed to setup Nordic UART communication: $e',
@@ -596,13 +596,11 @@ class BleService {
       await _commandCharacteristic!.write(commandBytes, withoutResponse: false);
       
       // Silent operation - command sending feedback shown in UI
-      debugPrint('Command sent: $command');
-      
-      debugPrint('Sent command: $command');
+      Logger.command('Command sent: $command');
       return true;
 
     } catch (e) {
-      debugPrint('Error sending command: $e');
+      Logger.error('Error sending command', error: e);
       _notificationService.showError(
         title: 'Send Failed',
         message: 'Failed to send command: $e',
@@ -628,7 +626,7 @@ class BleService {
     _responseSubscription = null;
     _commandCharacteristic = null;
     _responseCharacteristic = null;
-    debugPrint('Command characteristics cleaned up');
+    Logger.debug('Command characteristics cleaned up');
   }
 
   void dispose() {
