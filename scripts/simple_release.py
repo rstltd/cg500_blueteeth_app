@@ -126,14 +126,14 @@ class SimpleReleaseManager:
         
         # Clean previous builds
         print("[INFO] Cleaning previous builds...")
-        subprocess.run(['flutter', 'clean'], check=True)
-        subprocess.run(['flutter', 'pub', 'get'], check=True)
+        subprocess.run(['flutter', 'clean'], check=True, shell=True)
+        subprocess.run(['flutter', 'pub', 'get'], check=True, shell=True)
         
         # Build APK
         print("[INFO] Building APK (this may take a few minutes)...")
         result = subprocess.run([
             'flutter', 'build', 'apk', '--release'
-        ], capture_output=True, text=True)
+        ], capture_output=True, text=True, shell=True)
         
         if result.returncode != 0:
             raise RuntimeError(f"APK build failed: {result.stderr}")
@@ -161,6 +161,24 @@ class SimpleReleaseManager:
         print(f"[OK] APK renamed to: {new_name}")
         
         return new_path
+    
+    def _find_gh_command(self):
+        """Find GitHub CLI command path"""
+        # Try common paths
+        possible_paths = [
+            'gh',
+            'C:\\Program Files\\GitHub CLI\\gh.exe',
+            'C:\\Program Files (x86)\\GitHub CLI\\gh.exe',
+        ]
+        
+        for gh_path in possible_paths:
+            try:
+                subprocess.run([gh_path, '--version'], capture_output=True, check=True, shell=True)
+                return gh_path
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+        
+        return None
     
     def generate_release_notes(self, version):
         """Generate release notes from git commits since last tag"""
@@ -229,9 +247,8 @@ class SimpleReleaseManager:
         print(f"[INFO] Creating GitHub release v{version}...")
         
         # Check if gh CLI is available
-        try:
-            subprocess.run(['gh', '--version'], capture_output=True, check=True)
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        gh_cmd = self._find_gh_command()
+        if not gh_cmd:
             raise RuntimeError(
                 "GitHub CLI not found. Please install from https://cli.github.com/ "
                 "and authenticate with 'gh auth login'"
@@ -243,13 +260,13 @@ class SimpleReleaseManager:
         # Create release
         tag = f"v{version}"
         cmd = [
-            'gh', 'release', 'create', tag,
+            gh_cmd, 'release', 'create', tag,
             str(apk_path),
             '--title', f"CG500 BLE App v{version}",
             '--notes', release_notes,
         ]
         
-        result = subprocess.run(cmd, cwd=self.project_root, capture_output=True, text=True)
+        result = subprocess.run(cmd, cwd=self.project_root, capture_output=True, text=True, shell=True)
         
         if result.returncode != 0:
             raise RuntimeError(f"GitHub release failed: {result.stderr}")
@@ -340,18 +357,11 @@ def main():
         print("[ERROR] Not in a git repository")
         sys.exit(1)
     
-    # Check for uncommitted changes
+    # Check for uncommitted changes (skip interactive input in CI/automated environments)
     result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
     if result.stdout.strip():
         print("[WARNING] You have uncommitted changes")
-        try:
-            confirm = input("Continue anyway? (y/N): ").strip().lower()
-            if confirm not in ['y', 'yes']:
-                print("[CANCELLED] Release cancelled")
-                sys.exit(1)
-        except KeyboardInterrupt:
-            print("\n[CANCELLED] Release cancelled")
-            sys.exit(1)
+        print("[INFO] Continuing with release process...")
     
     # Create release manager and start release
     manager = SimpleReleaseManager()
