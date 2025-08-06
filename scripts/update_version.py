@@ -19,6 +19,12 @@ import re
 import os
 from pathlib import Path
 
+# Fix Windows console encoding for emoji support
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
+
 def get_pubspec_path():
     """Find pubspec.yaml file"""
     current_dir = Path.cwd()
