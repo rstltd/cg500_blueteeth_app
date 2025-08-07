@@ -9,6 +9,7 @@ import '../utils/responsive_utils.dart';
 import '../widgets/animated_widgets.dart';
 import '../widgets/notification_settings_dialog.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/legacy_update_banner.dart';
 import 'command_interface_view.dart';
 import 'update_settings_view.dart';
 
@@ -189,10 +190,20 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
           ),
         ],
       ),
-      body: ResponsiveLayout(
-        mobile: _buildMobileLayout(),
-        tablet: _buildTabletLayout(),
-        desktop: _buildDesktopLayout(),
+      body: Column(
+        children: [
+          // Legacy update banner for old versions
+          const LegacyUpdateBanner(),
+          
+          // Main content
+          Expanded(
+            child: ResponsiveLayout(
+              mobile: _buildMobileLayout(),
+              tablet: _buildTabletLayout(),
+              desktop: _buildDesktopLayout(),
+            ),
+          ),
+        ],
       ),
     );
   }
