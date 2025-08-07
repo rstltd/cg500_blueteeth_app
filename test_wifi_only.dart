@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'lib/services/update_service.dart';
 import 'lib/services/network_service.dart';
-import 'lib/models/update_preferences.dart';
 import 'lib/utils/logger.dart';
 
 void main() {

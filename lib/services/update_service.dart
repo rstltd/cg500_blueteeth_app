@@ -397,15 +397,73 @@ class UpdateService {
       
       Logger.info('Install APK platform channel result: $result');
       
-      if (result == true) {
-        Logger.info('✅ APK installation triggered successfully');
+      // Handle detailed result from Android
+      if (result is Map) {
+        final installResult = Map<String, dynamic>.from(result);
+        final success = installResult['success'] ?? false;
+        
+        Logger.info('Installation result details: $installResult');
+        
+        if (success) {
+          Logger.info('✅ APK installation started successfully');
+          _notificationService.showSuccess(
+            title: 'Installation Started',
+            message: 'Please follow the installation prompts.',
+          );
+          return true;
+        } else {
+          final error = installResult['error'] ?? 'Unknown error';
+          final errorType = installResult['errorType'] ?? 'UNKNOWN';
+          
+          Logger.error('❌ APK installation failed', error: '$errorType: $error');
+          
+          // Show specific error messages based on error type
+          switch (errorType) {
+            case 'PERMISSION_DENIED':
+              Logger.warning('Permission denied - requesting install permission');
+              _notificationService.showError(
+                title: 'Permission Required',
+                message: 'Please allow installation from unknown sources in device settings, then try again.',
+              );
+              // Automatically request permission
+              await platform.invokeMethod('requestInstallPermission');
+              break;
+            case 'FILE_NOT_FOUND':
+              _notificationService.showError(
+                title: 'File Not Found',
+                message: 'The APK file could not be found. Please try downloading again.',
+              );
+              break;
+            case 'FILEPROVIDER_ERROR':
+              _notificationService.showError(
+                title: 'File Access Error',
+                message: 'Could not access the APK file for installation. Check app permissions.',
+              );
+              break;
+            case 'NO_RESOLVER':
+              _notificationService.showError(
+                title: 'Installation Not Supported',
+                message: 'No app found to handle APK installation on this device.',
+              );
+              break;
+            default:
+              _notificationService.showError(
+                title: 'Installation Failed',
+                message: 'Error: $error',
+              );
+          }
+          return false;
+        }
+      } else if (result == true) {
+        // Legacy boolean result handling
+        Logger.info('✅ APK installation triggered successfully (legacy result)');
         _notificationService.showSuccess(
           title: 'Installation Started',
           message: 'Follow the installation prompts to complete the update.',
         );
         return true;
       } else {
-        Logger.warning('❌ APK installation trigger returned false');
+        Logger.warning('❌ APK installation trigger returned: $result');
         _notificationService.showError(
           title: 'Installation Failed',
           message: 'Could not start APK installation. Please check permissions.',

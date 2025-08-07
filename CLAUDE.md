@@ -315,3 +315,43 @@ The application uses a complete GitHub Releases-based deployment system that eli
 - **Force updates**: Support for critical updates via commit message tags
 
 This system provides professional-grade deployment capabilities without server maintenance costs, leveraging GitHub's infrastructure for reliable global distribution.
+
+## Diagnostic and Testing Tools
+
+### Test Runners
+The project includes specialized diagnostic tools for troubleshooting specific functionality:
+
+#### WiFi Only Settings Test:
+```bash
+flutter run -t test_wifi_only.dart
+```
+- Tests WiFi-only download preferences behavior
+- Validates setting synchronization between UI and services
+- Simulates network condition testing
+- Verifies preference loading and fallback logic
+
+#### Permission Diagnosis Tool:
+```bash
+flutter run -t test_permissions.dart
+```
+- Diagnoses Android APK installation permissions
+- Tests `canRequestPackageInstalls()` functionality
+- Validates FileProvider configuration
+- Provides step-by-step permission request flow
+
+### Key Troubleshooting Areas
+
+#### Update System Issues:
+1. **WiFi-Only Setting Problems**: Check `lib/widgets/network_info_widget.dart` for proper null handling in preference loading
+2. **APK Installation Failures**: Use `test_permissions.dart` to validate Android permissions and FileProvider setup
+3. **Download Failures**: Verify GitHub API access and network connectivity in UpdateService
+4. **Setting Synchronization**: Ensure `UpdateService.updatePreferences()` is called after UI preference changes
+
+#### Common Fix Patterns:
+- **Preference Fallback Logic**: Always use non-restrictive fallbacks (allow mobile data) when settings are loading
+- **Setting Synchronization**: Call `updateService.updatePreferences(prefs)` after any UI setting changes
+- **Permission Handling**: Check both legacy and Android 8.0+ unknown sources permissions
+
+#### Documentation References:
+- WiFi-only fix details: `WIFI_ONLY_FIX.md`
+- Architecture patterns: Follow MVC separation with single-responsibility widgets
