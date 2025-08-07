@@ -103,7 +103,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CG500 BLE Scanner v2.0.15'),
+        title: const Text('CG500 BLE Scanner v2.0.18'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           // Notification Settings Button
