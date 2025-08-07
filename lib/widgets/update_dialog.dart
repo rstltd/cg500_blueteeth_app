@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../services/theme_service.dart';
@@ -353,67 +354,117 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
           ),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // Skip version button (only for non-forced updates)
-          if (!widget.updateInfo.isForced && !_isDownloading)
-            Expanded(
-              child: TextButton.icon(
-                onPressed: () => _skipVersion(),
-                icon: const Icon(Icons.block),
-                label: const Text('Skip'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey.shade600,
+          // Show download failure message if needed
+          if (_isDownloading && _downloadProgress == 0.0)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'If download fails, try "Browser Download" below',
+                      style: TextStyle(
+                        color: Colors.orange.shade700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          
+          Row(
+            children: [
+              // Skip version button (only for non-forced updates)
+              if (!widget.updateInfo.isForced && !_isDownloading)
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: () => _skipVersion(),
+                    icon: const Icon(Icons.block),
+                    label: const Text('Skip'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              
+              // Later button
+              if (!widget.updateInfo.isForced && !_isDownloading)
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onDismiss?.call();
+                    },
+                    child: const Text('Later'),
+                  ),
+                ),
+              
+              if (!widget.updateInfo.isForced && !_isDownloading)
+                const SizedBox(width: 8),
+              
+              // Update button
+              Expanded(
+                flex: widget.updateInfo.isForced ? 2 : 1,
+                child: ElevatedButton(
+                  onPressed: _isDownloading ? null : _startUpdate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.updateInfo.updateType == UpdateType.critical
+                        ? Colors.red.shade600
+                        : Colors.blue.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isDownloading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          widget.updateInfo.isForced ? 'Update Now' : 'Update',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
-            ),
+            ],
+          ),
           
-          // Later button
-          if (!widget.updateInfo.isForced && !_isDownloading)
-            Expanded(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  widget.onDismiss?.call();
-                },
-                child: const Text('Later'),
-              ),
-            ),
-          
-          if (!widget.updateInfo.isForced && !_isDownloading)
-            const SizedBox(width: 8),
-          
-          // Update button
-          Expanded(
-            flex: widget.updateInfo.isForced ? 2 : 1,
-            child: ElevatedButton(
-              onPressed: _isDownloading ? null : _startUpdate,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.updateInfo.updateType == UpdateType.critical
-                    ? Colors.red.shade600
-                    : Colors.blue.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+          // Browser download button (backup option)
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _openBrowserDownload,
+              icon: const Icon(Icons.open_in_browser, size: 18),
+              label: const Text('Browser Download'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blue.shade600,
+                side: BorderSide(color: Colors.blue.shade600),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isDownloading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Text(
-                      widget.updateInfo.isForced ? 'Update Now' : 'Update',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
             ),
           ),
         ],
@@ -599,5 +650,71 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  /// Open browser download as backup option
+  Future<void> _openBrowserDownload() async {
+    const url = 'https://github.com/rstltd/cg500_blueteeth_app/releases/latest';
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        
+        // Show guidance dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  const Text('Download Guide'),
+                ],
+              ),
+              content: const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('📱 Manual Download Instructions:'),
+                  SizedBox(height: 12),
+                  Text('1. Find the APK file on GitHub'),
+                  Text('2. Tap to download the APK'),
+                  Text('3. Open Downloads folder'),
+                  Text('4. Tap the APK to install'),
+                  Text('5. Allow "Install from unknown sources" if prompted'),
+                  SizedBox(height: 12),
+                  Text('The APK file will be named like:\ncg500_ble_app_v1.1.0.apk'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Got it'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Cannot open browser. Please visit:\n$url'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open browser: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
