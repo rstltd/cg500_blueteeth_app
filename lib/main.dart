@@ -112,12 +112,12 @@ class AppLoadingScreen extends StatelessWidget {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Initializing CG500 Bluetooth App...',
+              'Initializing CG500 Bluetooth App v2.0...',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Preparing update system',
+              'Loading enhanced update system',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),

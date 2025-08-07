@@ -250,7 +250,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
   }
 
   String _getUpdateMessage() {
-    return 'Version ${_updateInfo!.latestVersion} is now available';
+    return 'Version ${_updateInfo!.latestVersion} with enhanced features is available';
   }
 
   Color _getPrimaryColor() {
