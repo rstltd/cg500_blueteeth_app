@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import '../services/theme_service.dart';
 import '../utils/responsive_utils.dart';
+import '../services/update_service.dart';
+import '../utils/logger.dart';
 
 /// Dialog that provides step-by-step installation guide for APK files
 class InstallGuideDialog extends StatefulWidget {
   final VoidCallback? onComplete;
+  final String? apkPath; // Add APK path parameter
+  final bool autoInstall; // Flag to trigger auto installation
 
   const InstallGuideDialog({
     super.key,
     this.onComplete,
+    this.apkPath,
+    this.autoInstall = true,
   });
 
   @override
@@ -20,16 +26,19 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   int _currentStep = 0;
+  final UpdateService _updateService = UpdateService();
+  bool _hasTriggeredInstall = false;
   
   final List<InstallStep> _steps = [
     InstallStep(
-      title: 'Download Complete',
-      description: 'The update file has been downloaded to your device.',
+      title: 'Starting Installation',
+      description: 'The update is being prepared for installation.',
       icon: Icons.download_done,
       color: Colors.green,
       instructions: [
-        'The APK file is ready to install',
-        'Tap "Install Now" to continue',
+        'The APK installation has been triggered',
+        'Android system installer should open shortly',
+        'If nothing happens, tap "Install Manually" below',
       ],
     ),
     InstallStep(
@@ -85,12 +94,62 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
     ));
     
     _animationController.forward();
+    
+    // Trigger APK installation immediately if auto-install is enabled
+    if (widget.autoInstall && widget.apkPath != null && !_hasTriggeredInstall) {
+      _triggerApkInstallation();
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  /// Trigger APK installation via platform channel
+  Future<void> _triggerApkInstallation() async {
+    if (_hasTriggeredInstall || widget.apkPath == null) return;
+    
+    _hasTriggeredInstall = true;
+    Logger.info('Triggering APK installation: ${widget.apkPath}');
+    
+    try {
+      // Wait a moment for the dialog to show
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      final success = await _updateService.installUpdate(widget.apkPath!);
+      
+      if (success) {
+        Logger.info('APK installation triggered successfully');
+        // Move to step 2 (permissions)
+        if (mounted) {
+          setState(() {
+            _currentStep = 1;
+          });
+        }
+      } else {
+        Logger.error('Failed to trigger APK installation');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to start installation. Please install manually.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      Logger.error('Error during APK installation trigger', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Installation error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -399,14 +458,23 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                 if (isLastStep) {
                   Navigator.of(context).pop();
                   widget.onComplete?.call();
+                } else if (_currentStep == 0 && widget.apkPath != null) {
+                  // On first step, manually trigger installation if not already done
+                  if (!_hasTriggeredInstall) {
+                    _triggerApkInstallation();
+                  } else {
+                    setState(() {
+                      _currentStep++;
+                    });
+                  }
                 } else {
                   setState(() {
                     _currentStep++;
                   });
                 }
               },
-              icon: Icon(isLastStep ? Icons.check : Icons.arrow_forward),
-              label: Text(isLastStep ? 'Got It!' : 'Next'),
+              icon: Icon(isLastStep ? Icons.check : (_currentStep == 0 ? Icons.install_mobile : Icons.arrow_forward)),
+              label: Text(isLastStep ? 'Got It!' : (_currentStep == 0 ? 'Install Now' : 'Next')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _steps[_currentStep].color,
                 foregroundColor: Colors.white,

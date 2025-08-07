@@ -165,12 +165,12 @@ class UpdateService {
   }
 
   /// Download APK update with real-time progress tracking
-  Future<bool> downloadUpdate(UpdateInfo updateInfo) async {
+  Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
     return _downloadWithRetry(updateInfo, 0);
   }
 
   /// Download with retry mechanism and real progress tracking
-  Future<bool> _downloadWithRetry(UpdateInfo updateInfo, int attemptNumber) async {
+  Future<String?> _downloadWithRetry(UpdateInfo updateInfo, int attemptNumber) async {
     try {
       // Check network connectivity
       if (!_networkService.isSuitableForDownload(
@@ -182,7 +182,7 @@ class UpdateService {
               ? 'WiFi connection required for downloads. Currently: $networkStatus'
               : 'No internet connection available',
         );
-        return false;
+        return null;
       }
 
       // Show network info for mobile data
@@ -291,7 +291,7 @@ class UpdateService {
           message: 'Update ready to install (${_formatBytes(downloadedBytes)})',
         );
 
-        return true;
+        return filePath;
       } finally {
         client.close();
       }
@@ -322,7 +322,7 @@ class UpdateService {
           title: 'Download Failed',
           message: 'Unable to download after $_maxRetries attempts. Check network connection.',
         );
-        return false;
+        return null;
       }
     }
   }
@@ -335,14 +335,35 @@ class UpdateService {
     }
 
     try {
+      Logger.info('Starting APK installation process...');
+      Logger.info('APK path: $apkPath');
+      
+      // Check if file exists
+      final file = File(apkPath);
+      if (!await file.exists()) {
+        Logger.error('APK file does not exist at path: $apkPath');
+        return false;
+      }
+      
+      Logger.info('APK file exists, size: ${await file.length()} bytes');
+      
       // Use platform channel to install APK
       const platform = MethodChannel('com.cg500.ble_app/update');
+      Logger.info('Calling platform method installApk...');
+      
       final result = await platform.invokeMethod('installApk', {'filePath': apkPath});
       
-      Logger.info('Install APK result: $result');
-      return result == true;
+      Logger.info('Install APK platform channel result: $result');
+      
+      if (result == true) {
+        Logger.info('✅ APK installation triggered successfully');
+        return true;
+      } else {
+        Logger.warning('❌ APK installation trigger returned false');
+        return false;
+      }
     } catch (e) {
-      Logger.error('Failed to install APK', error: e);
+      Logger.error('❌ Failed to install APK via platform channel', error: e);
       return false;
     }
   }

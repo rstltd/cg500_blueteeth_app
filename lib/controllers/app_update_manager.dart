@@ -211,10 +211,10 @@ class AppUpdateManager {
   }
 
   /// Start update download
-  Future<bool> downloadUpdate() async {
+  Future<String?> downloadUpdate() async {
     if (_latestUpdateInfo == null) {
       Logger.warning('No update info available for download');
-      return false;
+      return null;
     }
 
     try {
@@ -222,7 +222,7 @@ class AppUpdateManager {
       return await _updateService.downloadUpdate(_latestUpdateInfo!);
     } catch (e) {
       Logger.error('Failed to download update', error: e);
-      return false;
+      return null;
     }
   }
 

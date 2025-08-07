@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../widgets/install_guide_dialog.dart';
+import '../utils/logger.dart';
 
 /// Manager for handling update logic including download, install, and skip operations
 class UpdateLogicManager {
@@ -58,19 +59,31 @@ class UpdateLogicManager {
     _isDownloading = true;
     onDownloadStateChanged?.call(true);
 
-    final success = await _updateService.downloadUpdate(updateInfo);
-    
-    if (!success) {
+    try {
+      final apkFilePath = await _updateService.downloadUpdate(updateInfo);
+      
+      if (apkFilePath != null) {
+        // Download completed successfully, now install
+        Logger.info('Download completed, starting installation: $apkFilePath');
+        
+        // Reset downloading state
+        _isDownloading = false;
+        onDownloadStateChanged?.call(false);
+        
+        // Start installation process
+        if (context.mounted) {
+          await _installUpdate(apkFilePath, context);
+        }
+      } else {
+        // Download failed
+        Logger.error('Download failed: no file path returned');
+        _isDownloading = false;
+        onDownloadStateChanged?.call(false);
+      }
+    } catch (e) {
+      Logger.error('Error during update process', error: e);
       _isDownloading = false;
       onDownloadStateChanged?.call(false);
-    } else {
-      // Auto install when download completes
-      if (_downloadProgress >= 1.0) {
-        final downloadResult = await _updateService.downloadStream.first;
-        if (downloadResult.filePath != null && context.mounted) {
-          await _installUpdate(downloadResult.filePath!, context);
-        }
-      }
     }
   }
 
@@ -82,6 +95,8 @@ class UpdateLogicManager {
       context: context,
       barrierDismissible: false,
       builder: (context) => InstallGuideDialog(
+        apkPath: apkPath,
+        autoInstall: true,
         onComplete: () async {
           // Save context references before async operation
           NavigatorState? navigator;
