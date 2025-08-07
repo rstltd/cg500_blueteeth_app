@@ -39,19 +39,23 @@ This is a Flutter mobile application named `cg500_blueteeth_app` - appears to be
 - Platform-specific folders: `android/`, `ios/`, `windows/`, `linux/`, `macos/`, `web/`
 
 ### Current Implementation
-The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communication application with modern UI/UX:
+The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communication application with modern UI/UX and advanced update management:
 
 #### Main Components:
 - `main.dart` - App entry point with Material Design 3 theme and dark mode support
 - `lib/views/simple_scanner_view.dart` - Modern responsive BLE scanner interface with animated components
 - `lib/views/command_interface_view.dart` - Chat-style text command communication interface
+- `lib/views/update_settings_view.dart` - Comprehensive update preferences management
 - `lib/controllers/simple_ble_controller.dart` - MVC controller coordinating BLE operations
 - `lib/services/ble_service.dart` - Core BLE service with Nordic UART Service support
 - `lib/services/smart_notification_service.dart` - Intelligent notification filtering system
+- `lib/services/update_service.dart` - Enhanced update management with user preferences
+- `lib/services/network_service.dart` - Network connectivity monitoring and optimization
 
 #### Key Features:
 - **Nordic UART Service Communication**: Text command communication via standardized BLE UART protocol
 - **Modern Responsive UI**: Material Design 3 with dark/light themes and responsive layouts for mobile/tablet/desktop
+- **Advanced Update Management**: User-controlled update preferences with network awareness and retry mechanisms
 - **Smart Notification System**: Intelligent filtering to prevent notification spam with user-configurable settings
 - **BLE Device Scanning**: Automatic discovery with animated scanning indicators and signal strength visualization
 - **Chat-Style Command Interface**: Real-time bidirectional communication with command history and message bubbles
@@ -59,6 +63,14 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - **Service Discovery**: Automatic GATT service enumeration with characteristic property detection
 - **Permission Management**: Comprehensive Bluetooth and location permission handling
 - **Animation System**: Smooth transitions, scanning effects, and connection status animations
+
+#### Enhanced Update System:
+- **User Preference Controls**: Complete settings page for managing update behavior
+- **Network-Aware Downloads**: WiFi-only options with mobile data warnings and download time estimates
+- **Skip Version Management**: Allow users to skip specific versions with undo functionality
+- **Intelligent Retry Mechanism**: Automatic retry on download failures with progressive backoff
+- **Installation Guidance**: Step-by-step visual guide for APK installation process
+- **Real-time Network Monitoring**: Display current connection status and suitability for downloads
 
 ### Dependencies
 - **Core**: Flutter SDK (^3.8.1)

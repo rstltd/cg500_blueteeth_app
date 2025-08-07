@@ -10,6 +10,7 @@ import '../widgets/animated_widgets.dart';
 import '../widgets/notification_settings_dialog.dart';
 import '../widgets/responsive_layout.dart';
 import 'command_interface_view.dart';
+import 'update_settings_view.dart';
 
 /// Simple Scanner View demonstrating MVC architecture usage
 /// Shows how Views interact with Controllers instead of directly with Services
@@ -108,17 +109,53 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
             tooltip: 'Notification Settings',
           ),
           
-          // Theme Toggle Button
-          StreamBuilder<AppThemeMode>(
-            stream: _themeService.themeModeStream,
-            initialData: _themeService.currentThemeMode,
-            builder: (context, snapshot) {
-              return IconButton(
-                icon: Icon(_themeService.themeModeIcon),
-                onPressed: _themeService.toggleTheme,
-                tooltip: _themeService.themeModeDescription,
-              );
+          // More Settings Menu
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More Settings',
+            onSelected: (String value) {
+              switch (value) {
+                case 'update_settings':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UpdateSettingsView(),
+                    ),
+                  );
+                  break;
+                case 'toggle_theme':
+                  _themeService.toggleTheme();
+                  break;
+              }
             },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'update_settings',
+                child: Row(
+                  children: [
+                    const Icon(Icons.system_update_alt),
+                    const SizedBox(width: 12),
+                    const Text('Update Settings'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'toggle_theme',
+                child: StreamBuilder<AppThemeMode>(
+                  stream: _themeService.themeModeStream,
+                  initialData: _themeService.currentThemeMode,
+                  builder: (context, snapshot) {
+                    return Row(
+                      children: [
+                        Icon(_themeService.themeModeIcon),
+                        const SizedBox(width: 12),
+                        Text(_themeService.themeModeDescription),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
           
           // Connected Device Actions

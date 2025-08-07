@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/update_service.dart';
+import '../services/network_service.dart';
 import '../services/theme_service.dart';
 import '../utils/responsive_utils.dart';
+import 'install_guide_dialog.dart';
 
 /// Dialog for displaying update information and handling user actions
 class UpdateDialog extends StatefulWidget {
@@ -22,12 +24,14 @@ class UpdateDialog extends StatefulWidget {
 
 class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMixin {
   final UpdateService _updateService = UpdateService();
+  final NetworkService _networkService = NetworkService();
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
   String _downloadStatus = '';
+  NetworkStatus _networkStatus = NetworkStatus.unknown;
 
   @override
   void initState() {
@@ -47,6 +51,18 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
     ));
     
     _animationController.forward();
+    
+    // Get initial network status
+    _networkStatus = _networkService.currentStatus;
+    
+    // Listen to network changes
+    _networkService.networkStream.listen((status) {
+      if (mounted) {
+        setState(() {
+          _networkStatus = status;
+        });
+      }
+    });
     
     // Listen to download progress
     _updateService.downloadStream.listen((progress) {
@@ -206,6 +222,7 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
               'Release Date',
               _formatDate(widget.updateInfo.releaseDate),
             ),
+            _buildNetworkInfo(),
             
             const SizedBox(height: 24),
             
@@ -338,11 +355,24 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
       ),
       child: Row(
         children: [
-          // Cancel/Later button
+          // Skip version button (only for non-forced updates)
+          if (!widget.updateInfo.isForced && !_isDownloading)
+            Expanded(
+              child: TextButton.icon(
+                onPressed: () => _skipVersion(),
+                icon: const Icon(Icons.block),
+                label: const Text('Skip'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey.shade600,
+                ),
+              ),
+            ),
+          
+          // Later button
           if (!widget.updateInfo.isForced && !_isDownloading)
             Expanded(
               child: TextButton(
-                onPressed: _isDownloading ? null : () {
+                onPressed: () {
                   Navigator.of(context).pop();
                   widget.onDismiss?.call();
                 },
@@ -351,11 +381,11 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
             ),
           
           if (!widget.updateInfo.isForced && !_isDownloading)
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
           
           // Update button
           Expanded(
-            flex: widget.updateInfo.isForced ? 1 : 1,
+            flex: widget.updateInfo.isForced ? 2 : 1,
             child: ElevatedButton(
               onPressed: _isDownloading ? null : _startUpdate,
               style: ElevatedButton.styleFrom(
@@ -406,21 +436,169 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
   }
 
   Future<void> _installUpdate(String apkPath) async {
-    // Try to install the APK
-    final success = await _updateService.installUpdate(apkPath);
-    
-    if (success) {
-      // Installation started, close dialog
-      if (mounted) {
-        Navigator.of(context).pop();
-        widget.onUpdateComplete?.call();
-      }
-    } else {
-      // Installation failed
-      setState(() {
-        _isDownloading = false;
-      });
+    // Show installation guide first
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => InstallGuideDialog(
+          onComplete: () async {
+            // After guide is complete, try to install the APK
+            final success = await _updateService.installUpdate(apkPath);
+            
+            if (success) {
+              // Installation started, close dialogs
+              if (mounted) {
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                navigator.pop(); // Close guide dialog if still open
+                navigator.pop(); // Close update dialog
+                widget.onUpdateComplete?.call();
+              }
+            } else {
+              // Installation failed, reset download state
+              if (mounted) {
+                final messenger = ScaffoldMessenger.of(context);
+                setState(() {
+                  _isDownloading = false;
+                });
+                
+                // Show error message
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Installation failed. Please try again or install manually.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+        ),
+      );
     }
+  }
+
+  Widget _buildNetworkInfo() {
+    final isWifiRequired = _updateService.preferences?.wifiOnlyDownload ?? true;
+    final networkSuitable = _networkService.isSuitableForDownload(wifiOnly: isWifiRequired);
+    final estimatedTime = _networkService.estimateDownloadTime(widget.updateInfo.downloadSize);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              'Network:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary(context),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(
+                  _getNetworkIcon(),
+                  size: 16,
+                  color: networkSuitable ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _networkService.getNetworkTypeDisplayName(),
+                        style: TextStyle(
+                          color: AppColors.textPrimary(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (!networkSuitable)
+                        Text(
+                          'WiFi recommended',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 12,
+                          ),
+                        ),
+                      Text(
+                        'Est. $estimatedTime',
+                        style: TextStyle(
+                          color: AppColors.textSecondary(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getNetworkIcon() {
+    switch (_networkStatus) {
+      case NetworkStatus.wifi:
+        return Icons.wifi;
+      case NetworkStatus.mobile:
+        return Icons.signal_cellular_4_bar;
+      case NetworkStatus.none:
+        return Icons.wifi_off;
+      case NetworkStatus.unknown:
+        return Icons.help_outline;
+    }
+  }
+
+  void _skipVersion() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Skip Version'),
+        content: Text(
+          'Do you want to skip version ${widget.updateInfo.latestVersion}? '
+          'You won\'t be notified about this version again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop(); // Close confirmation dialog
+              Navigator.of(context).pop(); // Close update dialog
+              
+              await _updateService.skipVersion(widget.updateInfo.latestVersion);
+              widget.onDismiss?.call();
+              
+              if (mounted) {
+                final messenger = ScaffoldMessenger.of(context);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Version ${widget.updateInfo.latestVersion} skipped'),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      onPressed: () {
+                        _updateService.preferences?.unskipVersion(widget.updateInfo.latestVersion);
+                        _updateService.preferences?.save();
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('Skip'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatDate(DateTime date) {

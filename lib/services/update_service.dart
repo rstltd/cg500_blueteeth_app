@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../utils/logger.dart';
+import '../models/update_preferences.dart';
 import 'smart_notification_service.dart';
+import 'network_service.dart';
 
 /// Service for handling app updates and version management
 class UpdateService {
@@ -15,6 +17,10 @@ class UpdateService {
   UpdateService._internal();
 
   final SmartNotificationService _notificationService = SmartNotificationService();
+  final NetworkService _networkService = NetworkService();
+  
+  UpdatePreferences? _preferences;
+  static const int _maxRetries = 3;
   
   // GitHub repository configuration
   static const String _githubOwner = 'rstltd';
@@ -42,7 +48,14 @@ class UpdateService {
       _currentVersion = packageInfo.version;
       _currentBuildNumber = packageInfo.buildNumber;
       
+      // Load user preferences
+      _preferences = await UpdatePreferences.load();
+      
+      // Initialize network service
+      await _networkService.initialize();
+      
       Logger.info('Update Service initialized - Version: $_currentVersion ($_currentBuildNumber)');
+      Logger.info('Update preferences loaded: $_preferences');
       return true;
     } catch (e) {
       Logger.error('Failed to initialize Update Service', error: e);
@@ -53,6 +66,12 @@ class UpdateService {
   /// Check for available updates via GitHub Releases
   Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
     try {
+      // Check if auto check is enabled
+      if (_preferences != null && !_preferences!.autoCheckEnabled && showNotification) {
+        Logger.debug('Auto check disabled by user preferences');
+        return null;
+      }
+
       Logger.info('Checking for updates via GitHub Releases...');
       
       final response = await http.get(
@@ -94,6 +113,12 @@ class UpdateService {
         );
         
         if (updateInfo.hasUpdate) {
+          // Check if this version should be skipped
+          if (_preferences != null && _preferences!.shouldSkipVersion(latestVersion)) {
+            Logger.info('Version $latestVersion is skipped by user preference');
+            return null;
+          }
+
           Logger.info('Update available: $currentVersion -> $latestVersion');
           
           if (showNotification) {
@@ -134,8 +159,33 @@ class UpdateService {
 
   /// Download APK update directly from GitHub
   Future<bool> downloadUpdate(UpdateInfo updateInfo) async {
+    return _downloadWithRetry(updateInfo, 0);
+  }
+
+  /// Download with retry mechanism
+  Future<bool> _downloadWithRetry(UpdateInfo updateInfo, int attemptNumber) async {
     try {
-      Logger.info('Downloading from GitHub: ${updateInfo.downloadUrl}');
+      // Check network connectivity
+      if (!_networkService.isSuitableForDownload(
+          wifiOnly: _preferences?.wifiOnlyDownload ?? true)) {
+        final networkStatus = _networkService.getStatusDescription();
+        _notificationService.showError(
+          title: 'Network Unsuitable',
+          message: _preferences?.wifiOnlyDownload == true 
+              ? 'WiFi connection required for downloads. Currently: $networkStatus'
+              : 'No internet connection available',
+        );
+        return false;
+      }
+
+      // Show network warning for mobile data
+      if (_networkService.currentStatus == NetworkStatus.mobile && 
+          _preferences?.wifiOnlyDownload != false) {
+        final estimatedTime = _networkService.estimateDownloadTime(updateInfo.downloadSize);
+        Logger.info('Downloading via mobile data - Estimated time: $estimatedTime');
+      }
+
+      Logger.info('Downloading from GitHub (attempt ${attemptNumber + 1}): ${updateInfo.downloadUrl}');
       
       // Download directly from GitHub's download URL
       final response = await http.get(
@@ -174,12 +224,26 @@ class UpdateService {
 
       return true;
     } catch (e) {
-      Logger.error('Download failed', error: e);
-      _notificationService.showError(
-        title: 'Download Failed',
-        message: 'Unable to download update: $e',
-      );
-      return false;
+      Logger.error('Download failed (attempt ${attemptNumber + 1})', error: e);
+      
+      // Retry if we haven't exceeded max retries
+      if (attemptNumber < _maxRetries - 1) {
+        Logger.info('Retrying download in 3 seconds... (${attemptNumber + 2}/$_maxRetries)');
+        
+        _notificationService.showInfo(
+          title: 'Download Failed',
+          message: 'Retrying download (${attemptNumber + 2}/$_maxRetries)...',
+        );
+        
+        await Future.delayed(const Duration(seconds: 3));
+        return _downloadWithRetry(updateInfo, attemptNumber + 1);
+      } else {
+        _notificationService.showError(
+          title: 'Download Failed',
+          message: 'Unable to download update after $_maxRetries attempts: $e',
+        );
+        return false;
+      }
     }
   }
 
@@ -249,8 +313,12 @@ class UpdateService {
       final latest = latestVersion.split('.').map(int.parse).toList();
       
       // Ensure both lists have at least 3 elements (major.minor.patch)
-      while (current.length < 3) current.add(0);
-      while (latest.length < 3) latest.add(0);
+      while (current.length < 3) {
+        current.add(0);
+      }
+      while (latest.length < 3) {
+        latest.add(0);
+      }
       
       // Major version change
       if (latest[0] > current[0]) return UpdateType.recommended;
@@ -274,10 +342,41 @@ class UpdateService {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 
+  /// Skip a specific version
+  Future<void> skipVersion(String version) async {
+    if (_preferences != null) {
+      _preferences!.skipVersion(version);
+      await _preferences!.save();
+      Logger.info('Version $version added to skip list');
+    }
+  }
+
+  /// Get current update preferences
+  UpdatePreferences? get preferences => _preferences;
+
+  /// Update preferences and save
+  Future<void> updatePreferences(UpdatePreferences newPreferences) async {
+    _preferences = newPreferences;
+    await _preferences!.save();
+    Logger.info('Update preferences saved: $_preferences');
+  }
+
+  /// Check if auto download is enabled and suitable
+  bool shouldAutoDownload(UpdateInfo updateInfo) {
+    if (_preferences == null || !_preferences!.autoDownloadEnabled) {
+      return false;
+    }
+    
+    return _networkService.isSuitableForDownload(
+      wifiOnly: _preferences!.wifiOnlyDownload,
+    );
+  }
+
   /// Dispose resources
   void dispose() {
     _updateController.close();
     _downloadController.close();
+    _networkService.dispose();
   }
 }
 
