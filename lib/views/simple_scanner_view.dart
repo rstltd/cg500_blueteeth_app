@@ -9,7 +9,8 @@ import '../utils/responsive_utils.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/legacy_update_banner.dart';
+import '../widgets/update_notification_banner.dart';
+import '../controllers/app_update_manager.dart';
 import '../widgets/control_panel_widget.dart';
 import '../widgets/scanning_indicator_widget.dart';
 import '../widgets/connected_device_card_widget.dart';
@@ -121,6 +122,9 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
             tooltip: 'More Settings',
             onSelected: (String value) {
               switch (value) {
+                case 'check_updates':
+                  AppUpdateManager().checkForUpdatesWithUI(force: true);
+                  break;
                 case 'update_settings':
                   Navigator.push(
                     context,
@@ -135,6 +139,16 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
               }
             },
             itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'check_updates',
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh),
+                    const SizedBox(width: 12),
+                    const Text('Check for Updates'),
+                  ],
+                ),
+              ),
               PopupMenuItem<String>(
                 value: 'update_settings',
                 child: Row(
@@ -197,8 +211,10 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
       ),
       body: Column(
         children: [
-          // Legacy update banner for old versions
-          const LegacyUpdateBanner(),
+          // Update notification banner (replaces legacy banner)
+          UpdateNotificationBanner(
+            updateManager: AppUpdateManager(),
+          ),
           
           // Main content
           Expanded(

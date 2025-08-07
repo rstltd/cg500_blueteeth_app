@@ -164,12 +164,12 @@ class UpdateService {
     return null;
   }
 
-  /// Download APK update directly from GitHub
+  /// Download APK update with real-time progress tracking
   Future<bool> downloadUpdate(UpdateInfo updateInfo) async {
     return _downloadWithRetry(updateInfo, 0);
   }
 
-  /// Download with retry mechanism
+  /// Download with retry mechanism and real progress tracking
   Future<bool> _downloadWithRetry(UpdateInfo updateInfo, int attemptNumber) async {
     try {
       // Check network connectivity
@@ -185,69 +185,142 @@ class UpdateService {
         return false;
       }
 
-      // Show network warning for mobile data
+      // Show network info for mobile data
       if (_networkService.currentStatus == NetworkStatus.mobile && 
           _preferences?.wifiOnlyDownload != false) {
         final estimatedTime = _networkService.estimateDownloadTime(updateInfo.downloadSize);
         Logger.info('Downloading via mobile data - Estimated time: $estimatedTime');
       }
 
-      Logger.info('Downloading from GitHub (attempt ${attemptNumber + 1}): ${updateInfo.downloadUrl}');
+      Logger.info('Starting download from GitHub (attempt ${attemptNumber + 1}): ${updateInfo.downloadUrl}');
       
-      // Download directly from GitHub's download URL
-      final response = await http.get(
-        Uri.parse(updateInfo.downloadUrl),
-        headers: {
-          'Accept': 'application/octet-stream',
-          'User-Agent': 'CG500-BLE-App',
-        },
-      ).timeout(const Duration(minutes: 5));
-
-      if (response.statusCode != 200) {
-        throw Exception('Download failed: ${response.statusCode}');
-      }
-
-      // Get app documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/cg500_ble_app_${updateInfo.latestVersion}.apk';
-      final file = File(filePath);
-
-      // Write APK file
-      await file.writeAsBytes(response.bodyBytes);
-      
+      // Initialize progress
       _downloadController.add(DownloadProgress(
-        progress: 1.0,
-        downloadedBytes: response.bodyBytes.length,
-        totalBytes: response.bodyBytes.length,
-        filePath: filePath,
+        progress: 0.0,
+        downloadedBytes: 0,
+        totalBytes: updateInfo.downloadSize > 0 ? updateInfo.downloadSize : 10 * 1024 * 1024, // Default 10MB if unknown
+        status: 'Starting download...',
       ));
-
-      Logger.info('APK downloaded successfully: $filePath (${_formatBytes(response.bodyBytes.length)})');
       
-      _notificationService.showSuccess(
-        title: 'Download Complete',
-        message: 'Update is ready to install',
-      );
+      // Use HttpClient for better progress tracking
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 30);
+      client.idleTimeout = const Duration(minutes: 5);
+      
+      try {
+        final request = await client.getUrl(Uri.parse(updateInfo.downloadUrl));
+        request.headers.add('Accept', 'application/octet-stream');
+        request.headers.add('User-Agent', 'CG500-BLE-App');
+        
+        final response = await request.close();
+        
+        if (response.statusCode != 200) {
+          throw Exception('Download failed with status: ${response.statusCode}');
+        }
+        
+        // Get content length from headers
+        final contentLength = response.contentLength > 0 
+            ? response.contentLength 
+            : updateInfo.downloadSize;
+        
+        // Setup file path
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/cg500_ble_app_${updateInfo.latestVersion}.apk';
+        final file = File(filePath);
+        
+        // Delete existing file if it exists
+        if (await file.exists()) {
+          await file.delete();
+        }
+        
+        // Download with progress tracking
+        final sink = file.openWrite();
+        int downloadedBytes = 0;
+        final startTime = DateTime.now();
+        
+        await response.listen(
+          (List<int> chunk) {
+            sink.add(chunk);
+            downloadedBytes += chunk.length;
+            
+            final progress = contentLength > 0 
+                ? downloadedBytes / contentLength 
+                : 0.0;
+            
+            final elapsed = DateTime.now().difference(startTime);
+            final speed = downloadedBytes / elapsed.inSeconds;
+            final remainingBytes = contentLength - downloadedBytes;
+            final estimatedRemaining = speed > 0 
+                ? Duration(seconds: (remainingBytes / speed).round())
+                : Duration.zero;
+            
+            _downloadController.add(DownloadProgress(
+              progress: progress.clamp(0.0, 1.0),
+              downloadedBytes: downloadedBytes,
+              totalBytes: contentLength,
+              status: 'Downloading... ${_formatBytes(downloadedBytes)}/${_formatBytes(contentLength)}',
+              speed: speed,
+              estimatedTimeRemaining: estimatedRemaining,
+            ));
+          },
+          onDone: () async {
+            await sink.flush();
+            await sink.close();
+            client.close();
+          },
+          onError: (error) async {
+            await sink.close();
+            client.close();
+            throw error;
+          },
+        ).asFuture();
+        
+        // Final progress update
+        _downloadController.add(DownloadProgress(
+          progress: 1.0,
+          downloadedBytes: downloadedBytes,
+          totalBytes: contentLength,
+          status: 'Download complete',
+          filePath: filePath,
+        ));
 
-      return true;
+        Logger.info('APK downloaded successfully: $filePath (${_formatBytes(downloadedBytes)})');
+        
+        _notificationService.showSuccess(
+          title: 'Download Complete',
+          message: 'Update ready to install (${_formatBytes(downloadedBytes)})',
+        );
+
+        return true;
+      } finally {
+        client.close();
+      }
     } catch (e) {
       Logger.error('Download failed (attempt ${attemptNumber + 1})', error: e);
       
+      // Reset progress on failure
+      _downloadController.add(DownloadProgress(
+        progress: 0.0,
+        downloadedBytes: 0,
+        totalBytes: 1,
+        status: 'Download failed: $e',
+      ));
+      
       // Retry if we haven't exceeded max retries
       if (attemptNumber < _maxRetries - 1) {
-        Logger.info('Retrying download in 3 seconds... (${attemptNumber + 2}/$_maxRetries)');
+        Logger.info('Retrying download in 5 seconds... (${attemptNumber + 2}/$_maxRetries)');
         
         _notificationService.showInfo(
           title: 'Download Failed',
           message: 'Retrying download (${attemptNumber + 2}/$_maxRetries)...',
         );
         
-        await Future.delayed(const Duration(seconds: 3));
+        await Future.delayed(const Duration(seconds: 5));
         return _downloadWithRetry(updateInfo, attemptNumber + 1);
       } else {
         _notificationService.showError(
           title: 'Download Failed',
-          message: 'Unable to download update after $_maxRetries attempts: $e',
+          message: 'Unable to download after $_maxRetries attempts. Check network connection.',
         );
         return false;
       }
@@ -282,18 +355,26 @@ class UpdateService {
     };
   }
 
-  /// Clean up downloaded update files
-  Future<void> cleanupDownloads() async {
+  /// Clean up downloaded update files (keeps only latest version)
+  Future<void> cleanupDownloads({String? keepVersion}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final files = directory.listSync();
       
       for (final file in files) {
-        if (file.path.contains('update_') && file.path.endsWith('.apk')) {
+        if (file.path.endsWith('.apk') && file.path.contains('cg500_ble_app_')) {
+          // Keep the specified version file
+          if (keepVersion != null && file.path.contains('_$keepVersion.apk')) {
+            Logger.debug('Keeping file: ${file.path}');
+            continue;
+          }
+          
           await file.delete();
           Logger.debug('Cleaned up: ${file.path}');
         }
       }
+      
+      Logger.info('Download cleanup completed');
     } catch (e) {
       Logger.error('Failed to cleanup downloads', error: e);
     }
@@ -516,22 +597,45 @@ class UpdateInfo {
   }
 }
 
-/// Download progress information
+/// Download progress information with enhanced tracking
 class DownloadProgress {
   final double progress;
   final int downloadedBytes;
   final int totalBytes;
   final String? filePath;
+  final String status;
+  final double? speed; // bytes per second
+  final Duration? estimatedTimeRemaining;
 
   const DownloadProgress({
     required this.progress,
     required this.downloadedBytes,
     required this.totalBytes,
     this.filePath,
+    this.status = '',
+    this.speed,
+    this.estimatedTimeRemaining,
   });
 
   String get progressText => '${(progress * 100).toInt()}%';
   String get sizeText => '${_formatBytes(downloadedBytes)} / ${_formatBytes(totalBytes)}';
+  
+  String get speedText {
+    if (speed == null || speed! <= 0) return '';
+    return '${_formatBytes(speed!.round())}/s';
+  }
+  
+  String get timeRemainingText {
+    if (estimatedTimeRemaining == null) return '';
+    final duration = estimatedTimeRemaining!;
+    if (duration.inHours > 0) {
+      return '${duration.inHours}h ${duration.inMinutes % 60}m remaining';
+    } else if (duration.inMinutes > 0) {
+      return '${duration.inMinutes}m ${duration.inSeconds % 60}s remaining';
+    } else {
+      return '${duration.inSeconds}s remaining';
+    }
+  }
 
   static String _formatBytes(int bytes) {
     if (bytes < 1024) return '${bytes}B';

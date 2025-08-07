@@ -78,6 +78,7 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - **Permissions**: permission_handler (^11.3.1) - Handle Bluetooth and location permissions
 - **Update System**: package_info_plus (^8.0.2), path_provider (^2.1.4), http (^1.2.2), url_launcher (^6.3.0)
 - **Storage**: shared_preferences (^2.3.2) - Local data persistence
+- **Network**: connectivity_plus (^6.0.5) - Network connectivity detection and monitoring
 - **Icons**: cupertino_icons (^1.0.8)
 - **Testing**: flutter_test, flutter_lints (^5.0.0)
 
@@ -118,25 +119,55 @@ The application has been refactored to follow MVC (Model-View-Controller) archit
 
 #### 3. **Controllers Layer** (`lib/controllers/`)
 - **`simple_ble_controller.dart`** - Main BLE operations coordinator with command support
+- **`command_manager.dart`** - Command history management and UART communication controller
+- **`update_logic_manager.dart`** - Update process coordinator handling download, install, and skip operations
 
 #### 4. **Views Layer** (`lib/views/`)
 - **`simple_scanner_view.dart`** - Responsive BLE scanner with animated components and device management
 - **`command_interface_view.dart`** - Chat-style command interface with history and real-time responses
+- **`update_settings_view.dart`** - Comprehensive update preferences and settings management
 
-#### 5. **Utils and Widgets** (`lib/utils/`, `lib/widgets/`)
-- **`responsive_utils.dart`** - Screen breakpoint management and responsive calculations
+#### 5. **Widgets Layer** (`lib/widgets/`)
+**Scanner Components:**
+- **`device_list_widget.dart`** - BLE device discovery and listing
+- **`device_grid_widget.dart`** - Grid layout for discovered devices
+- **`connected_device_card_widget.dart`** - Connected device status display
+- **`scanning_indicator_widget.dart`** - Animated scanning progress indicators
+- **`control_panel_widget.dart`** - Scanner control buttons and options
+- **`quick_stats_widget.dart`** - Real-time scanning statistics
+
+**Communication Components:**
+- **`message_bubble_widget.dart`** - Chat-style message display for BLE communication
+- **`connection_status_widget.dart`** - Connection state and duration display
+
+**Update System Components:**
+- **`update_dialog.dart`** - Main update dialog container
+- **`update_header_widget.dart`** - Update type header with visual indicators
+- **`version_info_widget.dart`** - Version details and release notes display
+- **`update_progress_widget.dart`** - Download progress indicators
+- **`network_info_widget.dart`** - Network status and download suitability
+- **`update_actions_widget.dart`** - Update action buttons and browser fallback
+- **`install_guide_dialog.dart`** - APK installation guidance
+- **`legacy_update_banner.dart`** - Legacy update notification banner
+
+**Common UI Components:**
 - **`responsive_layout.dart`** - Adaptive layout system for mobile/tablet/desktop
 - **`animated_widgets.dart`** - Custom animated components (scan buttons, connection status)
 - **`notification_settings_dialog.dart`** - User interface for notification preferences
 
+#### 6. **Utils Layer** (`lib/utils/`)
+- **`responsive_utils.dart`** - Screen breakpoint management and responsive calculations
+- **`logger.dart`** - Application logging utilities
+
 ### Key Architecture Benefits:
 
 #### **Separation of Concerns:**
-- **Models**: Pure data representations with business logic
-- **Services**: External service communications and core operations
-- **Controllers**: Coordinate between UI and business logic
-- **Repository**: Abstract data access and caching
-- **Views**: Pure UI components with minimal logic
+- **Models**: Pure data representations with business logic and state management
+- **Services**: External service communications, core operations, and system integrations
+- **Controllers**: Coordinate between UI and business logic, manage state transitions
+- **Views**: Main application screens with minimal logic, orchestrate widget components
+- **Widgets**: Focused, reusable UI components following single responsibility principle
+- **Utils**: Pure utility functions and helper classes for common operations
 
 #### **Enhanced Features:**
 - **Nordic UART Service**: Standard BLE UART communication protocol with proper UUID mapping
@@ -161,22 +192,30 @@ The application has been refactored to follow MVC (Model-View-Controller) archit
 
 ### Development Workflow:
 
-#### **Fully Implemented Architecture:**
-- Complete MVC architecture with Models, Views, Controllers, and Services
-- Nordic UART Service integration for text command communication  
-- Smart notification system with spam prevention and user controls
-- Responsive UI system with dark/light themes and animations
-- Comprehensive error handling and user feedback
-- Modern Material Design 3 components throughout
+#### **Modular Widget Architecture:**
+The codebase follows strict single responsibility principles with highly modular components:
+- Each widget has a single, focused responsibility (e.g., `UpdateProgressWidget` only handles progress display)
+- Controllers separate business logic from UI components
+- Services provide clean APIs for external integrations
+- Models encapsulate data and state management
+- This architecture enables easy testing, maintenance, and feature additions
+
+#### **Refactoring Standards:**
+Recent comprehensive refactoring phases have achieved:
+- **Phase 1**: `command_interface_view.dart` (1150→948 lines, 17.5% reduction)
+- **Phase 2**: `simple_scanner_view.dart` (849→472 lines, 44.4% reduction)  
+- **Phase 3**: `update_dialog.dart` (839→175 lines, 79.1% reduction)
+
+This demonstrates the effectiveness of extracting focused, reusable components that follow single responsibility principle.
 
 #### **Current Status:**
 All major features are implemented and functional. The app provides:
-- Professional BLE device scanning and management
+- Professional BLE device scanning and management with modular UI components
 - Real-time text command communication via Nordic UART Service
-- Intelligent user notification system
-- Multi-platform responsive design
-- Comprehensive error handling and user feedback
-- Automated update system with GitHub Releases integration
+- Intelligent user notification system with spam prevention
+- Multi-platform responsive design with breakpoint-based layouts
+- Comprehensive error handling and user feedback systems
+- Automated update system with GitHub Releases integration and modular update dialogs
 
 ## BLE Usage Guide
 
