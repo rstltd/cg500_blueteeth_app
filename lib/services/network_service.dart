@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../utils/logger.dart';
 
 /// Service for monitoring network connectivity and type
@@ -10,8 +11,10 @@ class NetworkService {
 
   final StreamController<NetworkStatus> _networkController = 
       StreamController<NetworkStatus>.broadcast();
+  final Connectivity _connectivity = Connectivity();
   
   NetworkStatus _currentStatus = NetworkStatus.unknown;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Timer? _connectivityTimer;
 
   Stream<NetworkStatus> get networkStream => _networkController.stream;
@@ -22,7 +25,14 @@ class NetworkService {
     try {
       await _checkConnectivity();
       
-      // Start periodic connectivity checks
+      // Listen to connectivity changes
+      _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
+        (List<ConnectivityResult> results) {
+          _handleConnectivityChange(results);
+        },
+      );
+      
+      // Fallback periodic check every 30 seconds
       _connectivityTimer = Timer.periodic(
         const Duration(seconds: 30),
         (_) => _checkConnectivity(),
@@ -53,20 +63,50 @@ class NetworkService {
     }
   }
 
+  /// Handle connectivity changes
+  void _handleConnectivityChange(List<ConnectivityResult> results) async {
+    final newStatus = await _getCurrentNetworkStatus(results);
+    
+    if (newStatus != _currentStatus) {
+      _currentStatus = newStatus;
+      _networkController.add(_currentStatus);
+      Logger.debug('Network status changed: ${_currentStatus.name}');
+    }
+  }
+
   /// Get current network status
-  Future<NetworkStatus> _getCurrentNetworkStatus() async {
+  Future<NetworkStatus> _getCurrentNetworkStatus([List<ConnectivityResult>? connectivityResults]) async {
     try {
-      // First check if we have internet connectivity
-      final hasInternet = await _hasInternetConnection();
-      if (!hasInternet) {
+      List<ConnectivityResult> results = connectivityResults ?? await _connectivity.checkConnectivity();
+      
+      // Check if we have any connectivity
+      if (results.contains(ConnectivityResult.none)) {
         return NetworkStatus.none;
       }
-
-      // Platform-specific network detection is not implemented
-      // Using fallback detection only
-
-      // Fallback: assume WiFi if connected (most common case)
-      return NetworkStatus.wifi;
+      
+      // Check for WiFi first (preferred)
+      if (results.contains(ConnectivityResult.wifi)) {
+        // Verify internet connectivity
+        final hasInternet = await _hasInternetConnection();
+        return hasInternet ? NetworkStatus.wifi : NetworkStatus.none;
+      }
+      
+      // Check for mobile data
+      if (results.contains(ConnectivityResult.mobile)) {
+        // Verify internet connectivity
+        final hasInternet = await _hasInternetConnection();
+        return hasInternet ? NetworkStatus.mobile : NetworkStatus.none;
+      }
+      
+      // Check for ethernet (treat as WiFi)
+      if (results.contains(ConnectivityResult.ethernet)) {
+        final hasInternet = await _hasInternetConnection();
+        return hasInternet ? NetworkStatus.wifi : NetworkStatus.none;
+      }
+      
+      // Other connections (VPN, Bluetooth, etc.) - treat as unknown but verify
+      final hasInternet = await _hasInternetConnection();
+      return hasInternet ? NetworkStatus.wifi : NetworkStatus.unknown;
     } catch (e) {
       Logger.error('Error getting network status', error: e);
       return NetworkStatus.unknown;
@@ -159,6 +199,7 @@ class NetworkService {
 
   /// Dispose resources
   void dispose() {
+    _connectivitySubscription?.cancel();
     _connectivityTimer?.cancel();
     _networkController.close();
   }

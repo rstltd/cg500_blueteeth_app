@@ -494,14 +494,23 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
         barrierDismissible: false,
         builder: (context) => InstallGuideDialog(
           onComplete: () async {
+            // Save context references before async operation
+            NavigatorState? navigator;
+            ScaffoldMessengerState? scaffoldMessenger;
+            
+            if (mounted) {
+              navigator = Navigator.of(context);
+              scaffoldMessenger = ScaffoldMessenger.of(context);
+            }
+            
             // After guide is complete, try to install the APK
             final success = await _updateService.installUpdate(apkPath);
             
             if (success) {
               // Installation started, close dialogs
-              if (mounted) {
-                Navigator.of(context).pop(); // Close guide dialog if still open
-                Navigator.of(context).pop(); // Close update dialog
+              if (mounted && navigator != null) {
+                navigator.pop(); // Close guide dialog if still open
+                navigator.pop(); // Close update dialog
                 widget.onUpdateComplete?.call();
               }
             } else {
@@ -512,12 +521,14 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
                 });
                 
                 // Show error message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Installation failed. Please try again or install manually.'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                if (scaffoldMessenger != null) {
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Installation failed. Please try again or install manually.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             }
           },
@@ -620,14 +631,22 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop(); // Close confirmation dialog
-              Navigator.of(context).pop(); // Close update dialog
+              // Save context references before async operation
+              NavigatorState? navigator;
+              ScaffoldMessengerState? scaffoldMessenger;
+              
+              if (mounted) {
+                navigator = Navigator.of(context);
+                scaffoldMessenger = ScaffoldMessenger.of(context);
+                navigator.pop(); // Close confirmation dialog
+                navigator.pop(); // Close update dialog
+              }
               
               await _updateService.skipVersion(widget.updateInfo.latestVersion);
               widget.onDismiss?.call();
               
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+              if (mounted && scaffoldMessenger != null) {
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text('Version ${widget.updateInfo.latestVersion} skipped'),
                     action: SnackBarAction(
@@ -698,7 +717,8 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text('Cannot open browser. Please visit:\n$url'),
               duration: const Duration(seconds: 5),
@@ -708,7 +728,8 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Failed to open browser: $e'),
             backgroundColor: Colors.red,
