@@ -449,22 +449,19 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
             if (success) {
               // Installation started, close dialogs
               if (mounted) {
-                final navigator = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
-                navigator.pop(); // Close guide dialog if still open
-                navigator.pop(); // Close update dialog
+                Navigator.of(context).pop(); // Close guide dialog if still open
+                Navigator.of(context).pop(); // Close update dialog
                 widget.onUpdateComplete?.call();
               }
             } else {
               // Installation failed, reset download state
               if (mounted) {
-                final messenger = ScaffoldMessenger.of(context);
                 setState(() {
                   _isDownloading = false;
                 });
                 
                 // Show error message
-                messenger.showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Installation failed. Please try again or install manually.'),
                     backgroundColor: Colors.red,
@@ -579,8 +576,7 @@ class _UpdateDialogState extends State<UpdateDialog> with TickerProviderStateMix
               widget.onDismiss?.call();
               
               if (mounted) {
-                final messenger = ScaffoldMessenger.of(context);
-                messenger.showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Version ${widget.updateInfo.latestVersion} skipped'),
                     action: SnackBarAction(

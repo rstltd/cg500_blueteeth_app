@@ -309,8 +309,12 @@ class UpdateService {
   /// Determine update type based on version difference
   UpdateType _determineUpdateType(String currentVersion, String latestVersion) {
     try {
-      final current = currentVersion.split('.').map(int.parse).toList();
-      final latest = latestVersion.split('.').map(int.parse).toList();
+      // Remove build numbers for comparison
+      final currentClean = currentVersion.split('+')[0];
+      final latestClean = latestVersion.split('+')[0];
+      
+      final current = currentClean.split('.').map(int.parse).toList();
+      final latest = latestClean.split('.').map(int.parse).toList();
       
       // Ensure both lists have at least 3 elements (major.minor.patch)
       while (current.length < 3) {
@@ -433,19 +437,47 @@ class UpdateInfo {
     };
   }
 
-  /// Compare version strings (e.g., "1.2.3" vs "1.2.4")
+  /// Compare version strings (e.g., "1.2.3" vs "1.2.4+5")
   static int _compareVersions(String version1, String version2) {
-    List<int> v1Parts = version1.split('.').map(int.parse).toList();
-    List<int> v2Parts = version2.split('.').map(int.parse).toList();
+    // Remove build numbers (everything after +)
+    String v1Clean = version1.split('+')[0];
+    String v2Clean = version2.split('+')[0];
     
-    int maxLength = v1Parts.length > v2Parts.length ? v1Parts.length : v2Parts.length;
+    List<int> v1Parts = v1Clean.split('.').map(int.parse).toList();
+    List<int> v2Parts = v2Clean.split('.').map(int.parse).toList();
     
-    for (int i = 0; i < maxLength; i++) {
-      int v1 = i < v1Parts.length ? v1Parts[i] : 0;
-      int v2 = i < v2Parts.length ? v2Parts[i] : 0;
-      
-      if (v1 < v2) return -1;
-      if (v1 > v2) return 1;
+    // Ensure both lists have at least 3 elements (major.minor.patch)
+    while (v1Parts.length < 3) {
+      v1Parts.add(0);
+    }
+    while (v2Parts.length < 3) {
+      v2Parts.add(0);
+    }
+    
+    for (int i = 0; i < 3; i++) {
+      if (v1Parts[i] < v2Parts[i]) return -1;
+      if (v1Parts[i] > v2Parts[i]) return 1;
+    }
+    
+    // If main versions are equal, compare build numbers if present
+    List<String> v1Build = version1.split('+');
+    List<String> v2Build = version2.split('+');
+    
+    if (v1Build.length > 1 && v2Build.length > 1) {
+      try {
+        int build1 = int.parse(v1Build[1]);
+        int build2 = int.parse(v2Build[1]);
+        if (build1 < build2) return -1;
+        if (build1 > build2) return 1;
+      } catch (e) {
+        // If build numbers can't be parsed, ignore them
+      }
+    } else if (v2Build.length > 1) {
+      // Version2 has build number, version1 doesn't - version2 is newer
+      return -1;
+    } else if (v1Build.length > 1) {
+      // Version1 has build number, version2 doesn't - version1 is newer
+      return 1;
     }
     
     return 0;

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/services.dart';
 import '../utils/logger.dart';
 
 /// Service for monitoring network connectivity and type
@@ -9,8 +8,6 @@ class NetworkService {
   factory NetworkService() => _instance;
   NetworkService._internal();
 
-  static const MethodChannel _channel = MethodChannel('com.cg500.ble_app/network');
-  
   final StreamController<NetworkStatus> _networkController = 
       StreamController<NetworkStatus>.broadcast();
   
@@ -27,7 +24,7 @@ class NetworkService {
       
       // Start periodic connectivity checks
       _connectivityTimer = Timer.periodic(
-        const Duration(seconds: 5),
+        const Duration(seconds: 30),
         (_) => _checkConnectivity(),
       );
       
@@ -65,15 +62,8 @@ class NetworkService {
         return NetworkStatus.none;
       }
 
-      // Try to get network type from platform
-      if (Platform.isAndroid) {
-        try {
-          final result = await _channel.invokeMethod('getNetworkType');
-          return _parseNetworkType(result);
-        } catch (e) {
-          Logger.debug('Platform channel not available, using fallback detection');
-        }
-      }
+      // Platform-specific network detection is not implemented
+      // Using fallback detection only
 
       // Fallback: assume WiFi if connected (most common case)
       return NetworkStatus.wifi;
@@ -94,24 +84,6 @@ class NetworkService {
     }
   }
 
-  /// Parse network type from platform result
-  NetworkStatus _parseNetworkType(dynamic result) {
-    if (result == null) return NetworkStatus.unknown;
-    
-    final networkType = result.toString().toLowerCase();
-    
-    if (networkType.contains('wifi') || networkType.contains('ethernet')) {
-      return NetworkStatus.wifi;
-    } else if (networkType.contains('mobile') || 
-               networkType.contains('cellular') ||
-               networkType.contains('4g') ||
-               networkType.contains('5g') ||
-               networkType.contains('lte')) {
-      return NetworkStatus.mobile;
-    }
-    
-    return NetworkStatus.unknown;
-  }
 
   /// Check if current network is suitable for large downloads
   bool isSuitableForDownload({required bool wifiOnly}) {
