@@ -58,6 +58,8 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
   Future<void> _savePreferences() async {
     if (_preferences != null) {
       await _preferences!.save();
+      // Update the UpdateService with new preferences
+      await _updateService.updatePreferences(_preferences!);
     }
   }
 
