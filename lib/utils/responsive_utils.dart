@@ -274,4 +274,32 @@ class ResponsiveUtils {
       return 4;
     }
   }
+
+  /// Get responsive font size based on device type and base size
+  static double getFontSize(BuildContext context, {required double base}) {
+    final deviceType = getDeviceType(context);
+    
+    switch (deviceType) {
+      case DeviceType.mobile:
+        return base;
+      case DeviceType.tablet:
+        return base * 1.1;
+      case DeviceType.desktop:
+        return base * 1.2;
+    }
+  }
+
+  /// Get responsive icon size based on device type and base size
+  static double getIconSize(BuildContext context, {required double base}) {
+    final deviceType = getDeviceType(context);
+    
+    switch (deviceType) {
+      case DeviceType.mobile:
+        return base;
+      case DeviceType.tablet:
+        return base * 1.15;
+      case DeviceType.desktop:
+        return base * 1.3;
+    }
+  }
 }
