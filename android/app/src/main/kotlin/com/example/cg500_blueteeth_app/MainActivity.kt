@@ -98,9 +98,39 @@ class MainActivity : FlutterActivity() {
                     Log.d(TAG, "FileProvider authority: $authority")
                     result["fileProviderAuthority"] = authority
                     
-                    val uri = FileProvider.getUriForFile(this, authority, file)
-                    Log.d(TAG, "FileProvider URI: $uri")
+                    // Try multiple approaches to get a valid FileProvider URI
+                    var uri: Uri? = null
+                    var uriMethod = ""
+                    
+                    // Method 1: Try direct file
+                    try {
+                        uri = FileProvider.getUriForFile(this, authority, file)
+                        uriMethod = "direct"
+                        Log.d(TAG, "FileProvider URI (direct): $uri")
+                    } catch (e: IllegalArgumentException) {
+                        Log.w(TAG, "Direct FileProvider failed: ${e.message}")
+                        
+                        // Method 2: Try copying to internal files directory
+                        try {
+                            val internalFile = File(filesDir, "temp_install.apk")
+                            Log.d(TAG, "Copying APK to internal storage: ${internalFile.absolutePath}")
+                            
+                            file.copyTo(internalFile, overwrite = true)
+                            uri = FileProvider.getUriForFile(this, authority, internalFile)
+                            uriMethod = "copied_to_internal"
+                            Log.d(TAG, "FileProvider URI (copied): $uri")
+                        } catch (e2: Exception) {
+                            Log.e(TAG, "Copy to internal failed: ${e2.message}")
+                            throw e // Rethrow original exception
+                        }
+                    }
+                    
+                    if (uri == null) {
+                        throw IllegalStateException("Could not create FileProvider URI")
+                    }
+                    
                     result["fileProviderUri"] = uri.toString()
+                    result["fileProviderMethod"] = uriMethod
                     
                     intent.setDataAndType(uri, "application/vnd.android.package-archive")
                     

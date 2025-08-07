@@ -3,6 +3,9 @@
     <!-- Internal app storage for downloaded APKs -->
     <files-path name="files" path="." />
     
+    <!-- App-specific documents directory (app_flutter) -->
+    <files-path name="app_flutter" path="app_flutter/" />
+    
     <!-- External app storage - required for getApplicationDocumentsDirectory() -->
     <external-files-path name="external_files" path="." />
     
@@ -20,4 +23,7 @@
     
     <!-- Root external storage (for broader compatibility) -->
     <external-path name="external_storage" path="." />
+    
+    <!-- Root files directory for broader internal storage coverage -->
+    <root-path name="root" path="." />
 </paths>

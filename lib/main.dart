@@ -85,7 +85,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CG500 Bluetooth App v2.0.20',
+      title: 'CG500 Bluetooth App',
       theme: ThemeService.lightTheme,
       darkTheme: ThemeService.darkTheme,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
@@ -112,7 +112,7 @@ class AppLoadingScreen extends StatelessWidget {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Initializing CG500 Bluetooth App v2.0.20...',
+              'Initializing CG500 Bluetooth App...',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
