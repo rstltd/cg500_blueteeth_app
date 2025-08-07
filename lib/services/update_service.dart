@@ -172,13 +172,22 @@ class UpdateService {
   /// Download with retry mechanism and real progress tracking
   Future<String?> _downloadWithRetry(UpdateInfo updateInfo, int attemptNumber) async {
     try {
-      // Check network connectivity
+      // Check network connectivity - ensure preferences are loaded before checking
+      if (_preferences == null) {
+        Logger.error('Update preferences not loaded, cannot check network suitability');
+        _notificationService.showError(
+          title: 'Configuration Error',
+          message: 'Update settings not loaded. Please restart the app.',
+        );
+        return null;
+      }
+      
       if (!_networkService.isSuitableForDownload(
-          wifiOnly: _preferences?.wifiOnlyDownload ?? true)) {
+          wifiOnly: _preferences!.wifiOnlyDownload)) {
         final networkStatus = _networkService.getStatusDescription();
         _notificationService.showError(
           title: 'Network Unsuitable',
-          message: _preferences?.wifiOnlyDownload == true 
+          message: _preferences!.wifiOnlyDownload == true 
               ? 'WiFi connection required for downloads. Currently: $networkStatus'
               : 'No internet connection available',
         );
@@ -187,7 +196,7 @@ class UpdateService {
 
       // Show network info for mobile data
       if (_networkService.currentStatus == NetworkStatus.mobile && 
-          _preferences?.wifiOnlyDownload != false) {
+          _preferences!.wifiOnlyDownload == false) {
         final estimatedTime = _networkService.estimateDownloadTime(updateInfo.downloadSize);
         Logger.info('Downloading via mobile data - Estimated time: $estimatedTime');
       }
@@ -331,6 +340,10 @@ class UpdateService {
   Future<bool> installUpdate(String apkPath) async {
     if (!Platform.isAndroid) {
       Logger.warning('APK installation only supported on Android');
+      _notificationService.showError(
+        title: 'Platform Not Supported',
+        message: 'APK installation is only available on Android devices.',
+      );
       return false;
     }
 
@@ -342,29 +355,91 @@ class UpdateService {
       final file = File(apkPath);
       if (!await file.exists()) {
         Logger.error('APK file does not exist at path: $apkPath');
+        _notificationService.showError(
+          title: 'Installation Failed',
+          message: 'APK file not found. Please try downloading again.',
+        );
         return false;
       }
       
       Logger.info('APK file exists, size: ${await file.length()} bytes');
       
-      // Use platform channel to install APK
+      // Use platform channel to check and request permissions
       const platform = MethodChannel('com.cg500.ble_app/update');
-      Logger.info('Calling platform method installApk...');
       
+      // Check if we can install APKs
+      final canInstall = await platform.invokeMethod('canInstallApks');
+      Logger.info('Can install APKs: $canInstall');
+      
+      if (!canInstall) {
+        Logger.warning('Unknown sources permission not granted');
+        _notificationService.showError(
+          title: 'Permission Required',
+          message: 'Please allow installation from unknown sources in device settings.',
+        );
+        
+        // Request permission
+        await platform.invokeMethod('requestInstallPermission');
+        return false;
+      }
+      
+      Logger.info('Calling platform method installApk...');
       final result = await platform.invokeMethod('installApk', {'filePath': apkPath});
       
       Logger.info('Install APK platform channel result: $result');
       
       if (result == true) {
         Logger.info('✅ APK installation triggered successfully');
+        _notificationService.showSuccess(
+          title: 'Installation Started',
+          message: 'Follow the installation prompts to complete the update.',
+        );
         return true;
       } else {
         Logger.warning('❌ APK installation trigger returned false');
+        _notificationService.showError(
+          title: 'Installation Failed',
+          message: 'Could not start APK installation. Please check permissions.',
+        );
         return false;
       }
     } catch (e) {
       Logger.error('❌ Failed to install APK via platform channel', error: e);
+      _notificationService.showError(
+        title: 'Installation Error',
+        message: 'Failed to install update: ${e.toString()}',
+      );
       return false;
+    }
+  }
+
+  /// Check if device can install APK files
+  Future<bool> canInstallApks() async {
+    if (!Platform.isAndroid) {
+      return false;
+    }
+
+    try {
+      const platform = MethodChannel('com.cg500.ble_app/update');
+      final canInstall = await platform.invokeMethod('canInstallApks');
+      return canInstall ?? false;
+    } catch (e) {
+      Logger.error('Failed to check APK installation permission', error: e);
+      return false;
+    }
+  }
+
+  /// Request APK installation permission
+  Future<void> requestInstallPermission() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    try {
+      const platform = MethodChannel('com.cg500.ble_app/update');
+      await platform.invokeMethod('requestInstallPermission');
+    } catch (e) {
+      Logger.error('Failed to request APK installation permission', error: e);
     }
   }
 

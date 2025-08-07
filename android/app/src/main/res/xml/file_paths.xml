@@ -3,7 +3,7 @@
     <!-- Internal app storage for downloaded APKs -->
     <files-path name="files" path="." />
     
-    <!-- External app storage -->
+    <!-- External app storage - required for getApplicationDocumentsDirectory() -->
     <external-files-path name="external_files" path="." />
     
     <!-- Cache directory -->
@@ -14,4 +14,10 @@
     
     <!-- Downloads directory for APK updates -->
     <external-path name="downloads" path="Download/" />
+    
+    <!-- Documents directory - covers getApplicationDocumentsDirectory() path -->
+    <external-files-path name="documents" path="Documents/" />
+    
+    <!-- Root external storage (for broader compatibility) -->
+    <external-path name="external_storage" path="." />
 </paths>

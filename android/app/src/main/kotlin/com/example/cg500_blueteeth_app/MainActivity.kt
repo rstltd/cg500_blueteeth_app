@@ -1,8 +1,10 @@
 package com.example.cg500_blueteeth_app
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -26,6 +28,14 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_ARGUMENT", "File path is required", null)
                     }
                 }
+                "canInstallApks" -> {
+                    val canInstall = canInstallApks()
+                    result.success(canInstall)
+                }
+                "requestInstallPermission" -> {
+                    requestInstallPermission()
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -35,6 +45,12 @@ class MainActivity : FlutterActivity() {
 
     private fun installApk(filePath: String): Boolean {
         return try {
+            // Check if we have permission to install unknown apps
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !canInstallApks()) {
+                // Don't attempt installation without permission
+                return false
+            }
+            
             val file = File(filePath)
             if (!file.exists()) {
                 return false
@@ -61,6 +77,22 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    private fun canInstallApks(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            packageManager.canRequestPackageInstalls()
+        } else {
+            true // No special permission needed for older Android versions
+        }
+    }
+
+    private fun requestInstallPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !canInstallApks()) {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+            intent.data = Uri.parse("package:${packageName}")
+            startActivity(intent)
         }
     }
 }
