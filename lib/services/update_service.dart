@@ -232,8 +232,17 @@ class UpdateService {
             ? response.contentLength 
             : updateInfo.downloadSize;
         
-        // Setup file path
-        final directory = await getApplicationDocumentsDirectory();
+        // Setup file path - use app files directory for better FileProvider compatibility
+        Directory directory;
+        try {
+          directory = await getApplicationDocumentsDirectory();
+          Logger.info('Using documents directory: ${directory.path}');
+        } catch (e) {
+          // Fallback to support directory if documents directory fails
+          directory = await getApplicationSupportDirectory();
+          Logger.warning('Documents directory failed, using support directory: ${directory.path}');
+        }
+        
         final filePath = '${directory.path}/cg500_ble_app_${updateInfo.latestVersion}.apk';
         final file = File(filePath);
         
@@ -443,6 +452,30 @@ class UpdateService {
     }
   }
 
+  /// Diagnose APK installation permissions and configuration
+  Future<Map<String, dynamic>> diagnosePermissions() async {
+    if (!Platform.isAndroid) {
+      return {'platform': 'non-android', 'supported': false};
+    }
+
+    try {
+      const platform = MethodChannel('com.cg500.ble_app/update');
+      final result = await platform.invokeMethod('diagnosePermissions');
+      
+      if (result is Map) {
+        final diagnosis = Map<String, dynamic>.from(result);
+        Logger.info('Permission diagnosis completed: $diagnosis');
+        return diagnosis;
+      } else {
+        Logger.warning('Unexpected diagnosis result type: ${result.runtimeType}');
+        return {'error': 'Unexpected result type', 'raw_result': result.toString()};
+      }
+    } catch (e) {
+      Logger.error('Failed to diagnose permissions', error: e);
+      return {'error': 'Diagnosis failed', 'exception': e.toString()};
+    }
+  }
+
   /// Get current app version info
   Map<String, String> getCurrentVersionInfo() {
     return {
@@ -454,7 +487,12 @@ class UpdateService {
   /// Clean up downloaded update files (keeps only latest version)
   Future<void> cleanupDownloads({String? keepVersion}) async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
+      Directory directory;
+      try {
+        directory = await getApplicationDocumentsDirectory();
+      } catch (e) {
+        directory = await getApplicationSupportDirectory();
+      }
       final files = directory.listSync();
       
       for (final file in files) {
