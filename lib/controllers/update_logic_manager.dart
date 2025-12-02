@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
-import '../widgets/install_guide_dialog.dart';
+// Removed InstallGuideDialog import - now using direct installation
 import '../utils/logger.dart';
 
 /// Manager for handling update logic including download, install, and skip operations
@@ -87,49 +87,81 @@ class UpdateLogicManager {
     }
   }
 
-  /// Install update with guide dialog
+  /// Install update directly without guide dialog
   Future<void> _installUpdate(String apkPath, BuildContext context) async {
     if (!context.mounted) return;
     
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => InstallGuideDialog(
-        apkPath: apkPath,
-        autoInstall: true,
-        onComplete: () async {
-          // Save context references before async operation
-          NavigatorState? navigator;
-          ScaffoldMessengerState? scaffoldMessenger;
+    Logger.info('Installing APK directly: $apkPath');
+
+    // Save context reference before async operation
+    ScaffoldMessengerState? scaffoldMessenger;
+    if (context.mounted) {
+      scaffoldMessenger = ScaffoldMessenger.of(context);
+    }
+
+    try {
+      // Trigger APK installation directly - Android system will handle UI
+      final success = await _updateService.installUpdate(apkPath);
+      
+      if (success) {
+        Logger.info('✅ APK installation triggered successfully - Android system will take over');
+        
+        // Show simple success message
+        scaffoldMessenger?.showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Installation started. Follow the system prompts to complete.')),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        Logger.error('❌ Failed to trigger APK installation');
+        
+        // Show error message with manual install option
+        scaffoldMessenger?.showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.error, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Installation failed. Please check permissions and try again.')),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      Logger.error('Error during APK installation', error: e);
+
+      scaffoldMessenger?.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Installation error: $e')),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade600,
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
           
-          if (context.mounted) {
-            navigator = Navigator.of(context);
-            scaffoldMessenger = ScaffoldMessenger.of(context);
-          }
-          
-          // After guide is complete, try to install the APK
-          final success = await _updateService.installUpdate(apkPath);
-          
-          if (success) {
-            // Installation started, close dialogs
-            navigator?.pop(); // Close guide dialog if still open
-            navigator?.pop(); // Close update dialog
-          } else {
-            // Installation failed, reset download state
-            _isDownloading = false;
-            onDownloadStateChanged?.call(false);
-            
-            // Show error message
-            scaffoldMessenger?.showSnackBar(
-              const SnackBar(
-                content: Text('Installation failed. Please try again or install manually.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-      ),
-    );
+    // Reset download state after installation attempt
+    _isDownloading = false;
+    onDownloadStateChanged?.call(false);
   }
 
   /// Skip version with confirmation dialog

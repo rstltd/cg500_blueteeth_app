@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+
+# APK files (should be distributed via GitHub Releases)
+*.apk
+
+# Temporary diagnostic scripts
+test_*.py
+diagnose_*.py
+simulate_*.py
+cleanup_*.py
+create_*.py
+
+# Root level test dart files (keep test/ directory)
+/test_*.dart
+
+# Deprecated config files
+shorebird.yaml
