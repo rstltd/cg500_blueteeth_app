@@ -4,6 +4,7 @@ import '../controllers/command_manager.dart';
 import '../models/ble_device.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
+import '../utils/formatting_utils.dart';
 import '../utils/logger.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/responsive_layout.dart';
@@ -118,16 +119,7 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
   }
 
   Color _getNotificationColor(NotificationType type) {
-    switch (type) {
-      case NotificationType.success:
-        return Colors.green;
-      case NotificationType.warning:
-        return Colors.orange;
-      case NotificationType.error:
-        return Colors.red;
-      case NotificationType.info:
-        return Colors.blue;
-    }
+    return FormattingUtils.getNotificationColor(type);
   }
 
   Future<void> _sendCommand() async {
@@ -941,9 +933,6 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
   }
 
   String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
+    return FormattingUtils.formatDuration(duration);
   }
 }

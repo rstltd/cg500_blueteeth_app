@@ -3,6 +3,7 @@ import '../models/update_preferences.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../services/theme_service.dart';
+import '../utils/formatting_utils.dart';
 import '../utils/responsive_utils.dart';
 
 /// Settings view for managing app update preferences
@@ -484,28 +485,10 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
   }
 
   Color _getNetworkStatusColor() {
-    switch (_networkStatus) {
-      case NetworkStatus.wifi:
-        return Colors.green;
-      case NetworkStatus.mobile:
-        return Colors.orange;
-      case NetworkStatus.none:
-        return Colors.red;
-      case NetworkStatus.unknown:
-        return Colors.grey;
-    }
+    return FormattingUtils.getNetworkStatusColor(_networkStatus);
   }
 
   IconData _getNetworkStatusIcon() {
-    switch (_networkStatus) {
-      case NetworkStatus.wifi:
-        return Icons.wifi;
-      case NetworkStatus.mobile:
-        return Icons.signal_cellular_4_bar;
-      case NetworkStatus.none:
-        return Icons.wifi_off;
-      case NetworkStatus.unknown:
-        return Icons.help_outline;
-    }
+    return FormattingUtils.getNetworkStatusIcon(_networkStatus);
   }
 }

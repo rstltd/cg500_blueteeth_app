@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze:*)",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(flutter test:*)",
+      "Bash(findstr:*)",
+      "Bash(Select-String \"fail\")",
+      "Bash(tree:*)",
+      "Bash(for file in lib/**/*.dart)",
+      "Bash(do wc -l \"$file\")",
+      "Bash(sort:*)",
+      "Bash(while read file)",
+      "Bash(echo:*)",
+      "Bash(python:*)",
+      "Bash(for file in lib/controllers/*.dart)",
+      "Bash(for file in test/controllers/*.dart)",
+      "Bash(Select-String -Pattern \"failed|Error|Expected|Actual|:$\")",
+      "Bash(Select-Object -First 30)",
+      "Bash(Select-String -Pattern \"\\-\\d+:\")",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -5,6 +5,7 @@ import '../models/connection_state.dart';
 import '../services/animation_service.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
+import '../utils/formatting_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
@@ -68,16 +69,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
   }
 
   Color _getNotificationColor(NotificationType type) {
-    switch (type) {
-      case NotificationType.success:
-        return Colors.green;
-      case NotificationType.warning:
-        return Colors.orange;
-      case NotificationType.error:
-        return Colors.red;
-      case NotificationType.info:
-        return Colors.blue;
-    }
+    return FormattingUtils.getNotificationColor(type);
   }
 
   @override
@@ -326,14 +318,11 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return FormattingUtils.formatDateTime(dateTime);
   }
 
   String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
+    return FormattingUtils.formatDuration(duration);
   }
 
   // Mobile Layout (Portrait and small screens)
