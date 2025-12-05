@@ -30,17 +30,72 @@ void main() {
       themeService = ThemeService();
     });
 
-    group('singleton', () {
-      test('should return same instance', () {
-        final instance1 = ThemeService();
-        final instance2 = ThemeService();
-        expect(identical(instance1, instance2), true);
+    group('DI pattern', () {
+      test('should create independent instances with forTesting', () {
+        final instance1 = ThemeService.forTesting();
+        final instance2 = ThemeService.forTesting();
+        // With DI pattern, each call creates a new instance
+        expect(identical(instance1, instance2), false);
+        instance1.dispose();
+        instance2.dispose();
+      });
+    });
+
+    group('forTesting constructor', () {
+      test('should create independent instance', () {
+        final testService = ThemeService.forTesting();
+
+        // Should have default state
+        expect(testService.currentThemeMode, AppThemeMode.system);
+
+        // Modify test service
+        testService.setThemeMode(AppThemeMode.dark);
+        expect(testService.currentThemeMode, AppThemeMode.dark);
+
+        // Dispose
+        testService.dispose();
+      });
+
+      test('should have working streams', () async {
+        final testService = ThemeService.forTesting();
+        final emissions = <AppThemeMode>[];
+        final subscription = testService.themeModeStream.listen(emissions.add);
+
+        testService.setThemeMode(AppThemeMode.light);
+        testService.setThemeMode(AppThemeMode.dark);
+
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        expect(emissions, contains(AppThemeMode.light));
+        expect(emissions, contains(AppThemeMode.dark));
+
+        await subscription.cancel();
+        testService.dispose();
+      });
+
+      test('should allow multiple independent instances', () {
+        final service1 = ThemeService.forTesting();
+        final service2 = ThemeService.forTesting();
+
+        service1.setThemeMode(AppThemeMode.light);
+        service2.setThemeMode(AppThemeMode.dark);
+
+        expect(service1.currentThemeMode, AppThemeMode.light);
+        expect(service2.currentThemeMode, AppThemeMode.dark);
+
+        service1.dispose();
+        service2.dispose();
       });
     });
 
     group('initial state', () {
       test('currentThemeMode should be system by default', () {
         expect(themeService.currentThemeMode, AppThemeMode.system);
+      });
+
+      test('systemIsDarkMode should return a boolean value', () {
+        // systemIsDarkMode reflects the platform's dark mode setting
+        expect(themeService.systemIsDarkMode, isA<bool>());
       });
     });
 
@@ -429,7 +484,9 @@ void main() {
           home: Builder(
             builder: (context) {
               final color = AppColors.shadowColor(context);
-              expect(color.alpha, closeTo(Colors.black.withValues(alpha: 0.1).alpha, 1));
+              final expectedAlpha = (Colors.black.withValues(alpha: 0.1).a * 255.0).round() & 0xff;
+              final actualAlpha = (color.a * 255.0).round() & 0xff;
+              expect(actualAlpha, closeTo(expectedAlpha, 1));
               return const SizedBox();
             },
           ),
@@ -444,7 +501,9 @@ void main() {
           home: Builder(
             builder: (context) {
               final color = AppColors.shadowColor(context);
-              expect(color.alpha, closeTo(Colors.black.withValues(alpha: 0.3).alpha, 1));
+              final expectedAlpha = (Colors.black.withValues(alpha: 0.3).a * 255.0).round() & 0xff;
+              final actualAlpha = (color.a * 255.0).round() & 0xff;
+              expect(actualAlpha, closeTo(expectedAlpha, 1));
               return const SizedBox();
             },
           ),

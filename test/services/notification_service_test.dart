@@ -210,11 +210,14 @@ void main() {
       notificationService.clearAll();
     });
 
-    group('singleton', () {
-      test('should return same instance', () {
-        final instance1 = NotificationService();
-        final instance2 = NotificationService();
-        expect(identical(instance1, instance2), true);
+    group('DI pattern', () {
+      test('should create independent instances with forTesting', () {
+        final instance1 = NotificationService.forTesting();
+        final instance2 = NotificationService.forTesting();
+        // With DI pattern, each call creates a new instance
+        expect(identical(instance1, instance2), false);
+        instance1.dispose();
+        instance2.dispose();
       });
     });
 
@@ -420,6 +423,51 @@ void main() {
         expect(emissions[1].title, 'Test 2');
 
         await subscription.cancel();
+      });
+    });
+
+    group('forTesting constructor', () {
+      test('should create independent instance', () {
+        final testService = NotificationService.forTesting();
+
+        // Add to test service
+        testService.showInfo(title: 'Test', message: 'Message');
+
+        // Should have independent state
+        expect(testService.notificationCount, 1);
+
+        // Dispose test service
+        testService.dispose();
+      });
+
+      test('should have working stream', () async {
+        final testService = NotificationService.forTesting();
+        final emissions = <NotificationModel>[];
+        final subscription = testService.notifications.listen(emissions.add);
+
+        testService.showSuccess(title: 'Test', message: 'Message');
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        expect(emissions.length, 1);
+        expect(emissions.first.type, NotificationType.success);
+
+        await subscription.cancel();
+        testService.dispose();
+      });
+
+      test('should allow multiple independent instances', () {
+        final service1 = NotificationService.forTesting();
+        final service2 = NotificationService.forTesting();
+
+        service1.showInfo(title: 'Service1', message: 'Msg');
+        service2.showError(title: 'Service2', message: 'Msg');
+        service2.showWarning(title: 'Service2-2', message: 'Msg');
+
+        expect(service1.notificationCount, 1);
+        expect(service2.notificationCount, 2);
+
+        service1.dispose();
+        service2.dispose();
       });
     });
 

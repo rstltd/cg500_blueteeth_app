@@ -7,17 +7,36 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../utils/logger.dart';
 import '../models/update_preferences.dart';
-import 'smart_notification_service.dart';
-import 'network_service.dart';
+import '../models/update_info.dart';
+import '../models/download_progress.dart';
+import '../models/update_type.dart';
+import '../core/interfaces/update_service_interface.dart';
+import '../core/interfaces/notification_service_interface.dart';
+import '../core/interfaces/network_service_interface.dart';
 
-/// Service for handling app updates and version management
-class UpdateService {
-  static final UpdateService _instance = UpdateService._internal();
-  factory UpdateService() => _instance;
-  UpdateService._internal();
+// Re-export models for backward compatibility
+export '../models/update_info.dart' show UpdateInfo;
+export '../models/download_progress.dart' show DownloadProgress;
+export '../models/update_type.dart' show UpdateType;
 
-  final SmartNotificationService _notificationService = SmartNotificationService();
-  final NetworkService _networkService = NetworkService();
+/// Service for handling app updates and version management.
+///
+/// This service implements [UpdateServiceInterface] and can be used with
+/// dependency injection for improved testability.
+///
+/// Use [UpdateService.withDependencies()] constructor and register via
+/// service locator for production use.
+class UpdateService implements UpdateServiceInterface {
+  /// Named constructor for dependency injection.
+  /// Use this when creating instances via the service locator.
+  UpdateService.withDependencies({
+    required NotificationServiceInterface notificationService,
+    required NetworkServiceInterface networkService,
+  })  : _notificationService = notificationService,
+        _networkService = networkService;
+
+  final NotificationServiceInterface _notificationService;
+  final NetworkServiceInterface _networkService;
   
   UpdatePreferences? _preferences;
   static const int _maxRetries = 3;
@@ -38,10 +57,13 @@ class UpdateService {
   final StreamController<DownloadProgress> _downloadController = 
       StreamController<DownloadProgress>.broadcast();
       
+  @override
   Stream<UpdateInfo> get updateStream => _updateController.stream;
+  @override
   Stream<DownloadProgress> get downloadStream => _downloadController.stream;
 
   /// Initialize the update service
+  @override
   Future<bool> initialize() async {
     try {
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -64,6 +86,7 @@ class UpdateService {
   }
 
   /// Check for available updates via GitHub Releases
+  @override
   Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
     try {
       // Check if auto check is enabled
@@ -165,6 +188,7 @@ class UpdateService {
   }
 
   /// Download APK update with real-time progress tracking
+  @override
   Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
     return _downloadWithRetry(updateInfo, 0);
   }
@@ -346,6 +370,7 @@ class UpdateService {
   }
 
   /// Install APK update (Android only)
+  @override
   Future<bool> installUpdate(String apkPath) async {
     if (!Platform.isAndroid) {
       Logger.warning('APK installation only supported on Android');
@@ -481,6 +506,7 @@ class UpdateService {
   }
 
   /// Check if device can install APK files
+  @override
   Future<bool> canInstallApks() async {
     if (!Platform.isAndroid) {
       return false;
@@ -497,6 +523,7 @@ class UpdateService {
   }
 
   /// Request APK installation permission
+  @override
   Future<void> requestInstallPermission() async {
     if (!Platform.isAndroid) {
       return;
@@ -511,6 +538,7 @@ class UpdateService {
   }
 
   /// Diagnose APK installation permissions and configuration
+  @override
   Future<Map<String, dynamic>> diagnosePermissions() async {
     if (!Platform.isAndroid) {
       return {'platform': 'non-android', 'supported': false};
@@ -535,6 +563,7 @@ class UpdateService {
   }
 
   /// Get current app version info
+  @override
   Map<String, String> getCurrentVersionInfo() {
     return {
       'version': _currentVersion ?? 'Unknown',
@@ -543,6 +572,7 @@ class UpdateService {
   }
 
   /// Clean up downloaded update files (keeps only latest version)
+  @override
   Future<void> cleanupDownloads({String? keepVersion}) async {
     try {
       Directory directory;
@@ -627,6 +657,7 @@ class UpdateService {
   }
 
   /// Skip a specific version
+  @override
   Future<void> skipVersion(String version) async {
     if (_preferences != null) {
       _preferences!.skipVersion(version);
@@ -636,9 +667,11 @@ class UpdateService {
   }
 
   /// Get current update preferences
+  @override
   UpdatePreferences? get preferences => _preferences;
 
   /// Update preferences and save
+  @override
   Future<void> updatePreferences(UpdatePreferences newPreferences) async {
     _preferences = newPreferences;
     await _preferences!.save();
@@ -646,6 +679,7 @@ class UpdateService {
   }
 
   /// Check if auto download is enabled and suitable
+  @override
   bool shouldAutoDownload(UpdateInfo updateInfo) {
     if (_preferences == null || !_preferences!.autoDownloadEnabled) {
       return false;
@@ -657,189 +691,10 @@ class UpdateService {
   }
 
   /// Dispose resources
+  @override
   void dispose() {
     _updateController.close();
     _downloadController.close();
     _networkService.dispose();
   }
-}
-
-/// Update information model
-class UpdateInfo {
-  final String latestVersion;
-  final String currentVersion;
-  final String downloadUrl;
-  final int downloadSize;
-  final String releaseNotes;
-  final bool isForced;
-  final UpdateType updateType;
-  final DateTime releaseDate;
-
-  const UpdateInfo({
-    required this.latestVersion,
-    required this.currentVersion,
-    required this.downloadUrl,
-    required this.downloadSize,
-    required this.releaseNotes,
-    this.isForced = false,
-    this.updateType = UpdateType.optional,
-    required this.releaseDate,
-  });
-
-  bool get hasUpdate => _compareVersions(latestVersion, currentVersion) > 0;
-
-  factory UpdateInfo.fromJson(Map<String, dynamic> json) {
-    return UpdateInfo(
-      latestVersion: json['latest_version'] ?? '1.0.0',
-      currentVersion: json['current_version'] ?? '1.0.0',
-      downloadUrl: json['download_url'] ?? '',
-      downloadSize: json['download_size'] ?? 0,
-      releaseNotes: json['release_notes'] ?? '',
-      isForced: json['is_forced'] ?? false,
-      updateType: UpdateType.values.firstWhere(
-        (type) => type.name == json['update_type'],
-        orElse: () => UpdateType.optional,
-      ),
-      releaseDate: DateTime.tryParse(json['release_date'] ?? '') ?? DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'latest_version': latestVersion,
-      'current_version': currentVersion,
-      'download_url': downloadUrl,
-      'download_size': downloadSize,
-      'release_notes': releaseNotes,
-      'is_forced': isForced,
-      'update_type': updateType.name,
-      'release_date': releaseDate.toIso8601String(),
-    };
-  }
-
-  /// Compare version strings (e.g., "1.2.3" vs "1.2.4+5")
-  static int _compareVersions(String version1, String version2) {
-    // Log for debugging
-    Logger.debug('Comparing versions: "$version1" vs "$version2"');
-    
-    // Remove build numbers (everything after +)
-    String v1Clean = version1.split('+')[0];
-    String v2Clean = version2.split('+')[0];
-    
-    Logger.debug('Clean versions: "$v1Clean" vs "$v2Clean"');
-    
-    try {
-      List<int> v1Parts = v1Clean.split('.').map(int.parse).toList();
-      List<int> v2Parts = v2Clean.split('.').map(int.parse).toList();
-      
-      // Ensure both lists have at least 3 elements (major.minor.patch)
-      while (v1Parts.length < 3) {
-        v1Parts.add(0);
-      }
-      while (v2Parts.length < 3) {
-        v2Parts.add(0);
-      }
-      
-      Logger.debug('Version parts: v1=$v1Parts, v2=$v2Parts');
-      
-      for (int i = 0; i < 3; i++) {
-        if (v1Parts[i] < v2Parts[i]) {
-          Logger.debug('v1[$i]=${v1Parts[i]} < v2[$i]=${v2Parts[i]} -> -1');
-          return -1;
-        }
-        if (v1Parts[i] > v2Parts[i]) {
-          Logger.debug('v1[$i]=${v1Parts[i]} > v2[$i]=${v2Parts[i]} -> 1');
-          return 1;
-        }
-      }
-      
-      // If main versions are equal, compare build numbers if present
-      List<String> v1Build = version1.split('+');
-      List<String> v2Build = version2.split('+');
-      
-      Logger.debug('Build parts: v1Build=${v1Build.length > 1 ? v1Build[1] : 'none'}, v2Build=${v2Build.length > 1 ? v2Build[1] : 'none'}');
-      
-      if (v1Build.length > 1 && v2Build.length > 1) {
-        try {
-          int build1 = int.parse(v1Build[1]);
-          int build2 = int.parse(v2Build[1]);
-          Logger.debug('Comparing builds: $build1 vs $build2');
-          if (build1 < build2) return -1;
-          if (build1 > build2) return 1;
-        } catch (e) {
-          // If build numbers can't be parsed, ignore them
-          Logger.debug('Failed to parse build numbers: $e');
-        }
-      } else if (v2Build.length > 1) {
-        // Version2 has build number, version1 doesn't - version2 is newer
-        Logger.debug('v2 has build number, v1 doesn\'t -> -1');
-        return -1;
-      } else if (v1Build.length > 1) {
-        // Version1 has build number, version2 doesn't - version1 is newer
-        Logger.debug('v1 has build number, v2 doesn\'t -> 1');
-        return 1;
-      }
-      
-      Logger.debug('Versions are equal -> 0');
-      return 0;
-    } catch (e) {
-      Logger.error('Error comparing versions: $version1 vs $version2', error: e);
-      return 0; // Treat as equal if there's an error
-    }
-  }
-}
-
-/// Download progress information with enhanced tracking
-class DownloadProgress {
-  final double progress;
-  final int downloadedBytes;
-  final int totalBytes;
-  final String? filePath;
-  final String status;
-  final double? speed; // bytes per second
-  final Duration? estimatedTimeRemaining;
-
-  const DownloadProgress({
-    required this.progress,
-    required this.downloadedBytes,
-    required this.totalBytes,
-    this.filePath,
-    this.status = '',
-    this.speed,
-    this.estimatedTimeRemaining,
-  });
-
-  String get progressText => '${(progress * 100).toInt()}%';
-  String get sizeText => '${_formatBytes(downloadedBytes)} / ${_formatBytes(totalBytes)}';
-  
-  String get speedText {
-    if (speed == null || speed! <= 0) return '';
-    return '${_formatBytes(speed!.round())}/s';
-  }
-  
-  String get timeRemainingText {
-    if (estimatedTimeRemaining == null) return '';
-    final duration = estimatedTimeRemaining!;
-    if (duration.inHours > 0) {
-      return '${duration.inHours}h ${duration.inMinutes % 60}m remaining';
-    } else if (duration.inMinutes > 0) {
-      return '${duration.inMinutes}m ${duration.inSeconds % 60}s remaining';
-    } else {
-      return '${duration.inSeconds}s remaining';
-    }
-  }
-
-  static String _formatBytes(int bytes) {
-    if (bytes < 1024) return '${bytes}B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
-  }
-}
-
-/// Update type enumeration
-enum UpdateType {
-  optional,      // User can choose to update
-  recommended,   // Strongly recommended but not forced
-  critical,      // Critical security/bug fixes
-  forced,        // Must update to continue using app
 }

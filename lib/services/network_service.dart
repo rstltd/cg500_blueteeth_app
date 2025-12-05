@@ -2,14 +2,27 @@ import 'dart:async';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../utils/logger.dart';
+import '../core/interfaces/network_service_interface.dart';
 
-/// Service for monitoring network connectivity and type
-class NetworkService {
-  static final NetworkService _instance = NetworkService._internal();
-  factory NetworkService() => _instance;
-  NetworkService._internal();
+// Re-export NetworkStatus from the interface for backward compatibility
+export '../core/interfaces/network_service_interface.dart' show NetworkStatus;
 
-  final StreamController<NetworkStatus> _networkController = 
+/// Service for monitoring network connectivity and type.
+///
+/// This service implements [NetworkServiceInterface] and can be used with
+/// dependency injection for improved testability.
+///
+/// Use [NetworkService.withDependencies()] or [NetworkService()] constructor
+/// and register via service locator for production use.
+class NetworkService implements NetworkServiceInterface {
+  /// Default constructor for dependency injection via service locator.
+  NetworkService();
+
+  /// Named constructor for dependency injection (alias for default constructor).
+  /// Use this when creating instances via the service locator.
+  NetworkService.withDependencies();
+
+  final StreamController<NetworkStatus> _networkController =
       StreamController<NetworkStatus>.broadcast();
   final Connectivity _connectivity = Connectivity();
   
@@ -17,10 +30,14 @@ class NetworkService {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   Timer? _connectivityTimer;
 
+  @override
   Stream<NetworkStatus> get networkStream => _networkController.stream;
+
+  @override
   NetworkStatus get currentStatus => _currentStatus;
 
   /// Initialize network monitoring
+  @override
   Future<bool> initialize() async {
     try {
       await _checkConnectivity();
@@ -126,6 +143,7 @@ class NetworkService {
 
 
   /// Check if current network is suitable for large downloads
+  @override
   bool isSuitableForDownload({required bool wifiOnly}) {
     switch (_currentStatus) {
       case NetworkStatus.wifi:
@@ -139,6 +157,7 @@ class NetworkService {
   }
 
   /// Get user-friendly network status description
+  @override
   String getStatusDescription() {
     switch (_currentStatus) {
       case NetworkStatus.wifi:
@@ -153,6 +172,7 @@ class NetworkService {
   }
 
   /// Get network type for display
+  @override
   String getNetworkTypeDisplayName() {
     switch (_currentStatus) {
       case NetworkStatus.wifi:
@@ -167,6 +187,7 @@ class NetworkService {
   }
 
   /// Estimate download time based on network type and file size
+  @override
   String estimateDownloadTime(int fileSizeBytes) {
     if (_currentStatus == NetworkStatus.none) {
       return 'Cannot download - no connection';
@@ -198,6 +219,7 @@ class NetworkService {
   }
 
   /// Dispose resources
+  @override
   void dispose() {
     _connectivitySubscription?.cancel();
     _connectivityTimer?.cancel();
@@ -205,13 +227,5 @@ class NetworkService {
   }
 }
 
-/// Network connectivity status
-enum NetworkStatus {
-  none('No Connection'),
-  mobile('Mobile Data'),
-  wifi('WiFi'),
-  unknown('Unknown');
-
-  const NetworkStatus(this.displayName);
-  final String displayName;
-}
+// NOTE: NetworkStatus enum is now defined in network_service_interface.dart
+// and re-exported from this file for backward compatibility.

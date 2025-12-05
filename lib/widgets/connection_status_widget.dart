@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
 import '../models/ble_device.dart';
 import '../services/theme_service.dart';
 import '../utils/responsive_utils.dart';
 
 /// Widget for displaying BLE connection status and device information
 class ConnectionStatusWidget extends StatelessWidget {
-  final SimpleBleController controller;
+  final BleControllerInterface controller;
   final bool showDeviceInfo;
   final bool compact;
 
@@ -262,7 +262,7 @@ class ConnectionStatusWidget extends StatelessWidget {
 
 /// A specialized app bar widget showing connection status
 class ConnectionStatusAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final SimpleBleController controller;
+  final BleControllerInterface controller;
   final String title;
   final List<Widget>? actions;
 

@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/widgets/install_guide_dialog.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
+import '../mocks/mock_services.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() {
+    // Register mock services for testing
+    final getIt = GetIt.instance;
+    if (!getIt.isRegistered<UpdateServiceInterface>()) {
+      getIt.registerSingleton<UpdateServiceInterface>(MockUpdateService());
+    }
+  });
+
+  tearDownAll(() {
+    GetIt.instance.reset();
+  });
 
   group('InstallStep', () {
     test('should create InstallStep with required properties', () {

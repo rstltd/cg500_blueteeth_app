@@ -1,31 +1,225 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
-import 'package:cg500_blueteeth_app/services/network_service.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart' show NotificationModel;
+import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
+import 'package:cg500_blueteeth_app/models/update_preferences.dart';
+
+/// Mock UpdateService for testing
+class MockUpdateService implements UpdateServiceInterface {
+  final _updateController = StreamController<UpdateInfo>.broadcast();
+  final _downloadController = StreamController<DownloadProgress>.broadcast();
+  bool _isInitialized = false;
+  UpdateInfo? _mockUpdateInfo;
+  UpdatePreferences? _preferences;
+
+  @override
+  Stream<UpdateInfo> get updateStream => _updateController.stream;
+
+  @override
+  Stream<DownloadProgress> get downloadStream => _downloadController.stream;
+
+  @override
+  Future<bool> initialize() async {
+    _isInitialized = true;
+    _preferences = UpdatePreferences();
+    return true;
+  }
+
+  @override
+  void dispose() {
+    _updateController.close();
+    _downloadController.close();
+  }
+
+  @override
+  Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
+    return _mockUpdateInfo;
+  }
+
+  @override
+  Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
+    return '/mock/path/app.apk';
+  }
+
+  @override
+  Future<void> cleanupDownloads({String? keepVersion}) async {}
+
+  @override
+  Future<bool> installUpdate(String apkPath) async => true;
+
+  @override
+  Future<bool> canInstallApks() async => true;
+
+  @override
+  Future<void> requestInstallPermission() async {}
+
+  @override
+  Future<Map<String, dynamic>> diagnosePermissions() async {
+    return {'canInstall': true, 'platform': 'android'};
+  }
+
+  @override
+  Map<String, String> getCurrentVersionInfo() {
+    return {'version': '1.0.0', 'buildNumber': '1'};
+  }
+
+  @override
+  Future<void> skipVersion(String version) async {}
+
+  @override
+  UpdatePreferences? get preferences => _preferences;
+
+  @override
+  Future<void> updatePreferences(UpdatePreferences newPreferences) async {
+    _preferences = newPreferences;
+  }
+
+  @override
+  bool shouldAutoDownload(UpdateInfo updateInfo) => false;
+
+  void setMockUpdateInfo(UpdateInfo? info) {
+    _mockUpdateInfo = info;
+  }
+
+  void emitUpdate(UpdateInfo info) {
+    _updateController.add(info);
+  }
+}
+
+/// Mock NetworkService for testing
+class MockNetworkService implements NetworkServiceInterface {
+  final _networkController = StreamController<NetworkStatus>.broadcast();
+  NetworkStatus _currentStatus = NetworkStatus.wifi;
+
+  @override
+  Stream<NetworkStatus> get networkStream => _networkController.stream;
+
+  @override
+  NetworkStatus get currentStatus => _currentStatus;
+
+  @override
+  Future<bool> initialize() async => true;
+
+  @override
+  bool isSuitableForDownload({required bool wifiOnly}) {
+    if (wifiOnly) return _currentStatus == NetworkStatus.wifi;
+    return _currentStatus != NetworkStatus.none;
+  }
+
+  @override
+  String getStatusDescription() => 'Connected via ${_currentStatus.displayName}';
+
+  @override
+  String getNetworkTypeDisplayName() => _currentStatus.displayName;
+
+  @override
+  String estimateDownloadTime(int fileSizeBytes) => '~5s';
+
+  @override
+  void dispose() {
+    _networkController.close();
+  }
+
+  void setStatus(NetworkStatus status) {
+    _currentStatus = status;
+    _networkController.add(status);
+  }
+}
+
+/// Mock NotificationService for testing
+class MockNotificationService implements NotificationServiceInterface {
+  final _notificationsController = StreamController<NotificationModel>.broadcast();
+  final List<String> shownNotifications = [];
+
+  @override
+  Stream<NotificationModel> get notifications => _notificationsController.stream;
+
+  @override
+  void showSuccess({required String title, required String message}) {
+    shownNotifications.add('success:$title');
+  }
+
+  @override
+  void showError({required String title, required String message}) {
+    shownNotifications.add('error:$title');
+  }
+
+  @override
+  void showWarning({required String title, required String message}) {
+    shownNotifications.add('warning:$title');
+  }
+
+  @override
+  void showInfo({required String title, required String message}) {
+    shownNotifications.add('info:$title');
+  }
+
+  @override
+  void showConnectionStatus({
+    required String title,
+    required String message,
+    required bool isConnected,
+  }) {
+    shownNotifications.add('connection:$title');
+  }
+
+  @override
+  void showScanningStatus({
+    required String title,
+    required String message,
+    required bool isScanning,
+  }) {
+    shownNotifications.add('scanning:$title');
+  }
+
+  @override
+  void dispose() {
+    _notificationsController.close();
+  }
+}
+
+/// Helper function to create a test AppUpdateManager with mock dependencies
+AppUpdateManager createTestManager({
+  MockUpdateService? updateService,
+  MockNetworkService? networkService,
+  MockNotificationService? notificationService,
+}) {
+  return AppUpdateManager.withDependencies(
+    updateService: updateService ?? MockUpdateService(),
+    networkService: networkService ?? MockNetworkService(),
+    notificationService: notificationService ?? MockNotificationService(),
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AppUpdateManager', () {
+    late MockUpdateService mockUpdateService;
+    late MockNetworkService mockNetworkService;
+    late MockNotificationService mockNotificationService;
     late AppUpdateManager manager;
 
     setUp(() {
-      manager = AppUpdateManager();
+      mockUpdateService = MockUpdateService();
+      mockNetworkService = MockNetworkService();
+      mockNotificationService = MockNotificationService();
+      manager = AppUpdateManager.withDependencies(
+        updateService: mockUpdateService,
+        networkService: mockNetworkService,
+        notificationService: mockNotificationService,
+      );
     });
 
-    group('singleton', () {
-      test('should return same instance', () {
-        final instance1 = AppUpdateManager();
-        final instance2 = AppUpdateManager();
-        expect(identical(instance1, instance2), true);
-      });
-
-      test('should persist across multiple calls', () {
-        final instances = List.generate(10, (_) => AppUpdateManager());
-        for (int i = 1; i < instances.length; i++) {
-          expect(identical(instances[0], instances[i]), true);
-        }
-      });
+    tearDown(() {
+      manager.dispose();
+      mockUpdateService.dispose();
+      mockNetworkService.dispose();
+      mockNotificationService.dispose();
     });
 
     group('initial state', () {
@@ -40,11 +234,11 @@ void main() {
 
     group('service accessors', () {
       test('updateService should be accessible', () {
-        expect(manager.updateService, isA<UpdateService>());
+        expect(manager.updateService, same(mockUpdateService));
       });
 
       test('networkService should be accessible', () {
-        expect(manager.networkService, isA<NetworkService>());
+        expect(manager.networkService, same(mockNetworkService));
       });
 
       test('updateService should be same instance on multiple access', () {
@@ -61,11 +255,13 @@ void main() {
     });
 
     group('autoUpdatesEnabled', () {
-      test('should return bool value', () {
+      test('should return bool value', () async {
+        await manager.initialize();
         expect(manager.autoUpdatesEnabled, isA<bool>());
       });
 
-      test('should be consistent on multiple access', () {
+      test('should be consistent on multiple access', () async {
+        await manager.initialize();
         final value1 = manager.autoUpdatesEnabled;
         final value2 = manager.autoUpdatesEnabled;
         expect(value1, value2);
@@ -73,11 +269,13 @@ void main() {
     });
 
     group('autoDownloadEnabled', () {
-      test('should return bool value', () {
+      test('should return bool value', () async {
+        await manager.initialize();
         expect(manager.autoDownloadEnabled, isA<bool>());
       });
 
-      test('should be consistent on multiple access', () {
+      test('should be consistent on multiple access', () async {
+        await manager.initialize();
         final value1 = manager.autoDownloadEnabled;
         final value2 = manager.autoDownloadEnabled;
         expect(value1, value2);
@@ -119,11 +317,9 @@ void main() {
     });
 
     group('checkForUpdatesSilently', () {
-      test('should return null when not initialized', () async {
-        // Without proper initialization, the check should return null
+      test('should return null when no updates', () async {
         final result = await manager.checkForUpdatesSilently();
-        // Result depends on initialization state
-        expect(result, anyOf(isNull, isA<UpdateInfo>()));
+        expect(result, isNull);
       });
     });
 
@@ -175,25 +371,25 @@ void main() {
 
     group('dispose', () {
       test('should not throw', () {
-        final mgr = AppUpdateManager();
+        final mgr = createTestManager();
         expect(() => mgr.dispose(), returnsNormally);
       });
 
       test('should reset isInitialized', () {
-        final mgr = AppUpdateManager();
+        final mgr = createTestManager();
         mgr.dispose();
         // After dispose, isInitialized should be false
         expect(mgr.isInitialized, false);
       });
 
       test('should clear latestUpdateInfo', () {
-        final mgr = AppUpdateManager();
+        final mgr = createTestManager();
         mgr.dispose();
         expect(mgr.latestUpdateInfo, isNull);
       });
 
       test('should be safe to call multiple times', () {
-        final mgr = AppUpdateManager();
+        final mgr = createTestManager();
         mgr.dispose();
         mgr.dispose();
         mgr.dispose();
@@ -221,7 +417,7 @@ void main() {
 
   group('AppUpdateManager edge cases', () {
     test('concurrent downloadUpdate calls', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final results = await Future.wait([
         manager.downloadUpdate(),
@@ -231,10 +427,11 @@ void main() {
 
       // All should return null as no update info is available
       expect(results, [null, null, null]);
+      manager.dispose();
     });
 
     test('rapid startPeriodicUpdateChecks calls', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       // Rapid calls should not cause issues
       for (int i = 0; i < 10; i++) {
@@ -244,10 +441,11 @@ void main() {
       }
 
       expect(true, true); // If we get here, no exception was thrown
+      manager.dispose();
     });
 
     test('showUpdateDialogIfAvailable called many times', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       // Multiple calls should be safe
       for (int i = 0; i < 100; i++) {
@@ -255,20 +453,22 @@ void main() {
       }
 
       expect(true, true); // If we get here, no exception was thrown
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager service interaction', () {
     test('updateService and networkService are different objects', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       expect(
         identical(manager.updateService, manager.networkService),
         false,
       );
+      manager.dispose();
     });
 
     test('getCurrentVersionInfo returns map with expected types', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       final info = manager.getCurrentVersionInfo();
 
       // Should be a map where all values are strings
@@ -276,70 +476,81 @@ void main() {
         expect(entry.key, isA<String>());
         expect(entry.value, isA<String>());
       }
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager preferences detailed', () {
-    test('autoUpdatesEnabled returns bool', () {
-      final manager = AppUpdateManager();
+    test('autoUpdatesEnabled returns bool', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       expect(manager.autoUpdatesEnabled, isA<bool>());
+      manager.dispose();
     });
 
-    test('autoDownloadEnabled returns bool', () {
-      final manager = AppUpdateManager();
+    test('autoDownloadEnabled returns bool', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       expect(manager.autoDownloadEnabled, isA<bool>());
+      manager.dispose();
     });
 
-    test('autoUpdatesEnabled is consistent on multiple calls', () {
-      final manager = AppUpdateManager();
+    test('autoUpdatesEnabled is consistent on multiple calls', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       final val1 = manager.autoUpdatesEnabled;
       final val2 = manager.autoUpdatesEnabled;
       final val3 = manager.autoUpdatesEnabled;
       expect(val1, val2);
       expect(val2, val3);
+      manager.dispose();
     });
 
-    test('autoDownloadEnabled is consistent on multiple calls', () {
-      final manager = AppUpdateManager();
+    test('autoDownloadEnabled is consistent on multiple calls', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       final val1 = manager.autoDownloadEnabled;
       final val2 = manager.autoDownloadEnabled;
       final val3 = manager.autoDownloadEnabled;
       expect(val1, val2);
       expect(val2, val3);
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager state management detailed', () {
     test('isInitialized starts as false after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose(); // Reset state
       expect(manager.isInitialized, false);
     });
 
     test('isCheckingForUpdates starts as false after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose(); // Reset state
       expect(manager.isCheckingForUpdates, false);
     });
 
     test('latestUpdateInfo starts as null after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose(); // Reset state
       expect(manager.latestUpdateInfo, isNull);
     });
 
     test('state getters are all accessible', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       expect(() => manager.isInitialized, returnsNormally);
       expect(() => manager.isCheckingForUpdates, returnsNormally);
       expect(() => manager.latestUpdateInfo, returnsNormally);
       expect(() => manager.autoUpdatesEnabled, returnsNormally);
       expect(() => manager.autoDownloadEnabled, returnsNormally);
+      manager.dispose();
     });
 
-    test('all state getters return correct types', () {
-      final manager = AppUpdateManager();
+    test('all state getters return correct types', () async {
+      final manager = createTestManager();
+      await manager.initialize();
 
       expect(manager.isInitialized, isA<bool>());
       expect(manager.isCheckingForUpdates, isA<bool>());
@@ -350,57 +561,13 @@ void main() {
         manager.latestUpdateInfo,
         anyOf(isNull, isA<UpdateInfo>()),
       );
-    });
-  });
-
-  group('AppUpdateManager service consistency detailed', () {
-    test('updateService is singleton', () {
-      final manager1 = AppUpdateManager();
-      final manager2 = AppUpdateManager();
-
-      expect(
-        identical(manager1.updateService, manager2.updateService),
-        true,
-      );
-    });
-
-    test('networkService is singleton', () {
-      final manager1 = AppUpdateManager();
-      final manager2 = AppUpdateManager();
-
-      expect(
-        identical(manager1.networkService, manager2.networkService),
-        true,
-      );
-    });
-
-    test('services persist after dispose', () {
-      final manager = AppUpdateManager();
-      final serviceBefore = manager.updateService;
       manager.dispose();
-      final serviceAfter = manager.updateService;
-
-      // Services are singletons, they should remain same
-      expect(identical(serviceBefore, serviceAfter), true);
-    });
-
-    test('services accessible in any order', () {
-      final manager = AppUpdateManager();
-
-      // Access in different orders
-      final ns1 = manager.networkService;
-      final us1 = manager.updateService;
-      final us2 = manager.updateService;
-      final ns2 = manager.networkService;
-
-      expect(identical(ns1, ns2), true);
-      expect(identical(us1, us2), true);
     });
   });
 
   group('AppUpdateManager lifecycle detailed', () {
     test('dispose is idempotent', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       expect(() {
         manager.dispose();
@@ -412,7 +579,7 @@ void main() {
     });
 
     test('can access getters after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       expect(() => manager.isInitialized, returnsNormally);
@@ -423,7 +590,7 @@ void main() {
     });
 
     test('can call methods after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       expect(() => manager.getCurrentVersionInfo(), returnsNormally);
@@ -432,7 +599,7 @@ void main() {
     });
 
     test('dispose clears state correctly', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       expect(manager.isInitialized, false);
@@ -442,7 +609,7 @@ void main() {
 
   group('AppUpdateManager periodic checks detailed', () {
     test('startPeriodicUpdateChecks with various intervals', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       expect(
         () => manager.startPeriodicUpdateChecks(
@@ -464,10 +631,11 @@ void main() {
         ),
         returnsNormally,
       );
+      manager.dispose();
     });
 
     test('startPeriodicUpdateChecks replaces previous timer', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       // Multiple calls should replace, not stack
       manager.startPeriodicUpdateChecks(interval: const Duration(hours: 1));
@@ -476,10 +644,11 @@ void main() {
 
       // Should not throw
       expect(true, true);
+      manager.dispose();
     });
 
     test('startPeriodicUpdateChecks after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       expect(
@@ -491,33 +660,36 @@ void main() {
 
   group('AppUpdateManager version info detailed', () {
     test('getCurrentVersionInfo returns non-empty map or empty map', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       final info = manager.getCurrentVersionInfo();
 
       expect(info, isA<Map<String, String>>());
+      manager.dispose();
     });
 
     test('getCurrentVersionInfo keys are valid', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       final info = manager.getCurrentVersionInfo();
 
       for (final key in info.keys) {
         expect(key, isNotEmpty);
         expect(key.trim(), key); // No whitespace
       }
+      manager.dispose();
     });
 
     test('getCurrentVersionInfo values are valid strings', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       final info = manager.getCurrentVersionInfo();
 
       for (final value in info.values) {
         expect(value, isA<String>());
       }
+      manager.dispose();
     });
 
     test('getCurrentVersionInfo is consistent', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final info1 = manager.getCurrentVersionInfo();
       final info2 = manager.getCurrentVersionInfo();
@@ -526,12 +698,13 @@ void main() {
       for (final key in info1.keys) {
         expect(info2.containsKey(key), true);
       }
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager async operations detailed', () {
     test('downloadUpdate with no update info', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose(); // Ensure no update info
 
       final result = await manager.downloadUpdate();
@@ -539,14 +712,15 @@ void main() {
     });
 
     test('checkForUpdatesSilently returns UpdateInfo or null', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final result = await manager.checkForUpdatesSilently();
       expect(result, anyOf(isNull, isA<UpdateInfo>()));
+      manager.dispose();
     });
 
     test('concurrent checkForUpdatesSilently calls', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final results = await Future.wait([
         manager.checkForUpdatesSilently(),
@@ -558,10 +732,11 @@ void main() {
       for (final result in results) {
         expect(result, anyOf(isNull, isA<UpdateInfo>()));
       }
+      manager.dispose();
     });
 
     test('downloadUpdate concurrent calls', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose(); // No update info
 
       final results = await Future.wait([
@@ -579,26 +754,28 @@ void main() {
 
   group('AppUpdateManager stress tests', () {
     test('rapid showUpdateDialogIfAvailable calls', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       for (int i = 0; i < 1000; i++) {
         manager.showUpdateDialogIfAvailable();
       }
 
       expect(true, true); // If we get here, no exception
+      manager.dispose();
     });
 
     test('rapid getCurrentVersionInfo calls', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       for (int i = 0; i < 100; i++) {
         final info = manager.getCurrentVersionInfo();
         expect(info, isA<Map<String, String>>());
       }
+      manager.dispose();
     });
 
     test('alternating operations', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       for (int i = 0; i < 20; i++) {
         manager.showUpdateDialogIfAvailable();
@@ -608,10 +785,11 @@ void main() {
       }
 
       expect(true, true);
+      manager.dispose();
     });
 
     test('state remains consistent during rapid operations', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       for (int i = 0; i < 50; i++) {
@@ -623,52 +801,29 @@ void main() {
     });
   });
 
-  group('AppUpdateManager singleton behavior detailed', () {
-    test('singleton persists across test groups', () {
-      final instance1 = AppUpdateManager();
-      final instance2 = AppUpdateManager();
-      final instance3 = AppUpdateManager();
-      final instance4 = AppUpdateManager();
-      final instance5 = AppUpdateManager();
-
-      expect(identical(instance1, instance2), true);
-      expect(identical(instance2, instance3), true);
-      expect(identical(instance3, instance4), true);
-      expect(identical(instance4, instance5), true);
-    });
-
-    test('factory constructor always returns same instance', () {
-      final instances = <AppUpdateManager>[];
-
-      for (int i = 0; i < 100; i++) {
-        instances.add(AppUpdateManager());
-      }
-
-      for (int i = 1; i < instances.length; i++) {
-        expect(identical(instances[0], instances[i]), true);
-      }
-    });
-  });
-
   group('AppUpdateManager setContext behavior', () {
     test('setContext does not throw with null-like context', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       // We can't easily test with a real context, but ensure method exists
       expect(manager.setContext, isA<Function>());
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager setAutoUpdatesEnabled', () {
     test('setAutoUpdatesEnabled returns Future', () async {
-      final manager = AppUpdateManager();
-      // Method should complete without error even when preferences is null
+      final manager = createTestManager();
+      await manager.initialize();
+      // Method should complete without error
       await manager.setAutoUpdatesEnabled(true);
       await manager.setAutoUpdatesEnabled(false);
       expect(true, true);
+      manager.dispose();
     });
 
     test('setAutoUpdatesEnabled multiple calls are safe', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
+      await manager.initialize();
 
       await Future.wait([
         manager.setAutoUpdatesEnabled(true),
@@ -677,12 +832,13 @@ void main() {
       ]);
 
       expect(true, true);
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager initialize behavior', () {
     test('initialize returns Future<bool>', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose(); // Reset state
 
       final result = await manager.initialize();
@@ -690,7 +846,7 @@ void main() {
     });
 
     test('initialize can be called after dispose', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       final result = await manager.initialize();
@@ -698,7 +854,7 @@ void main() {
     });
 
     test('multiple initialize calls are handled', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       final result1 = await manager.initialize();
@@ -712,21 +868,23 @@ void main() {
 
   group('AppUpdateManager checkForUpdatesWithUI', () {
     test('checkForUpdatesWithUI returns UpdateInfo or null', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final result = await manager.checkForUpdatesWithUI();
       expect(result, anyOf(isNull, isA<UpdateInfo>()));
+      manager.dispose();
     });
 
     test('checkForUpdatesWithUI with force flag', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final result = await manager.checkForUpdatesWithUI(force: true);
       expect(result, anyOf(isNull, isA<UpdateInfo>()));
+      manager.dispose();
     });
 
     test('concurrent checkForUpdatesWithUI calls', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       // Multiple concurrent calls should be handled gracefully
       final results = await Future.wait([
@@ -737,12 +895,14 @@ void main() {
       for (final result in results) {
         expect(result, anyOf(isNull, isA<UpdateInfo>()));
       }
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager state after dispose', () {
-    test('getters return valid values after dispose', () {
-      final manager = AppUpdateManager();
+    test('getters return valid values after dispose', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       manager.dispose();
 
       expect(manager.isInitialized, false);
@@ -753,7 +913,7 @@ void main() {
     });
 
     test('services remain accessible after dispose', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       expect(manager.updateService, isNotNull);
@@ -761,7 +921,7 @@ void main() {
     });
 
     test('methods can be called after dispose', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       manager.dispose();
 
       expect(() => manager.showUpdateDialogIfAvailable(), returnsNormally);
@@ -773,20 +933,25 @@ void main() {
   });
 
   group('AppUpdateManager preferences integration', () {
-    test('autoUpdatesEnabled default is true', () {
-      final manager = AppUpdateManager();
+    test('autoUpdatesEnabled default is true', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       // Default should be true or whatever is in preferences
       expect(manager.autoUpdatesEnabled, isA<bool>());
+      manager.dispose();
     });
 
-    test('autoDownloadEnabled default is false', () {
-      final manager = AppUpdateManager();
+    test('autoDownloadEnabled default is false', () async {
+      final manager = createTestManager();
+      await manager.initialize();
       // Default should be false or whatever is in preferences
       expect(manager.autoDownloadEnabled, isA<bool>());
+      manager.dispose();
     });
 
-    test('preferences getters are consistent', () {
-      final manager = AppUpdateManager();
+    test('preferences getters are consistent', () async {
+      final manager = createTestManager();
+      await manager.initialize();
 
       final auto1 = manager.autoUpdatesEnabled;
       final auto2 = manager.autoUpdatesEnabled;
@@ -795,20 +960,21 @@ void main() {
 
       expect(auto1, auto2);
       expect(download1, download2);
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager rapid operations', () {
     test('rapid dispose and access cycles', () {
       for (int i = 0; i < 20; i++) {
-        final manager = AppUpdateManager();
+        final manager = createTestManager();
         manager.dispose();
         expect(manager.isInitialized, false);
       }
     });
 
     test('rapid method calls', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       for (int i = 0; i < 10; i++) {
         manager.getCurrentVersionInfo();
@@ -817,10 +983,11 @@ void main() {
       }
 
       expect(true, true);
+      manager.dispose();
     });
 
     test('alternating initialize and dispose', () async {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       for (int i = 0; i < 5; i++) {
         manager.dispose();
@@ -828,12 +995,13 @@ void main() {
       }
 
       expect(manager.isInitialized, isA<bool>());
+      manager.dispose();
     });
   });
 
   group('AppUpdateManager version info structure', () {
     test('getCurrentVersionInfo has expected keys', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
       final info = manager.getCurrentVersionInfo();
 
       // Should contain version info as strings
@@ -841,10 +1009,11 @@ void main() {
         expect(entry.key, isA<String>());
         expect(entry.value, isA<String>());
       }
+      manager.dispose();
     });
 
     test('getCurrentVersionInfo is idempotent', () {
-      final manager = AppUpdateManager();
+      final manager = createTestManager();
 
       final info1 = manager.getCurrentVersionInfo();
       final info2 = manager.getCurrentVersionInfo();
@@ -853,6 +1022,348 @@ void main() {
       for (final key in info1.keys) {
         expect(info2.containsKey(key), true);
       }
+      manager.dispose();
+    });
+  });
+
+  group('AppUpdateManager.withDependencies', () {
+    late MockUpdateService mockUpdateService;
+    late MockNetworkService mockNetworkService;
+    late MockNotificationService mockNotificationService;
+    late AppUpdateManager manager;
+
+    setUp(() {
+      mockUpdateService = MockUpdateService();
+      mockNetworkService = MockNetworkService();
+      mockNotificationService = MockNotificationService();
+      manager = AppUpdateManager.withDependencies(
+        updateService: mockUpdateService,
+        networkService: mockNetworkService,
+        notificationService: mockNotificationService,
+      );
+    });
+
+    tearDown(() {
+      mockUpdateService.dispose();
+      mockNetworkService.dispose();
+      mockNotificationService.dispose();
+    });
+
+    test('should create with injected dependencies', () {
+      expect(manager, isA<AppUpdateManager>());
+    });
+
+    test('updateService should return injected service', () {
+      expect(manager.updateService, same(mockUpdateService));
+    });
+
+    test('networkService should return injected service', () {
+      expect(manager.networkService, same(mockNetworkService));
+    });
+
+    test('getCurrentVersionInfo should return mock values', () {
+      final info = manager.getCurrentVersionInfo();
+      expect(info['version'], '1.0.0');
+      expect(info['buildNumber'], '1');
+    });
+
+    test('initialize should call mock service initialize', () async {
+      final result = await manager.initialize();
+      expect(result, true);
+      expect(manager.isInitialized, true);
+    });
+
+    test('checkForUpdatesSilently should return null when no updates', () async {
+      final result = await manager.checkForUpdatesSilently();
+      expect(result, isNull);
+    });
+
+    test('checkForUpdatesWithUI should return null when no updates', () async {
+      await manager.initialize();
+      final result = await manager.checkForUpdatesWithUI();
+      expect(result, isNull);
+    });
+
+    test('downloadUpdate should return null when no update info', () async {
+      final result = await manager.downloadUpdate();
+      expect(result, isNull);
+    });
+
+    test('autoUpdatesEnabled should return default preference', () async {
+      await manager.initialize();
+      expect(manager.autoUpdatesEnabled, isA<bool>());
+    });
+
+    test('autoDownloadEnabled should return default preference', () async {
+      await manager.initialize();
+      expect(manager.autoDownloadEnabled, isA<bool>());
+    });
+
+    test('setAutoUpdatesEnabled should not throw', () async {
+      await manager.initialize();
+      await expectLater(
+        manager.setAutoUpdatesEnabled(true),
+        completes,
+      );
+    });
+
+    test('setAutoUpdatesEnabled false should stop periodic checks', () async {
+      await manager.initialize();
+      manager.startPeriodicUpdateChecks();
+      await manager.setAutoUpdatesEnabled(false);
+      // Should complete without error
+      expect(true, true);
+    });
+
+    test('startPeriodicUpdateChecks should not throw with mock services', () {
+      expect(() => manager.startPeriodicUpdateChecks(), returnsNormally);
+    });
+
+    test('dispose should not throw with mock services', () {
+      expect(() => manager.dispose(), returnsNormally);
+    });
+
+    test('showUpdateDialogIfAvailable should not throw when no context', () {
+      expect(() => manager.showUpdateDialogIfAvailable(), returnsNormally);
+    });
+
+    test('setContext should accept BuildContext', () {
+      // Can't easily test with real context, but method should exist
+      expect(manager.setContext, isA<Function>());
+    });
+
+    test('multiple initializations should return true', () async {
+      final result1 = await manager.initialize();
+      final result2 = await manager.initialize();
+      expect(result1, true);
+      expect(result2, true);
+    });
+
+    test('isCheckingForUpdates should be false initially', () {
+      expect(manager.isCheckingForUpdates, false);
+    });
+
+    test('latestUpdateInfo should be null initially', () {
+      expect(manager.latestUpdateInfo, isNull);
+    });
+  });
+
+  group('AppUpdateManager.withDependencies network handling', () {
+    late MockUpdateService mockUpdateService;
+    late MockNetworkService mockNetworkService;
+    late MockNotificationService mockNotificationService;
+    late AppUpdateManager manager;
+
+    setUp(() {
+      mockUpdateService = MockUpdateService();
+      mockNetworkService = MockNetworkService();
+      mockNotificationService = MockNotificationService();
+      manager = AppUpdateManager.withDependencies(
+        updateService: mockUpdateService,
+        networkService: mockNetworkService,
+        notificationService: mockNotificationService,
+      );
+    });
+
+    tearDown(() {
+      mockUpdateService.dispose();
+      mockNetworkService.dispose();
+      mockNotificationService.dispose();
+    });
+
+    test('networkService should report correct status', () {
+      mockNetworkService.setStatus(NetworkStatus.wifi);
+      expect(manager.networkService.currentStatus, NetworkStatus.wifi);
+    });
+
+    test('networkService should change status', () {
+      mockNetworkService.setStatus(NetworkStatus.mobile);
+      expect(manager.networkService.currentStatus, NetworkStatus.mobile);
+    });
+
+    test('networkService should report no connection', () {
+      mockNetworkService.setStatus(NetworkStatus.none);
+      expect(manager.networkService.currentStatus, NetworkStatus.none);
+    });
+
+    test('isSuitableForDownload should work with wifiOnly true', () {
+      mockNetworkService.setStatus(NetworkStatus.wifi);
+      expect(
+        manager.networkService.isSuitableForDownload(wifiOnly: true),
+        true,
+      );
+    });
+
+    test('isSuitableForDownload should reject mobile when wifiOnly', () {
+      mockNetworkService.setStatus(NetworkStatus.mobile);
+      expect(
+        manager.networkService.isSuitableForDownload(wifiOnly: true),
+        false,
+      );
+    });
+
+    test('isSuitableForDownload should accept mobile when not wifiOnly', () {
+      mockNetworkService.setStatus(NetworkStatus.mobile);
+      expect(
+        manager.networkService.isSuitableForDownload(wifiOnly: false),
+        true,
+      );
+    });
+  });
+
+  group('AppUpdateManager.withDependencies update service', () {
+    late MockUpdateService mockUpdateService;
+    late MockNetworkService mockNetworkService;
+    late MockNotificationService mockNotificationService;
+    late AppUpdateManager manager;
+
+    setUp(() {
+      mockUpdateService = MockUpdateService();
+      mockNetworkService = MockNetworkService();
+      mockNotificationService = MockNotificationService();
+      manager = AppUpdateManager.withDependencies(
+        updateService: mockUpdateService,
+        networkService: mockNetworkService,
+        notificationService: mockNotificationService,
+      );
+    });
+
+    tearDown(() {
+      mockUpdateService.dispose();
+      mockNetworkService.dispose();
+      mockNotificationService.dispose();
+    });
+
+    test('updateService streams should be accessible', () {
+      expect(manager.updateService.updateStream, isA<Stream<UpdateInfo>>());
+      expect(manager.updateService.downloadStream, isA<Stream<DownloadProgress>>());
+    });
+
+    test('updateService preferences should be null before init', () {
+      expect(manager.updateService.preferences, isNull);
+    });
+
+    test('updateService preferences should be set after init', () async {
+      await manager.initialize();
+      expect(manager.updateService.preferences, isNotNull);
+    });
+
+    test('updateService should return version info', () {
+      final info = manager.updateService.getCurrentVersionInfo();
+      expect(info, isA<Map<String, String>>());
+      expect(info.containsKey('version'), true);
+    });
+
+    test('updateService shouldAutoDownload should return bool', () async {
+      await manager.initialize();
+      final updateInfo = UpdateInfo(
+        currentVersion: '1.0.0',
+        latestVersion: '2.0.0',
+        downloadUrl: 'https://example.com/app.apk',
+        releaseNotes: 'Test release',
+        releaseDate: DateTime.now(),
+        downloadSize: 1024 * 1024,
+        isForced: false,
+      );
+      final result = manager.updateService.shouldAutoDownload(updateInfo);
+      expect(result, isA<bool>());
+    });
+  });
+
+  group('AppUpdateManager.withDependencies lifecycle', () {
+    test('create-initialize-dispose cycle', () async {
+      final updateService = MockUpdateService();
+      final networkService = MockNetworkService();
+      final notificationService = MockNotificationService();
+
+      final manager = AppUpdateManager.withDependencies(
+        updateService: updateService,
+        networkService: networkService,
+        notificationService: notificationService,
+      );
+
+      await manager.initialize();
+      expect(manager.isInitialized, true);
+
+      manager.dispose();
+      expect(manager.isInitialized, false);
+
+      updateService.dispose();
+      networkService.dispose();
+      notificationService.dispose();
+    });
+
+    test('multiple create-dispose cycles', () async {
+      for (int i = 0; i < 5; i++) {
+        final updateService = MockUpdateService();
+        final networkService = MockNetworkService();
+        final notificationService = MockNotificationService();
+
+        final manager = AppUpdateManager.withDependencies(
+          updateService: updateService,
+          networkService: networkService,
+          notificationService: notificationService,
+        );
+
+        await manager.initialize();
+        manager.dispose();
+
+        updateService.dispose();
+        networkService.dispose();
+        notificationService.dispose();
+      }
+
+      expect(true, true);
+    });
+  });
+
+  group('AppUpdateManager.withDependencies operations with no updates', () {
+    late MockUpdateService mockUpdateService;
+    late MockNetworkService mockNetworkService;
+    late MockNotificationService mockNotificationService;
+    late AppUpdateManager manager;
+
+    setUp(() async {
+      mockUpdateService = MockUpdateService();
+      mockNetworkService = MockNetworkService();
+      mockNotificationService = MockNotificationService();
+      manager = AppUpdateManager.withDependencies(
+        updateService: mockUpdateService,
+        networkService: mockNetworkService,
+        notificationService: mockNotificationService,
+      );
+      await manager.initialize();
+    });
+
+    tearDown(() {
+      manager.dispose();
+      mockUpdateService.dispose();
+      mockNetworkService.dispose();
+      mockNotificationService.dispose();
+    });
+
+    test('checkForUpdatesSilently returns null', () async {
+      final result = await manager.checkForUpdatesSilently();
+      expect(result, isNull);
+    });
+
+    test('checkForUpdatesWithUI returns null', () async {
+      final result = await manager.checkForUpdatesWithUI();
+      expect(result, isNull);
+    });
+
+    test('downloadUpdate returns null', () async {
+      final result = await manager.downloadUpdate();
+      expect(result, isNull);
+    });
+
+    test('concurrent checkForUpdatesSilently calls', () async {
+      final results = await Future.wait([
+        manager.checkForUpdatesSilently(),
+        manager.checkForUpdatesSilently(),
+        manager.checkForUpdatesSilently(),
+      ]);
+      expect(results.every((r) => r == null), true);
     });
   });
 }

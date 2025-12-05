@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/update_preferences.dart';
-import '../services/update_service.dart';
-import '../services/network_service.dart';
+import '../core/interfaces/update_service_interface.dart';
+import '../core/interfaces/network_service_interface.dart';
 import '../services/theme_service.dart';
+import '../core/service_locator.dart' show getIt;
 import '../utils/formatting_utils.dart';
 import '../utils/responsive_utils.dart';
 
@@ -15,9 +17,12 @@ class UpdateSettingsView extends StatefulWidget {
 }
 
 class _UpdateSettingsViewState extends State<UpdateSettingsView> {
-  final UpdateService _updateService = UpdateService();
-  final NetworkService _networkService = NetworkService();
-  
+  late final UpdateServiceInterface _updateService;
+  late final NetworkServiceInterface _networkService;
+
+  // StreamSubscription management
+  StreamSubscription<NetworkStatus>? _networkSubscription;
+
   UpdatePreferences? _preferences;
   NetworkStatus _networkStatus = NetworkStatus.unknown;
   bool _isLoading = true;
@@ -26,6 +31,8 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
   @override
   void initState() {
     super.initState();
+    _updateService = getIt<UpdateServiceInterface>();
+    _networkService = getIt<NetworkServiceInterface>();
     _loadPreferences();
     _listenToNetwork();
   }
@@ -46,7 +53,7 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
   }
 
   void _listenToNetwork() {
-    _networkService.networkStream.listen((status) {
+    _networkSubscription = _networkService.networkStream.listen((status) {
       if (mounted) {
         setState(() {
           _networkStatus = status;
@@ -54,6 +61,12 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
       }
     });
     _networkStatus = _networkService.currentStatus;
+  }
+
+  @override
+  void dispose() {
+    _networkSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _savePreferences() async {

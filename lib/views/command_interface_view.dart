@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
 import '../controllers/command_manager.dart';
 import '../models/ble_device.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
+import '../core/service_locator.dart' show getIt;
 import '../utils/formatting_utils.dart';
 import '../utils/logger.dart';
 import '../utils/responsive_utils.dart';
@@ -21,15 +23,19 @@ class CommandInterfaceView extends StatefulWidget {
 }
 
 class _CommandInterfaceViewState extends State<CommandInterfaceView> {
-  final SimpleBleController _controller = SimpleBleController();
+  late final BleControllerInterface _controller;
   final ScrollController _responseScrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   late CommandManager _commandManager;
   bool _isInitialized = false;
 
+  // StreamSubscription management
+  final List<StreamSubscription> _subscriptions = [];
+
   @override
   void initState() {
     super.initState();
+    _controller = getIt<BleControllerInterface>();
     _commandManager = CommandManager(
       controller: _controller,
       onCommandSent: _scrollToBottom,
@@ -68,21 +74,28 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
 
   @override
   void dispose() {
+    // Cancel all stream subscriptions to prevent memory leaks
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
     _commandManager.dispose();
     _responseScrollController.dispose();
     super.dispose();
   }
 
   void _listenToResponses() {
-    _controller.commandResponseStream.listen((response) {
-      if (mounted) {
-        _addMessage({
-          'text': response,
-          'isCommand': false,
-          'timestamp': DateTime.now(),
-        });
-      }
-    });
+    _subscriptions.add(
+      _controller.commandResponseStream.listen((response) {
+        if (mounted) {
+          _addMessage({
+            'text': response,
+            'isCommand': false,
+            'timestamp': DateTime.now(),
+          });
+        }
+      }),
+    );
   }
 
   void _addMessage(Map<String, dynamic> message) {
@@ -105,17 +118,19 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
   }
 
   void _listenToNotifications() {
-    _controller.notificationStream.listen((notification) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${notification.title}: ${notification.message}'),
-            backgroundColor: _getNotificationColor(notification.type),
-            duration: notification.duration ?? const Duration(seconds: 3),
-          ),
-        );
-      }
-    });
+    _subscriptions.add(
+      _controller.notificationStream.listen((notification) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${notification.title}: ${notification.message}'),
+              backgroundColor: _getNotificationColor(notification.type),
+              duration: notification.duration ?? const Duration(seconds: 3),
+            ),
+          );
+        }
+      }),
+    );
   }
 
   Color _getNotificationColor(NotificationType type) {

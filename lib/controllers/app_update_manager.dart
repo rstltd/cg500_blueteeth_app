@@ -1,22 +1,42 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/update_service.dart';
-import '../services/network_service.dart';
-import '../services/smart_notification_service.dart';
+import '../core/service_locator.dart';
+import '../core/interfaces/update_service_interface.dart';
+import '../core/interfaces/network_service_interface.dart';
+import '../core/interfaces/notification_service_interface.dart';
+import '../services/update_service.dart' show UpdateInfo;
 import '../utils/logger.dart';
 import '../widgets/update_dialog.dart';
 
 /// Global update manager that coordinates all update operations
 /// This is the single source of truth for update state across the app
+///
+/// Use [AppUpdateManager.withDependencies()] constructor or access via
+/// service locator for production use.
 class AppUpdateManager {
-  static final AppUpdateManager _instance = AppUpdateManager._internal();
-  factory AppUpdateManager() => _instance;
-  AppUpdateManager._internal();
+  /// Default constructor that retrieves dependencies from service locator.
+  /// Must be called after [setupServiceLocator] has been invoked.
+  AppUpdateManager()
+      : _updateService = getIt<UpdateServiceInterface>(),
+        _networkService = getIt<NetworkServiceInterface>(),
+        _notificationService = getIt<NotificationServiceInterface>();
 
-  final UpdateService _updateService = UpdateService();
-  final NetworkService _networkService = NetworkService();
-  final SmartNotificationService _notificationService = SmartNotificationService();
-  
+  /// Named constructor for dependency injection (testing)
+  AppUpdateManager.withDependencies({
+    required UpdateServiceInterface updateService,
+    required NetworkServiceInterface networkService,
+    required NotificationServiceInterface notificationService,
+  })  : _updateService = updateService,
+        _networkService = networkService,
+        _notificationService = notificationService;
+
+  final UpdateServiceInterface _updateService;
+  final NetworkServiceInterface _networkService;
+  final NotificationServiceInterface _notificationService;
+
+  // StreamSubscription management
+  final List<StreamSubscription> _subscriptions = [];
+
   // State management
   bool _isInitialized = false;
   bool _isCheckingForUpdates = false;
@@ -28,8 +48,8 @@ class AppUpdateManager {
   bool get isInitialized => _isInitialized;
   bool get isCheckingForUpdates => _isCheckingForUpdates;
   UpdateInfo? get latestUpdateInfo => _latestUpdateInfo;
-  UpdateService get updateService => _updateService;
-  NetworkService get networkService => _networkService;
+  UpdateServiceInterface get updateService => _updateService;
+  NetworkServiceInterface get networkService => _networkService;
 
   /// Initialize the update manager
   /// This should be called during app startup
@@ -47,10 +67,14 @@ class AppUpdateManager {
       await _networkService.initialize();
       
       // Listen to update streams
-      _updateService.updateStream.listen(_handleUpdateAvailable);
-      
+      _subscriptions.add(
+        _updateService.updateStream.listen(_handleUpdateAvailable),
+      );
+
       // Listen to network changes to trigger update checks
-      _networkService.networkStream.listen(_handleNetworkChange);
+      _subscriptions.add(
+        _networkService.networkStream.listen(_handleNetworkChange),
+      );
       
       _isInitialized = true;
       Logger.info('AppUpdateManager initialized successfully');
@@ -261,7 +285,13 @@ class AppUpdateManager {
   /// Cleanup and dispose resources
   void dispose() {
     Logger.info('Disposing AppUpdateManager...');
-    
+
+    // Cancel all stream subscriptions to prevent memory leaks
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+
     _stopPeriodicUpdateChecks();
     _updateService.dispose();
     _networkService.dispose();

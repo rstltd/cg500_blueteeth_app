@@ -1,17 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
+import '../controllers/app_update_manager.dart';
 import '../models/ble_device.dart';
 import '../models/connection_state.dart';
 import '../services/animation_service.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
+import '../core/service_locator.dart';
 import '../utils/formatting_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/update_notification_banner.dart';
-import '../controllers/app_update_manager.dart';
 import '../widgets/control_panel_widget.dart';
 import '../widgets/scanning_indicator_widget.dart';
 import '../widgets/connected_device_card_widget.dart';
@@ -30,20 +32,29 @@ class SimpleScannerView extends StatefulWidget {
 }
 
 class _SimpleScannerViewState extends State<SimpleScannerView> {
-  final SimpleBleController _controller = SimpleBleController();
-  final ThemeService _themeService = ThemeService();
+  late final BleControllerInterface _controller;
+  late final ThemeService _themeService;
+  late final AppUpdateManager _updateManager;
   bool _isInitialized = false;
+
+  // StreamSubscription management
+  StreamSubscription<NotificationModel>? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
+    _controller = getIt<BleControllerInterface>();
+    _themeService = getIt<ThemeService>();
+    _updateManager = getIt<AppUpdateManager>();
     _initializeController();
     _listenToNotifications();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    // Cancel stream subscription to prevent memory leaks
+    _notificationSubscription?.cancel();
+    // Note: Don't dispose controller as it's managed by service locator
     super.dispose();
   }
 
@@ -55,7 +66,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
   }
 
   void _listenToNotifications() {
-    _controller.notificationStream.listen((notification) {
+    _notificationSubscription = _controller.notificationStream.listen((notification) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -115,7 +126,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
             onSelected: (String value) {
               switch (value) {
                 case 'check_updates':
-                  AppUpdateManager().checkForUpdatesWithUI(force: true);
+                  _updateManager.checkForUpdatesWithUI(force: true);
                   break;
                 case 'update_settings':
                   Navigator.push(
@@ -205,7 +216,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
         children: [
           // Update notification banner (replaces legacy banner)
           UpdateNotificationBanner(
-            updateManager: AppUpdateManager(),
+            updateManager: _updateManager,
           ),
           
           // Main content

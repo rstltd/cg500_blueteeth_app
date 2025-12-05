@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/command_manager.dart';
-import 'package:cg500_blueteeth_app/controllers/simple_ble_controller.dart';
+import '../mocks/mock_ble_controller.dart';
 
 // Test helper class to access private members via reflection-like approach
 // Since we can't mock BLE connection, we test behaviors that don't require it
@@ -23,12 +23,12 @@ void main() {
 
   group('CommandManager', () {
     late CommandManager commandManager;
-    late SimpleBleController controller;
+    late MockBleController controller;
     List<Map<String, dynamic>> sentMessages = [];
     int commandSentCount = 0;
 
     setUp(() {
-      controller = SimpleBleController();
+      controller = MockBleController();
       sentMessages = [];
       commandSentCount = 0;
 
@@ -200,7 +200,7 @@ void main() {
     // by examining internal state changes
 
     test('historyUp should not change index when history empty', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       expect(manager.historyIndex, -1);
@@ -211,7 +211,7 @@ void main() {
     });
 
     test('historyDown should not change index when history empty', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       expect(manager.historyIndex, -1);
@@ -222,7 +222,7 @@ void main() {
     });
 
     test('clearHistory should reset state', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.clearHistory();
@@ -235,7 +235,7 @@ void main() {
 
   group('CommandManager suggestions', () {
     test('should return empty suggestions for non-matching input', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final suggestions = manager.getCommandSuggestions('nonexistent');
@@ -245,7 +245,7 @@ void main() {
     });
 
     test('should handle empty input', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final suggestions = manager.getCommandSuggestions('');
@@ -258,7 +258,7 @@ void main() {
 
   group('CommandManager text controller operations', () {
     test('should set text in controller', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'hello';
@@ -268,7 +268,7 @@ void main() {
     });
 
     test('should clear text in controller', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'hello';
@@ -281,7 +281,7 @@ void main() {
 
   group('CommandManager callback behavior', () {
     test('should create with null callbacks', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Verify manager works without callbacks
@@ -292,7 +292,7 @@ void main() {
     });
 
     test('should allow multiple managers with same controller', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager1 = CommandManager(controller: controller);
       final manager2 = CommandManager(controller: controller);
 
@@ -304,7 +304,7 @@ void main() {
     });
 
     test('callbacks should be optional', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(
         controller: controller,
         onCommandSent: null,
@@ -320,7 +320,7 @@ void main() {
 
   group('CommandManager edge cases', () {
     test('historyUp called multiple times on empty history', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Multiple calls should not change state
@@ -333,7 +333,7 @@ void main() {
     });
 
     test('historyDown called multiple times on empty history', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Multiple calls should not change state
@@ -346,7 +346,7 @@ void main() {
     });
 
     test('clearHistory called multiple times', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Multiple clears should be safe
@@ -360,7 +360,7 @@ void main() {
     });
 
     test('getCommandSuggestions with special characters', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final suggestions = manager.getCommandSuggestions('!@#\$%^&*()');
@@ -370,7 +370,7 @@ void main() {
     });
 
     test('getCommandSuggestions with very long input', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final longInput = 'a' * 1000;
@@ -381,7 +381,7 @@ void main() {
     });
 
     test('getCommandSuggestions with whitespace input', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final suggestions = manager.getCommandSuggestions('   ');
@@ -394,7 +394,7 @@ void main() {
 
   group('CommandManager sendCommand edge cases', () {
     test('sendCommand with only newlines', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       List<Map<String, dynamic>> messages = [];
       final manager = CommandManager(
         controller: controller,
@@ -409,7 +409,7 @@ void main() {
     });
 
     test('sendCommand with tabs only', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       List<Map<String, dynamic>> messages = [];
       final manager = CommandManager(
         controller: controller,
@@ -424,7 +424,7 @@ void main() {
     });
 
     test('sendCommand with mixed whitespace', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       List<Map<String, dynamic>> messages = [];
       final manager = CommandManager(
         controller: controller,
@@ -439,7 +439,7 @@ void main() {
     });
 
     test('sendPredefinedCommand with empty string', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       List<Map<String, dynamic>> messages = [];
       final manager = CommandManager(
         controller: controller,
@@ -453,7 +453,7 @@ void main() {
     });
 
     test('sendPredefinedCommand with whitespace only', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       List<Map<String, dynamic>> messages = [];
       final manager = CommandManager(
         controller: controller,
@@ -469,7 +469,7 @@ void main() {
 
   group('CommandManager text controller state', () {
     test('text controller should preserve text after historyUp with empty history', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'initial text';
@@ -481,7 +481,7 @@ void main() {
     });
 
     test('text controller should preserve text after historyDown with empty history', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'initial text';
@@ -493,7 +493,7 @@ void main() {
     });
 
     test('text controller selection after setting text', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'test';
@@ -506,7 +506,7 @@ void main() {
 
   group('CommandManager unmodifiable history', () {
     test('commandHistory getter returns unmodifiable list', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final history = manager.commandHistory;
@@ -517,7 +517,7 @@ void main() {
     });
 
     test('commandHistory getter returns different instance each call', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final history1 = manager.commandHistory;
@@ -531,7 +531,7 @@ void main() {
 
   group('CommandManager isConnected behavior', () {
     test('isConnected is false when controller has no device', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       expect(manager.isConnected, isFalse);
@@ -541,7 +541,7 @@ void main() {
     });
 
     test('isConnected check is performed on each access', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Multiple accesses should all return false
@@ -555,7 +555,7 @@ void main() {
 
   group('CommandManager textController advanced', () {
     test('textController can handle unicode text', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = '中文 日本語 한국어 🔌';
@@ -565,7 +565,7 @@ void main() {
     });
 
     test('textController can handle very long text', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final longText = 'a' * 10000;
@@ -576,7 +576,7 @@ void main() {
     });
 
     test('textController can be cleared and reset', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'initial';
@@ -592,7 +592,7 @@ void main() {
 
   group('CommandManager sendCommand unicode handling', () {
     test('sendCommand handles chinese characters', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = '发送命令';
@@ -604,7 +604,7 @@ void main() {
     });
 
     test('sendCommand handles emoji', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = '📱🔌💡';
@@ -615,7 +615,7 @@ void main() {
     });
 
     test('sendCommand handles mixed scripts', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.textController.text = 'Hello 你好 مرحبا שלום';
@@ -628,7 +628,7 @@ void main() {
 
   group('CommandManager dispose behavior', () {
     test('dispose cleans up resources', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Single dispose should work normally
@@ -641,7 +641,7 @@ void main() {
     });
 
     test('manager can be created after dispose of previous', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
 
       final manager1 = CommandManager(controller: controller);
       manager1.textController.text = 'test';
@@ -658,7 +658,7 @@ void main() {
     // but we can test the getCommandSuggestions behavior
 
     test('getCommandSuggestions returns at most 5 items', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // With empty history, should return empty
@@ -669,7 +669,7 @@ void main() {
     });
 
     test('getCommandSuggestions handles case insensitive search', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Even with empty history, the method should work
@@ -686,7 +686,7 @@ void main() {
 
   group('CommandManager concurrent operations', () {
     test('concurrent sendCommand calls', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Multiple concurrent sends should not throw
@@ -701,7 +701,7 @@ void main() {
     });
 
     test('concurrent history navigation calls', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       // Rapid navigation should not throw
@@ -715,7 +715,7 @@ void main() {
     });
 
     test('interleaved operations', () async {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       manager.historyUp();
@@ -732,7 +732,7 @@ void main() {
 
   group('CommandManager getter stability', () {
     test('textController remains same instance', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final tc1 = manager.textController;
@@ -746,7 +746,7 @@ void main() {
     });
 
     test('commandHistory returns consistent data', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final history1 = manager.commandHistory;
@@ -757,7 +757,7 @@ void main() {
     });
 
     test('historyIndex is stable without operations', () {
-      final controller = SimpleBleController();
+      final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
       final idx1 = manager.historyIndex;

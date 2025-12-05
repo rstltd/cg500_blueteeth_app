@@ -95,14 +95,23 @@ class NotificationModel {
   }
 }
 
+/// Service for managing in-app notifications.
+///
+/// Use [NotificationService()] constructor and register via service locator
+/// for production use.
 class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
-  factory NotificationService() => _instance;
-  NotificationService._internal();
+  /// Default constructor for dependency injection via service locator.
+  NotificationService()
+      : _notificationController = StreamController<NotificationModel>.broadcast(),
+        _notifications = [];
 
-  final StreamController<NotificationModel> _notificationController = 
-      StreamController<NotificationModel>.broadcast();
-  final List<NotificationModel> _notifications = [];
+  /// Named constructor for testing that creates a fresh instance.
+  NotificationService.forTesting()
+      : _notificationController = StreamController<NotificationModel>.broadcast(),
+        _notifications = [];
+
+  final StreamController<NotificationModel> _notificationController;
+  final List<NotificationModel> _notifications;
 
   Stream<NotificationModel> get notifications => _notificationController.stream;
   List<NotificationModel> get allNotifications => List.from(_notifications);

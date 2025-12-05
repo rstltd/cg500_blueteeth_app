@@ -1,270 +1,144 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
-import 'notification_service.dart';
-import '../widgets/animated_widgets.dart';
+import '../core/interfaces/error_handling_service_interface.dart';
+import '../core/interfaces/notification_service_interface.dart';
+import '../utils/logger.dart';
 
-/// Enhanced error handling service with better user feedback
-class ErrorHandlingService {
-  static final ErrorHandlingService _instance = ErrorHandlingService._internal();
-  factory ErrorHandlingService() => _instance;
-  ErrorHandlingService._internal();
+// Re-export types for convenience
+export '../core/interfaces/error_handling_service_interface.dart'
+    show AppError, ErrorCategory, UserAction, ErrorHandlingServiceInterface;
 
-  final NotificationService _notificationService = NotificationService();
-  final StreamController<AppError> _errorController = StreamController<AppError>.broadcast();
-  final List<AppError> _errorHistory = [];
+/// Error handling service implementation.
+///
+/// Handles error logging, history management, and provides user-friendly
+/// error messages and recovery actions. UI-related error display should
+/// be handled by the Views layer using the error stream and helper methods.
+class ErrorHandlingService implements ErrorHandlingServiceInterface {
+  final NotificationServiceInterface _notificationService;
+  final StreamController<AppError> _errorController;
+  final List<AppError> _errorHistory;
 
+  /// Default constructor for dependency injection via service locator.
+  ErrorHandlingService({
+    required NotificationServiceInterface notificationService,
+  })  : _notificationService = notificationService,
+        _errorController = StreamController<AppError>.broadcast(),
+        _errorHistory = [];
+
+  /// Named constructor for testing that creates a fresh instance.
+  ErrorHandlingService.forTesting({
+    required NotificationServiceInterface notificationService,
+  })  : _notificationService = notificationService,
+        _errorController = StreamController<AppError>.broadcast(),
+        _errorHistory = [];
+
+  @override
   Stream<AppError> get errorStream => _errorController.stream;
+
+  @override
   List<AppError> get errorHistory => List.unmodifiable(_errorHistory);
 
-  /// Handle different types of errors with appropriate user feedback
-  Future<void> handleError(AppError error, BuildContext? context) async {
+  @override
+  Future<void> handleError(AppError error) async {
     _addToHistory(error);
-    
-    switch (error.category) {
-      case ErrorCategory.bluetooth:
-        await _handleBluetoothError(error, context);
-        break;
-      case ErrorCategory.permission:
-        await _handlePermissionError(error, context);
-        break;
-      case ErrorCategory.network:
-        await _handleNetworkError(error, context);
-        break;
-      case ErrorCategory.validation:
-        await _handleValidationError(error, context);
-        break;
-      case ErrorCategory.system:
-        await _handleSystemError(error, context);
-        break;
-      case ErrorCategory.unknown:
-        await _handleUnknownError(error, context);
-        break;
-    }
-
+    _logError(error);
+    _showNotification(error);
     _errorController.add(error);
   }
 
-  /// Handle Bluetooth-specific errors
-  Future<void> _handleBluetoothError(AppError error, BuildContext? context) async {
-    String title = 'Bluetooth Error';
-    String message = _getBluetoothErrorMessage(error);
-    List<UserAction> actions = _getBluetoothErrorActions(error);
+  /// Log error based on category
+  void _logError(AppError error) {
+    final logMessage = '[${error.category.name.toUpperCase()}] ${error.code}: ${error.message}';
 
-    await _showErrorDialog(context, title, message, actions);
-    _notificationService.showError(title: title, message: message);
-  }
-
-  /// Handle permission-related errors
-  Future<void> _handlePermissionError(AppError error, BuildContext? context) async {
-    String title = 'Permission Required';
-    String message = _getPermissionErrorMessage(error);
-    List<UserAction> actions = _getPermissionErrorActions(error);
-
-    await _showErrorDialog(context, title, message, actions);
-    _notificationService.showWarning(title: title, message: message);
-  }
-
-  /// Handle network errors
-  Future<void> _handleNetworkError(AppError error, BuildContext? context) async {
-    String title = 'Network Error';
-    String message = _getNetworkErrorMessage(error);
-    List<UserAction> actions = _getNetworkErrorActions(error);
-
-    await _showErrorDialog(context, title, message, actions);
-    _notificationService.showError(title: title, message: message);
-  }
-
-  /// Handle validation errors
-  Future<void> _handleValidationError(AppError error, BuildContext? context) async {
-    String message = _getValidationErrorMessage(error);
-    
-    if (context != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.orange,
-          action: SnackBarAction(
-            label: 'Dismiss',
-            onPressed: () {},
-            textColor: Colors.white,
-          ),
-        ),
-      );
+    switch (error.category) {
+      case ErrorCategory.bluetooth:
+      case ErrorCategory.network:
+      case ErrorCategory.system:
+        Logger.error(logMessage, error: error.originalError);
+        break;
+      case ErrorCategory.permission:
+        Logger.warning(logMessage);
+        break;
+      case ErrorCategory.validation:
+        Logger.info(logMessage);
+        break;
+      case ErrorCategory.unknown:
+        Logger.error(logMessage, error: error.originalError);
+        break;
     }
-    
-    _notificationService.showWarning(title: 'Validation Error', message: message);
   }
 
-  /// Handle system errors
-  Future<void> _handleSystemError(AppError error, BuildContext? context) async {
-    String title = 'System Error';
-    String message = _getSystemErrorMessage(error);
-    List<UserAction> actions = _getSystemErrorActions(error);
+  /// Show notification based on error category
+  void _showNotification(AppError error) {
+    final message = getErrorMessage(error);
+    final title = _getErrorTitle(error);
 
-    await _showErrorDialog(context, title, message, actions);
-    _notificationService.showError(title: title, message: message);
+    switch (error.category) {
+      case ErrorCategory.bluetooth:
+      case ErrorCategory.network:
+      case ErrorCategory.system:
+      case ErrorCategory.unknown:
+        _notificationService.showError(title: title, message: message);
+        break;
+      case ErrorCategory.permission:
+      case ErrorCategory.validation:
+        _notificationService.showWarning(title: title, message: message);
+        break;
+    }
   }
 
-  /// Handle unknown errors
-  Future<void> _handleUnknownError(AppError error, BuildContext? context) async {
-    String title = 'Unexpected Error';
-    String message = 'An unexpected error occurred. Please try again.';
-    List<UserAction> actions = [
-      UserAction(
-        label: 'Retry',
-        action: error.retryAction,
-        isPrimary: true,
-      ),
-      UserAction(
-        label: 'Report Issue',
-        action: () => _reportError(error),
-        isPrimary: false,
-      ),
-    ];
-
-    await _showErrorDialog(context, title, message, actions);
-    _notificationService.showError(title: title, message: message);
+  /// Get error title based on category
+  String _getErrorTitle(AppError error) {
+    switch (error.category) {
+      case ErrorCategory.bluetooth:
+        return 'Bluetooth Error';
+      case ErrorCategory.permission:
+        return 'Permission Required';
+      case ErrorCategory.network:
+        return 'Network Error';
+      case ErrorCategory.validation:
+        return 'Validation Error';
+      case ErrorCategory.system:
+        return 'System Error';
+      case ErrorCategory.unknown:
+        return 'Unexpected Error';
+    }
   }
 
-  /// Show enhanced error dialog with actions
-  Future<void> _showErrorDialog(
-    BuildContext? context,
-    String title,
-    String message,
-    List<UserAction> actions,
-  ) async {
-    if (context == null) return;
-
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.error_outline,
-                  color: Colors.red.shade700,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.red.shade800,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Text(
-              message,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
-          actions: [
-            ...actions.map((action) => _buildActionButton(dialogContext, action)),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  String getErrorMessage(AppError error) {
+    switch (error.category) {
+      case ErrorCategory.bluetooth:
+        return _getBluetoothErrorMessage(error);
+      case ErrorCategory.permission:
+        return _getPermissionErrorMessage(error);
+      case ErrorCategory.network:
+        return _getNetworkErrorMessage(error);
+      case ErrorCategory.validation:
+        return _getValidationErrorMessage(error);
+      case ErrorCategory.system:
+        return _getSystemErrorMessage(error);
+      case ErrorCategory.unknown:
+        return 'An unexpected error occurred. Please try again.';
+    }
   }
 
-  /// Build action button for error dialog
-  Widget _buildActionButton(BuildContext context, UserAction action) {
-    return action.isPrimary
-        ? ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              action.action?.call();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(action.label),
-          )
-        : TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              action.action?.call();
-            },
-            child: Text(action.label),
-          );
-  }
-
-  /// Show success feedback with animation
-  void showSuccessFeedback(BuildContext context, String message) {
-    final overlay = Overlay.of(context);
-    late OverlayEntry overlayEntry;
-    
-    overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).size.height * 0.4,
-        left: MediaQuery.of(context).size.width * 0.5 - 100,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: 200,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.shade600,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const AnimatedFeedback(
-                  showSuccess: true,
-                  duration: Duration(milliseconds: 800),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    overlay.insert(overlayEntry);
-    
-    // Remove overlay after duration
-    Timer(const Duration(seconds: 2), () {
-      overlayEntry.remove();
-    });
+  @override
+  List<UserAction> getErrorRecoveryActions(AppError error) {
+    switch (error.category) {
+      case ErrorCategory.bluetooth:
+        return _getBluetoothErrorActions(error);
+      case ErrorCategory.permission:
+        return _getPermissionErrorActions(error);
+      case ErrorCategory.network:
+        return _getNetworkErrorActions(error);
+      case ErrorCategory.validation:
+        return []; // Validation errors typically don't need recovery actions
+      case ErrorCategory.system:
+        return _getSystemErrorActions(error);
+      case ErrorCategory.unknown:
+        return _getUnknownErrorActions(error);
+    }
   }
 
   /// Get Bluetooth-specific error messages
@@ -352,8 +226,8 @@ class ErrorHandlingService {
       case 'BLE_DISABLED':
         return [
           UserAction(
-            label: 'Open Settings',
-            action: () => _openBluetoothSettings(),
+            label: 'Enable Bluetooth',
+            action: error.retryAction,
             isPrimary: true,
           ),
         ];
@@ -367,6 +241,15 @@ class ErrorHandlingService {
           ),
         ];
       default:
+        if (error.retryAction != null) {
+          return [
+            UserAction(
+              label: 'Retry',
+              action: error.retryAction,
+              isPrimary: true,
+            ),
+          ];
+        }
         return [];
     }
   }
@@ -379,11 +262,6 @@ class ErrorHandlingService {
         action: error.retryAction,
         isPrimary: true,
       ),
-      UserAction(
-        label: 'Open Settings',
-        action: () => _openAppSettings(),
-        isPrimary: false,
-      ),
     ];
   }
 
@@ -395,23 +273,34 @@ class ErrorHandlingService {
         action: error.retryAction,
         isPrimary: true,
       ),
-      UserAction(
-        label: 'Check Settings',
-        action: () => _openNetworkSettings(),
-        isPrimary: false,
-      ),
     ];
   }
 
   /// Get system error actions
   List<UserAction> _getSystemErrorActions(AppError error) {
-    return [
-      UserAction(
+    if (error.retryAction != null) {
+      return [
+        UserAction(
+          label: 'Retry',
+          action: error.retryAction,
+          isPrimary: true,
+        ),
+      ];
+    }
+    return [];
+  }
+
+  /// Get unknown error actions
+  List<UserAction> _getUnknownErrorActions(AppError error) {
+    final actions = <UserAction>[];
+    if (error.retryAction != null) {
+      actions.add(UserAction(
         label: 'Retry',
         action: error.retryAction,
         isPrimary: true,
-      ),
-    ];
+      ));
+    }
+    return actions;
   }
 
   /// Add error to history
@@ -422,144 +311,13 @@ class ErrorHandlingService {
     }
   }
 
-  /// Report error to analytics or crash reporting service
-  void _reportError(AppError error) {
-    // TODO: Implement error reporting integration
-    // You could integrate with Firebase Crashlytics, Sentry, or other services
-  }
-
-  /// Open system Bluetooth settings
-  void _openBluetoothSettings() {
-    // TODO: Implement platform-specific Bluetooth settings navigation
-  }
-
-  /// Open app settings
-  void _openAppSettings() {
-    // TODO: Implement platform-specific app settings navigation
-  }
-
-  /// Open network settings
-  void _openNetworkSettings() {
-    // TODO: Implement platform-specific network settings navigation
-  }
-
-  /// Clear error history
+  @override
   void clearHistory() {
     _errorHistory.clear();
   }
 
-  /// Dispose resources
+  @override
   void dispose() {
     _errorController.close();
   }
-}
-
-/// Error categories for better classification
-enum ErrorCategory {
-  bluetooth,
-  permission,
-  network,
-  validation,
-  system,
-  unknown,
-}
-
-/// Enhanced error model
-class AppError {
-  final String code;
-  final String message;
-  final ErrorCategory category;
-  final DateTime timestamp;
-  final Object? originalError;
-  final StackTrace? stackTrace;
-  final VoidCallback? retryAction;
-  final Map<String, dynamic>? metadata;
-
-  AppError({
-    required this.code,
-    required this.message,
-    required this.category,
-    DateTime? timestamp,
-    this.originalError,
-    this.stackTrace,
-    this.retryAction,
-    this.metadata,
-  }) : timestamp = timestamp ?? DateTime.now();
-
-  /// Create a Bluetooth error
-  factory AppError.bluetooth(
-    String code,
-    String message, {
-    Object? originalError,
-    StackTrace? stackTrace,
-    VoidCallback? retryAction,
-    Map<String, dynamic>? metadata,
-  }) {
-    return AppError(
-      code: code,
-      message: message,
-      category: ErrorCategory.bluetooth,
-      originalError: originalError,
-      stackTrace: stackTrace,
-      retryAction: retryAction,
-      metadata: metadata,
-    );
-  }
-
-  /// Create a permission error
-  factory AppError.permission(
-    String code,
-    String message, {
-    VoidCallback? retryAction,
-  }) {
-    return AppError(
-      code: code,
-      message: message,
-      category: ErrorCategory.permission,
-      retryAction: retryAction,
-    );
-  }
-
-  /// Create a network error
-  factory AppError.network(
-    String code,
-    String message, {
-    Object? originalError,
-    VoidCallback? retryAction,
-  }) {
-    return AppError(
-      code: code,
-      message: message,
-      category: ErrorCategory.network,
-      originalError: originalError,
-      retryAction: retryAction,
-    );
-  }
-
-  /// Create a validation error
-  factory AppError.validation(String code, String message) {
-    return AppError(
-      code: code,
-      message: message,
-      category: ErrorCategory.validation,
-    );
-  }
-
-  @override
-  String toString() {
-    return 'AppError(code: $code, message: $message, category: $category)';
-  }
-}
-
-/// User action for error dialogs
-class UserAction {
-  final String label;
-  final VoidCallback? action;
-  final bool isPrimary;
-
-  const UserAction({
-    required this.label,
-    required this.action,
-    this.isPrimary = false,
-  });
 }

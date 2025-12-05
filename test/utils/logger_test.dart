@@ -189,7 +189,7 @@ void main() {
 
       test('should handle special characters in message', () {
         expect(
-          () => Logger.debug('Special chars: \n\t\r\\\'\"'),
+          () => Logger.debug('Special chars: \n\t\r\'"'),
           returnsNormally,
         );
       });

@@ -20,7 +20,20 @@
       "Bash(Select-String -Pattern \"failed|Error|Expected|Actual|:$\")",
       "Bash(Select-Object -First 30)",
       "Bash(Select-String -Pattern \"\\-\\d+:\")",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(paste:*)",
+      "Bash(for f in update_service app_update_manager network_service command_manager ble_characteristic update_logic_manager permission_service)",
+      "Bash(do test_file=\"test/*/$f_test.dart\")",
+      "Bash(if ls $test_file)",
+      "Bash(then echo \"EXISTS: $f\")",
+      "Bash(else echo \"MISSING: $f\")",
+      "Bash(fi)",
+      "Bash(dir:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(Select-String -Pattern \"passed|failed|error\")",
+      "Bash(Select-String -Pattern \"passed|failed|error|All tests\")",
+      "Bash(for file in lib/services/*.dart)"
     ],
     "deny": [],
     "ask": []

@@ -1,22 +1,40 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/simple_ble_controller.dart';
+import 'package:cg500_blueteeth_app/core/service_locator.dart';
+import '../mocks/mock_services.dart';
+
+/// Helper to create a SimpleBleController with mock dependencies for testing
+SimpleBleController createTestController({
+  MockBleService? bleService,
+  MockNotificationService? notificationService,
+}) {
+  return SimpleBleController.withDependencies(
+    bleService: bleService ?? MockBleService(),
+    notificationService: notificationService ?? MockNotificationService(),
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SimpleBleController', () {
     late SimpleBleController controller;
+    late MockBleService mockBleService;
+    late MockNotificationService mockNotificationService;
 
     setUp(() {
-      controller = SimpleBleController();
+      mockBleService = MockBleService();
+      mockNotificationService = MockNotificationService();
+      controller = SimpleBleController.withDependencies(
+        bleService: mockBleService,
+        notificationService: mockNotificationService,
+      );
     });
 
-    group('singleton', () {
-      test('should return same instance', () {
-        final instance1 = SimpleBleController();
-        final instance2 = SimpleBleController();
-        expect(identical(instance1, instance2), true);
-      });
+    tearDown(() {
+      controller.dispose();
+      mockBleService.dispose();
+      mockNotificationService.dispose();
     });
 
     group('initial state', () {
@@ -205,18 +223,8 @@ void main() {
   });
 
   group('SimpleBleController integration', () {
-    test('singleton behavior across tests', () {
-      final c1 = SimpleBleController();
-      final c2 = SimpleBleController();
-      final c3 = SimpleBleController();
-
-      expect(identical(c1, c2), true);
-      expect(identical(c2, c3), true);
-      expect(identical(c1, c3), true);
-    });
-
     test('multiple operations in sequence', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       // Verify operations can be called in sequence
       controller.clearDevices();
@@ -229,7 +237,7 @@ void main() {
     });
 
     test('concurrent sendCommand calls', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       final results = await Future.wait([
         controller.sendCommand('cmd1'),
@@ -244,12 +252,12 @@ void main() {
 
   group('SimpleBleController dispose behavior', () {
     test('dispose should not throw', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(() => controller.dispose(), returnsNormally);
     });
 
     test('dispose can be called multiple times', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(() {
         controller.dispose();
         controller.dispose();
@@ -258,7 +266,7 @@ void main() {
     });
 
     test('operations safe after dispose', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       controller.dispose();
 
       // These should not throw
@@ -270,7 +278,7 @@ void main() {
 
   group('SimpleBleController stream detailed tests', () {
     test('devicesStream is broadcast stream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       // Should be able to listen multiple times without error
       final sub1 = controller.devicesStream.listen((_) {});
       final sub2 = controller.devicesStream.listen((_) {});
@@ -281,7 +289,7 @@ void main() {
     });
 
     test('scanningStream is broadcast stream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final sub1 = controller.scanningStream.listen((_) {});
       final sub2 = controller.scanningStream.listen((_) {});
       expect(sub1, isNotNull);
@@ -291,7 +299,7 @@ void main() {
     });
 
     test('connectedDeviceStream is broadcast stream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final sub1 = controller.connectedDeviceStream.listen((_) {});
       final sub2 = controller.connectedDeviceStream.listen((_) {});
       expect(sub1, isNotNull);
@@ -301,7 +309,7 @@ void main() {
     });
 
     test('commandResponseStream is broadcast stream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final sub1 = controller.commandResponseStream.listen((_) {});
       final sub2 = controller.commandResponseStream.listen((_) {});
       expect(sub1, isNotNull);
@@ -311,7 +319,7 @@ void main() {
     });
 
     test('notificationStream is broadcast stream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final sub1 = controller.notificationStream.listen((_) {});
       final sub2 = controller.notificationStream.listen((_) {});
       expect(sub1, isNotNull);
@@ -323,14 +331,14 @@ void main() {
 
   group('SimpleBleController getCommandInfo detailed', () {
     test('getCommandInfo returns map with expected structure', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final info = controller.getCommandInfo();
 
       expect(info, isA<Map<String, dynamic>>());
     });
 
     test('getCommandInfo is idempotent', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       final info1 = controller.getCommandInfo();
       final info2 = controller.getCommandInfo();
@@ -341,7 +349,7 @@ void main() {
     });
 
     test('getCommandInfo keys are strings', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final info = controller.getCommandInfo();
 
       for (final key in info.keys) {
@@ -357,7 +365,7 @@ void main() {
     // the basic functionality without triggering the notification service.
 
     test('sendCommand method exists and is accessible', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       // Verify method exists by checking if it's callable
       expect(controller.sendCommand, isA<Function>());
     });
@@ -368,12 +376,12 @@ void main() {
     // full initialization. Using simpler state checks instead.
 
     test('scannedDevices returns list', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(controller.scannedDevices, isA<List>());
     });
 
     test('scannedDevices is consistent', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final devices1 = controller.scannedDevices;
       final devices2 = controller.scannedDevices;
       expect(devices1.length, devices2.length);
@@ -385,7 +393,7 @@ void main() {
     // Testing simpler state-based behavior instead.
 
     test('disconnectDevice when not connected', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       // First disconnect - should be safe when not connected
       await controller.disconnectDevice();
@@ -394,12 +402,12 @@ void main() {
     });
 
     test('isScanning state is accessible', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(controller.isScanning, isA<bool>());
     });
 
     test('connectedDevice state is accessible', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       // Can be null when not connected
       expect(controller.connectedDevice, anyOf(isNull, isNotNull));
     });
@@ -407,7 +415,7 @@ void main() {
 
   group('SimpleBleController isInitialized detailed', () {
     test('isInitialized returns consistent value', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       final val1 = controller.isInitialized;
       final val2 = controller.isInitialized;
@@ -418,7 +426,7 @@ void main() {
     });
 
     test('isInitialized type is bool', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(controller.isInitialized, isA<bool>());
     });
   });
@@ -426,13 +434,13 @@ void main() {
   group('SimpleBleController stress tests', () {
     test('rapid singleton access', () {
       for (int i = 0; i < 1000; i++) {
-        final controller = SimpleBleController();
+        final controller = createTestController();
         expect(controller, isNotNull);
       }
     });
 
     test('rapid state access', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       for (int i = 0; i < 1000; i++) {
         expect(controller.isScanning, isA<bool>());
@@ -443,7 +451,7 @@ void main() {
     });
 
     test('rapid getCommandInfo calls', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       for (int i = 0; i < 100; i++) {
         final info = controller.getCommandInfo();
@@ -452,7 +460,7 @@ void main() {
     });
 
     test('rapid stream access', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       for (int i = 0; i < 100; i++) {
         expect(controller.devicesStream, isA<Stream>());
@@ -467,30 +475,30 @@ void main() {
     // which may have closed streams in test environment. These tests verify preconditions.
 
     test('connectedDevice is null initially so sendCommand would fail', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       // sendCommand would fail because there's no connected device
       expect(controller.connectedDevice, isNull);
     });
 
     test('isScanning is false initially', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(controller.isScanning, false);
     });
 
     test('scannedDevices is accessible for command context', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(controller.scannedDevices, isA<List>());
     });
 
     test('commandResponseStream is available for receiving responses', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       expect(controller.commandResponseStream, isA<Stream<String>>());
     });
   });
 
   group('SimpleBleController getCommandInfo structure', () {
     test('getCommandInfo result should have string keys', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final info = controller.getCommandInfo();
 
       for (final key in info.keys) {
@@ -499,7 +507,7 @@ void main() {
     });
 
     test('getCommandInfo should return same structure multiple times', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       final info1 = controller.getCommandInfo();
       final info2 = controller.getCommandInfo();
@@ -510,7 +518,7 @@ void main() {
 
   group('SimpleBleController stream listeners', () {
     test('can add and remove listeners from devicesStream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       void listener(List<dynamic> devices) {}
 
@@ -520,7 +528,7 @@ void main() {
     });
 
     test('can add and remove listeners from scanningStream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       void listener(bool isScanning) {}
 
@@ -530,7 +538,7 @@ void main() {
     });
 
     test('can add and remove listeners from commandResponseStream', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       void listener(String response) {}
 
@@ -545,7 +553,7 @@ void main() {
     // due to singleton stream lifecycle. These tests verify state accessors instead.
 
     test('isScanning is consistent across multiple reads', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final state1 = controller.isScanning;
       final state2 = controller.isScanning;
       final state3 = controller.isScanning;
@@ -555,7 +563,7 @@ void main() {
     });
 
     test('connectedDevice is consistent across multiple reads', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final device1 = controller.connectedDevice;
       final device2 = controller.connectedDevice;
       final device3 = controller.connectedDevice;
@@ -565,7 +573,7 @@ void main() {
     });
 
     test('scannedDevices is consistent across multiple reads', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final devices1 = controller.scannedDevices;
       final devices2 = controller.scannedDevices;
       final devices3 = controller.scannedDevices;
@@ -575,7 +583,7 @@ void main() {
     });
 
     test('all streams are accessible after multiple state reads', () {
-      final controller = SimpleBleController();
+      final controller = createTestController();
 
       // Read state multiple times
       for (int i = 0; i < 10; i++) {
@@ -595,22 +603,22 @@ void main() {
     // Note: Async operations like stopScanning/sendCommand trigger NotificationService
     // which may have closed streams in test environment. Test concurrent read operations instead.
 
-    test('concurrent singleton access', () async {
+    test('concurrent controller creation', () async {
       final controllers = <SimpleBleController>[];
 
       await Future.wait([
-        Future(() => controllers.add(SimpleBleController())),
-        Future(() => controllers.add(SimpleBleController())),
-        Future(() => controllers.add(SimpleBleController())),
+        Future(() => controllers.add(createTestController())),
+        Future(() => controllers.add(createTestController())),
+        Future(() => controllers.add(createTestController())),
       ]);
 
-      // All should be same singleton
-      expect(controllers[0], same(controllers[1]));
-      expect(controllers[1], same(controllers[2]));
+      // All should be independent instances with DI
+      expect(controllers.length, 3);
+      expect(controllers[0], isNotNull);
     });
 
     test('concurrent state reads', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final results = <bool>[];
 
       await Future.wait([
@@ -624,7 +632,7 @@ void main() {
     });
 
     test('concurrent stream access', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final streams = <Stream>[];
 
       await Future.wait([
@@ -638,7 +646,7 @@ void main() {
     });
 
     test('concurrent getCommandInfo calls', () async {
-      final controller = SimpleBleController();
+      final controller = createTestController();
       final infos = <Map<String, dynamic>>[];
 
       await Future.wait([
@@ -650,6 +658,242 @@ void main() {
       // All should return same structure
       expect(infos[0].keys.length, infos[1].keys.length);
       expect(infos[1].keys.length, infos[2].keys.length);
+    });
+  });
+
+  group('SimpleBleController with dependency injection', () {
+    late MockBleService mockBleService;
+    late MockNotificationService mockNotificationService;
+    late SimpleBleController diController;
+
+    setUp(() async {
+      await resetServiceLocator();
+      mockBleService = MockBleService();
+      mockNotificationService = MockNotificationService();
+      diController = SimpleBleController.withDependencies(
+        bleService: mockBleService,
+        notificationService: mockNotificationService,
+      );
+    });
+
+    tearDown(() async {
+      await resetServiceLocator();
+    });
+
+    test('should create instance with injected dependencies', () {
+      expect(diController, isNotNull);
+      expect(diController, isA<SimpleBleController>());
+    });
+
+    test('should expose devicesStream from injected BleService', () {
+      expect(diController.devicesStream, isNotNull);
+      expect(diController.devicesStream, isA<Stream>());
+    });
+
+    test('should expose scanningStream from injected BleService', () {
+      expect(diController.scanningStream, isNotNull);
+      expect(diController.scanningStream, isA<Stream<bool>>());
+    });
+
+    test('should expose connectedDeviceStream from injected BleService', () {
+      expect(diController.connectedDeviceStream, isNotNull);
+    });
+
+    test('should expose commandResponseStream from injected BleService', () {
+      expect(diController.commandResponseStream, isNotNull);
+      expect(diController.commandResponseStream, isA<Stream<String>>());
+    });
+
+    test('should expose notificationStream from injected NotificationService', () {
+      expect(diController.notificationStream, isNotNull);
+    });
+
+    test('should return scannedDevices from injected BleService', () {
+      mockBleService.setDevices([]);
+      expect(diController.scannedDevices, isEmpty);
+    });
+
+    test('should return isScanning state from injected BleService', () {
+      expect(diController.isScanning, false);
+    });
+
+    test('should return connectedDevice from injected BleService', () {
+      expect(diController.connectedDevice, isNull);
+    });
+
+    test('should return isInitialized from injected BleService', () {
+      expect(diController.isInitialized, isA<bool>());
+    });
+
+    test('initialize should use injected BleService', () async {
+      final result = await diController.initialize();
+      expect(result, true);
+      expect(mockBleService.isInitialized, true);
+    });
+
+    test('initialize success should show success notification', () async {
+      await diController.initialize();
+      final notifications = mockNotificationService.allNotifications;
+      expect(notifications, isNotEmpty);
+      expect(notifications.last.title, 'Controller Ready');
+    });
+
+    test('startScanning should use injected BleService', () async {
+      final result = await diController.startScanning();
+      expect(result, true);
+      expect(mockBleService.isScanning, true);
+    });
+
+    test('startScanning should show info notification', () async {
+      await diController.startScanning();
+      final notifications = mockNotificationService.allNotifications;
+      expect(notifications, isNotEmpty);
+      expect(notifications.last.title, 'Scanning Started');
+    });
+
+    test('stopScanning should use injected BleService', () async {
+      await mockBleService.startScanning();
+      expect(mockBleService.isScanning, true);
+
+      await diController.stopScanning();
+      expect(mockBleService.isScanning, false);
+    });
+
+    test('stopScanning should show info notification', () async {
+      await diController.stopScanning();
+      final notifications = mockNotificationService.allNotifications;
+      expect(notifications, isNotEmpty);
+      expect(notifications.last.title, 'Scanning Stopped');
+    });
+
+    test('clearDevices should use injected BleService', () {
+      diController.clearDevices();
+      expect(mockBleService.scannedDevices, isEmpty);
+    });
+
+    test('clearDevices should show info notification', () {
+      mockNotificationService.clear();
+      diController.clearDevices();
+      final notifications = mockNotificationService.allNotifications;
+      expect(notifications, isNotEmpty);
+      expect(notifications.last.title, 'Devices Cleared');
+    });
+
+    test('getCommandInfo should use injected BleService', () {
+      final info = diController.getCommandInfo();
+      expect(info, isA<Map<String, dynamic>>());
+      expect(info['hasCommandChannel'], true);
+    });
+
+    test('sendCommand with empty string should show warning notification', () async {
+      mockNotificationService.clear();
+      final result = await diController.sendCommand('');
+      expect(result, false);
+      final notifications = mockNotificationService.allNotifications;
+      expect(notifications, isNotEmpty);
+      expect(notifications.last.title, 'Empty Command');
+    });
+
+    test('connectToDevice should use injected BleService', () async {
+      final result = await diController.connectToDevice('test-device-id');
+      expect(result, true);
+      expect(mockBleService.connectedDevice, isNotNull);
+    });
+
+    test('connectToDevice should show connecting notification', () async {
+      mockNotificationService.clear();
+      await diController.connectToDevice('test-device-id');
+      final notifications = mockNotificationService.allNotifications;
+      expect(notifications.any((n) => n.title == 'Connecting'), true);
+    });
+
+    test('disconnectDevice should use injected BleService', () async {
+      await mockBleService.connectToDevice('test-id');
+      expect(mockBleService.connectedDevice, isNotNull);
+
+      await diController.disconnectDevice();
+      expect(mockBleService.connectedDevice, isNull);
+    });
+
+    test('discoverServices should use injected BleService', () async {
+      final services = await diController.discoverServices('test-device-id');
+      expect(services, isA<List>());
+    });
+
+    test('discoverServices with no services shows warning notification', () async {
+      mockNotificationService.clear();
+      await diController.discoverServices('test-device-id');
+      final notifications = mockNotificationService.allNotifications;
+      // Should show either "No Services" warning or "Discovering Services" info
+      expect(notifications, isNotEmpty);
+    });
+
+    test('dispose should clean up resources', () {
+      expect(() => diController.dispose(), returnsNormally);
+    });
+
+    test('DI instance is independent from singleton', () {
+      final singleton = createTestController();
+      expect(identical(diController, singleton), false);
+    });
+
+    test('multiple DI instances can coexist', () {
+      final mockBle2 = MockBleService();
+      final mockNotify2 = MockNotificationService();
+      final diController2 = SimpleBleController.withDependencies(
+        bleService: mockBle2,
+        notificationService: mockNotify2,
+      );
+
+      expect(identical(diController, diController2), false);
+      expect(identical(mockBleService, mockBle2), false);
+
+      diController2.dispose();
+    });
+  });
+
+  group('SimpleBleController DI stream integration', () {
+    late MockBleService mockBleService;
+    late MockNotificationService mockNotificationService;
+    late SimpleBleController diController;
+
+    setUp(() async {
+      await resetServiceLocator();
+      mockBleService = MockBleService();
+      mockNotificationService = MockNotificationService();
+      diController = SimpleBleController.withDependencies(
+        bleService: mockBleService,
+        notificationService: mockNotificationService,
+      );
+    });
+
+    tearDown(() async {
+      diController.dispose();
+      mockBleService.dispose();
+      mockNotificationService.dispose();
+      await resetServiceLocator();
+    });
+
+    test('devices stream emits updates from mock service', () async {
+      final devices = <List>[];
+      final subscription = diController.devicesStream.listen(devices.add);
+
+      mockBleService.setDevices([]);
+      await Future.delayed(Duration.zero);
+
+      expect(devices, isNotEmpty);
+      subscription.cancel();
+    });
+
+    test('scanning stream emits updates from mock service', () async {
+      final scanningStates = <bool>[];
+      final subscription = diController.scanningStream.listen(scanningStates.add);
+
+      await mockBleService.startScanning();
+      await Future.delayed(Duration.zero);
+
+      expect(scanningStates, contains(true));
+      subscription.cancel();
     });
   });
 }

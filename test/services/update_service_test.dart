@@ -1,33 +1,26 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import '../mocks/mock_services.dart';
+
+/// Helper to create a test UpdateService with mock dependencies
+UpdateService createTestUpdateService({
+  MockNotificationService? notificationService,
+  MockNetworkService? networkService,
+}) {
+  return UpdateService.withDependencies(
+    notificationService: notificationService ?? MockNotificationService(),
+    networkService: networkService ?? MockNetworkService(),
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('UpdateService', () {
-    group('singleton', () {
-      test('should return same instance', () {
-        final instance1 = UpdateService();
-        final instance2 = UpdateService();
-        expect(identical(instance1, instance2), true);
-      });
-
-      test('should have consistent identity across multiple calls', () {
-        final instances = <UpdateService>[];
-        for (int i = 0; i < 10; i++) {
-          instances.add(UpdateService());
-        }
-
-        for (int i = 1; i < instances.length; i++) {
-          expect(identical(instances[0], instances[i]), true);
-        }
-      });
-    });
-
     group('streams', () {
       test('updateStream should be a broadcast stream', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         expect(service.updateStream, isA<Stream<UpdateInfo>>());
 
         // Should allow multiple listeners
@@ -39,10 +32,11 @@ void main() {
 
         sub1.cancel();
         sub2.cancel();
+        service.dispose();
       });
 
       test('downloadStream should be a broadcast stream', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         expect(service.downloadStream, isA<Stream<DownloadProgress>>());
 
         // Should allow multiple listeners
@@ -54,47 +48,52 @@ void main() {
 
         sub1.cancel();
         sub2.cancel();
+        service.dispose();
       });
     });
 
     group('getCurrentVersionInfo', () {
       test('should return map with version and buildNumber keys', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         final info = service.getCurrentVersionInfo();
 
         expect(info, isA<Map<String, String>>());
         expect(info.containsKey('version'), true);
         expect(info.containsKey('buildNumber'), true);
+        service.dispose();
       });
 
       test('should return strings for version values', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         final info = service.getCurrentVersionInfo();
 
         expect(info['version'], isA<String>());
         expect(info['buildNumber'], isA<String>());
+        service.dispose();
       });
 
       test('should be consistent across multiple calls', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         final info1 = service.getCurrentVersionInfo();
         final info2 = service.getCurrentVersionInfo();
 
         expect(info1['version'], info2['version']);
         expect(info1['buildNumber'], info2['buildNumber']);
+        service.dispose();
       });
     });
 
     group('preferences', () {
       test('preferences getter should not throw', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         expect(() => service.preferences, returnsNormally);
+        service.dispose();
       });
     });
 
     group('dispose', () {
       test('should not throw', () {
-        final service = UpdateService();
+        final service = createTestUpdateService();
         expect(() => service.dispose(), returnsNormally);
       });
     });

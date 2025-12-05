@@ -1,11 +1,24 @@
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:permission_handler/permission_handler.dart';
 import '../utils/logger.dart';
+import '../core/interfaces/permission_service_interface.dart';
 
-class PermissionService {
-  static final PermissionService _instance = PermissionService._internal();
-  factory PermissionService() => _instance;
-  PermissionService._internal();
+/// Service for handling Bluetooth and location permissions.
+///
+/// This service implements [PermissionServiceInterface] and can be used
+/// with dependency injection for improved testability.
+///
+/// Use [PermissionService.withDependencies()] or [PermissionService()]
+/// constructor and register via service locator for production use.
+class PermissionService implements PermissionServiceInterface {
+  /// Default constructor for dependency injection via service locator.
+  PermissionService();
 
+  /// Named constructor for dependency injection (alias for default constructor).
+  /// Use this when creating instances via the service locator.
+  PermissionService.withDependencies();
+
+  @override
   Future<bool> requestBluetoothPermissions() async {
     try {
       final List<Permission> permissions = [
@@ -29,6 +42,7 @@ class PermissionService {
     }
   }
 
+  @override
   Future<bool> hasBluetoothPermissions() async {
     try {
       final List<Permission> permissions = [
@@ -69,8 +83,28 @@ class PermissionService {
     return await Permission.locationWhenInUse.shouldShowRequestRationale;
   }
 
-  Future<bool> openAppSettings() async {
-    return await Permission.bluetooth.request().isGranted;
+  /// Check if location services are enabled on the device.
+  @override
+  Future<bool> isLocationEnabled() async {
+    try {
+      final status = await Permission.locationWhenInUse.serviceStatus;
+      return status == ServiceStatus.enabled;
+    } catch (e) {
+      Logger.error('Failed to check location service status', error: e);
+      return false;
+    }
+  }
+
+  /// Open the device's app settings page.
+  @override
+  Future<void> openAppSettings() async {
+    await openAppSettingsPage();
+  }
+
+  /// Open the device's app settings page.
+  /// Returns true if settings were opened successfully.
+  Future<bool> openAppSettingsPage() async {
+    return await ph.openAppSettings();
   }
 
   String getPermissionStatusDescription(PermissionStatus status) {

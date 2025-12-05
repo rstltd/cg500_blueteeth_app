@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
 import '../utils/logger.dart';
 
 /// Command manager for handling command history, input, and sending logic
 class CommandManager {
-  final SimpleBleController _controller;
+  final BleControllerInterface _controller;
   final TextEditingController _textController = TextEditingController();
   final List<String> _commandHistory = [];
   int _historyIndex = -1;
-  
+
   // Callbacks for UI updates
   final VoidCallback? onCommandSent;
   final Function(Map<String, dynamic>)? onMessageAdded;
 
   CommandManager({
-    required SimpleBleController controller,
+    required BleControllerInterface controller,
     this.onCommandSent,
     this.onMessageAdded,
   }) : _controller = controller;

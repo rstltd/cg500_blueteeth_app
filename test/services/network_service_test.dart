@@ -51,11 +51,14 @@ void main() {
       networkService = NetworkService();
     });
 
-    group('singleton', () {
-      test('should return same instance', () {
+    group('DI pattern', () {
+      test('should create independent instances with constructor', () {
         final instance1 = NetworkService();
         final instance2 = NetworkService();
-        expect(identical(instance1, instance2), true);
+        // With DI pattern, each call creates a new instance
+        expect(identical(instance1, instance2), false);
+        instance1.dispose();
+        instance2.dispose();
       });
     });
 
@@ -222,8 +225,12 @@ void main() {
       expect(list.contains(NetworkStatus.wifi), true);
       expect(list.contains(NetworkStatus.none), false);
 
-      final set = {NetworkStatus.wifi, NetworkStatus.mobile, NetworkStatus.wifi};
-      expect(set.length, 2); // wifi added twice but set has unique values
+      final statusSet = {NetworkStatus.wifi, NetworkStatus.mobile};
+      // Adding wifi again to test set behavior
+      final statusList = [NetworkStatus.wifi, NetworkStatus.mobile, NetworkStatus.wifi];
+      final uniqueSet = statusList.toSet();
+      expect(statusSet.length, 2);
+      expect(uniqueSet.length, 2); // wifi added twice but set has unique values
     });
   });
 
@@ -370,26 +377,32 @@ void main() {
     });
   });
 
-  group('NetworkService singleton behavior', () {
-    test('multiple factory calls should return identical instance', () {
+  group('NetworkService DI behavior', () {
+    test('multiple constructor calls should create independent instances', () {
       final instances = <NetworkService>[];
       for (int i = 0; i < 10; i++) {
         instances.add(NetworkService());
       }
 
+      // With DI pattern, each call creates a new instance
       for (int i = 1; i < instances.length; i++) {
-        expect(identical(instances[0], instances[i]), true);
+        expect(identical(instances[0], instances[i]), false);
+      }
+
+      for (final instance in instances) {
+        instance.dispose();
       }
     });
 
-    test('instance should maintain state across factory calls', () {
+    test('constructor instances are independent', () {
       final instance1 = NetworkService();
-      final status1 = instance1.currentStatus;
-
       final instance2 = NetworkService();
-      final status2 = instance2.currentStatus;
 
-      expect(status1, status2);
+      // Both should have same initial status
+      expect(instance1.currentStatus, instance2.currentStatus);
+
+      instance1.dispose();
+      instance2.dispose();
     });
   });
 

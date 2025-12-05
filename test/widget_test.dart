@@ -1,7 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/main.dart';
+import 'package:cg500_blueteeth_app/core/service_locator.dart';
 
 void main() {
+  setUpAll(() async {
+    // Initialize the service locator before running tests
+    await setupServiceLocator();
+  });
+
+  tearDownAll(() async {
+    // Clean up after all tests
+    await resetServiceLocator();
+  });
+
   testWidgets('App should show loading screen initially', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());

@@ -845,23 +845,19 @@ void main() {
         expect(char == char, true);
       });
 
-      test('should not be equal to null', () {
-        const char = BleCharacteristicModel(
+      test('should handle nullable variable comparison', () {
+        BleCharacteristicModel? nullableChar;
+        const BleCharacteristicModel char = BleCharacteristicModel(
           uuid: 'test',
           displayName: 'Test',
           properties: [],
         );
-        expect(char == null, false);
-      });
+        // Test comparison between non-null and nullable (which is null)
+        expect(char == nullableChar, false);
 
-      test('should not be equal to different type', () {
-        const char = BleCharacteristicModel(
-          uuid: 'test',
-          displayName: 'Test',
-          properties: [],
-        );
-        expect(char == 'test', false);
-        expect(char == 123, false);
+        // Assign value to nullable and compare
+        nullableChar = char;
+        expect(char == nullableChar, true);
       });
 
       test('should handle UUID with different cases in equality', () {

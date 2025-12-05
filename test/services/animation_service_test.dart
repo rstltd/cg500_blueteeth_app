@@ -908,6 +908,197 @@ void main() {
     });
   });
 
+  group('PageTransition actual navigation tests', () {
+    testWidgets('should execute slideFromRight transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Slide Right Page')),
+                      type: PageTransitionType.slideFromRight,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Slide Right Page'), findsOneWidget);
+    });
+
+    testWidgets('should execute slideFromLeft transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Slide Left Page')),
+                      type: PageTransitionType.slideFromLeft,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Slide Left Page'), findsOneWidget);
+    });
+
+    testWidgets('should execute slideFromBottom transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Slide Bottom Page')),
+                      type: PageTransitionType.slideFromBottom,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Slide Bottom Page'), findsOneWidget);
+    });
+
+    testWidgets('should execute slideFromTop transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Slide Top Page')),
+                      type: PageTransitionType.slideFromTop,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Slide Top Page'), findsOneWidget);
+    });
+
+    testWidgets('should execute fade transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Fade Page')),
+                      type: PageTransitionType.fade,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Fade Page'), findsOneWidget);
+    });
+
+    testWidgets('should execute scale transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Scale Page')),
+                      type: PageTransitionType.scale,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Scale Page'), findsOneWidget);
+    });
+
+    testWidgets('should execute rotation transition', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    AnimationService.createPageTransition(
+                      page: const Scaffold(body: Text('Rotation Page')),
+                      type: PageTransitionType.rotation,
+                    ),
+                  );
+                },
+                child: const Text('Navigate'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rotation Page'), findsOneWidget);
+    });
+  });
+
   group('Painter paint tests', () {
     testWidgets('ScanningRadarPainter should paint without errors', (WidgetTester tester) async {
       final painter = ScanningRadarPainter(

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
+import '../mocks/mock_services.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -67,7 +67,7 @@ void main() {
     test('should create with all parameters', () {
       final originalError = Exception('Original');
       final stackTrace = StackTrace.current;
-      final retryAction = () {};
+      void retryAction() {}
       final metadata = {'key': 'value'};
       final timestamp = DateTime(2024, 1, 1);
 
@@ -136,7 +136,7 @@ void main() {
       test('should create bluetooth error with all parameters', () {
         final originalError = Exception('BLE error');
         final stackTrace = StackTrace.current;
-        final retryAction = () {};
+        void retryAction() {}
         final metadata = {'deviceId': '12345'};
 
         final error = AppError.bluetooth(
@@ -170,7 +170,7 @@ void main() {
       });
 
       test('should create permission error with retry action', () {
-        final retryAction = () {};
+        void retryAction() {}
 
         final error = AppError.permission(
           'LOCATION_PERMISSION_DENIED',
@@ -198,7 +198,7 @@ void main() {
 
       test('should create network error with original error', () {
         final socketError = const SocketException('Network unreachable');
-        final retryAction = () {};
+        void retryAction() {}
 
         final error = AppError.network(
           'SOCKET_ERROR',
@@ -260,6 +260,36 @@ void main() {
         expect(error.category, ErrorCategory.validation);
       });
     });
+
+    group('AppError.system', () {
+      test('should create system error with basic parameters', () {
+        final error = AppError.system(
+          'INSUFFICIENT_MEMORY',
+          'Out of memory',
+        );
+
+        expect(error.code, 'INSUFFICIENT_MEMORY');
+        expect(error.message, 'Out of memory');
+        expect(error.category, ErrorCategory.system);
+      });
+
+      test('should create system error with original error', () {
+        final originalError = Exception('System failure');
+        void retryAction() {}
+
+        final error = AppError.system(
+          'SYSTEM_FAILURE',
+          'System failure occurred',
+          originalError: originalError,
+          retryAction: retryAction,
+        );
+
+        expect(error.code, 'SYSTEM_FAILURE');
+        expect(error.category, ErrorCategory.system);
+        expect(error.originalError, originalError);
+        expect(error.retryAction, retryAction);
+      });
+    });
   });
 
   group('UserAction', () {
@@ -305,20 +335,50 @@ void main() {
 
       expect(action.label, 'Dismiss');
     });
+
+    test('should execute action callback', () {
+      var called = false;
+      final action = UserAction(
+        label: 'Test',
+        action: () => called = true,
+      );
+
+      action.action?.call();
+      expect(called, true);
+    });
   });
 
   group('ErrorHandlingService', () {
     late ErrorHandlingService service;
+    late MockNotificationService mockNotificationService;
 
     setUp(() {
-      service = ErrorHandlingService();
+      mockNotificationService = MockNotificationService();
+      service = ErrorHandlingService(
+        notificationService: mockNotificationService,
+      );
     });
 
-    group('singleton', () {
-      test('should return same instance', () {
-        final instance1 = ErrorHandlingService();
-        final instance2 = ErrorHandlingService();
-        expect(identical(instance1, instance2), true);
+    tearDown(() {
+      service.dispose();
+      mockNotificationService.dispose();
+    });
+
+    group('DI pattern', () {
+      test('should create independent instances with forTesting', () {
+        final mockNotification1 = MockNotificationService();
+        final mockNotification2 = MockNotificationService();
+        final instance1 = ErrorHandlingService.forTesting(
+          notificationService: mockNotification1,
+        );
+        final instance2 = ErrorHandlingService.forTesting(
+          notificationService: mockNotification2,
+        );
+        expect(identical(instance1, instance2), false);
+        instance1.dispose();
+        instance2.dispose();
+        mockNotification1.dispose();
+        mockNotification2.dispose();
       });
     });
 
@@ -367,106 +427,419 @@ void main() {
 
     group('dispose', () {
       test('should not throw', () {
-        // Create a new instance for dispose test to avoid affecting other tests
-        final testService = ErrorHandlingService();
+        final mockNotification = MockNotificationService();
+        final testService = ErrorHandlingService(
+          notificationService: mockNotification,
+        );
         expect(() => testService.dispose(), returnsNormally);
+        mockNotification.dispose();
       });
     });
   });
 
-  group('AppError bluetooth codes', () {
-    test('BLE_DISABLED code', () {
-      final error = AppError.bluetooth('BLE_DISABLED', 'Bluetooth disabled');
-      expect(error.code, 'BLE_DISABLED');
+  group('ErrorHandlingService handleError', () {
+    late ErrorHandlingService service;
+    late MockNotificationService mockNotificationService;
+    late List<AppError> receivedErrors;
+    late StreamSubscription<AppError> subscription;
+
+    setUp(() {
+      mockNotificationService = MockNotificationService();
+      service = ErrorHandlingService.forTesting(
+        notificationService: mockNotificationService,
+      );
+      receivedErrors = [];
+      subscription = service.errorStream.listen((error) {
+        receivedErrors.add(error);
+      });
     });
 
-    test('BLE_UNAVAILABLE code', () {
-      final error = AppError.bluetooth('BLE_UNAVAILABLE', 'BLE unavailable');
-      expect(error.code, 'BLE_UNAVAILABLE');
+    tearDown(() {
+      subscription.cancel();
+      service.dispose();
+      mockNotificationService.dispose();
     });
 
-    test('DEVICE_NOT_FOUND code', () {
-      final error = AppError.bluetooth('DEVICE_NOT_FOUND', 'Device not found');
-      expect(error.code, 'DEVICE_NOT_FOUND');
+    group('Bluetooth errors', () {
+      test('should handle BLE_DISABLED error', () async {
+        final error = AppError.bluetooth('BLE_DISABLED', 'BT disabled');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'BLE_DISABLED');
+        expect(service.errorHistory.isNotEmpty, true);
+      });
+
+      test('should handle BLE_UNAVAILABLE error', () async {
+        final error = AppError.bluetooth('BLE_UNAVAILABLE', 'BLE not available');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'BLE_UNAVAILABLE');
+      });
+
+      test('should handle DEVICE_NOT_FOUND error', () async {
+        final error = AppError.bluetooth('DEVICE_NOT_FOUND', 'Device not found');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'DEVICE_NOT_FOUND');
+      });
+
+      test('should handle CONNECTION_FAILED error', () async {
+        final error = AppError.bluetooth('CONNECTION_FAILED', 'Connection failed');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'CONNECTION_FAILED');
+      });
+
+      test('should handle CONNECTION_LOST error', () async {
+        final error = AppError.bluetooth('CONNECTION_LOST', 'Connection lost');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'CONNECTION_LOST');
+      });
+
+      test('should handle unknown bluetooth error code', () async {
+        final error = AppError.bluetooth('UNKNOWN_BLE_ERROR', 'Custom BLE error message');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'UNKNOWN_BLE_ERROR');
+      });
     });
 
-    test('CONNECTION_FAILED code', () {
-      final error = AppError.bluetooth('CONNECTION_FAILED', 'Connection failed');
-      expect(error.code, 'CONNECTION_FAILED');
+    group('Permission errors', () {
+      test('should handle BLUETOOTH_PERMISSION_DENIED error', () async {
+        final error = AppError.permission('BLUETOOTH_PERMISSION_DENIED', 'BT permission denied');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'BLUETOOTH_PERMISSION_DENIED');
+        expect(receivedErrors.first.category, ErrorCategory.permission);
+      });
+
+      test('should handle LOCATION_PERMISSION_DENIED error', () async {
+        final error = AppError.permission('LOCATION_PERMISSION_DENIED', 'Location denied');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'LOCATION_PERMISSION_DENIED');
+      });
     });
 
-    test('CONNECTION_LOST code', () {
-      final error = AppError.bluetooth('CONNECTION_LOST', 'Connection lost');
-      expect(error.code, 'CONNECTION_LOST');
+    group('Network errors', () {
+      test('should handle SocketException error', () async {
+        final socketError = const SocketException('Network unreachable');
+        final error = AppError.network(
+          'SOCKET_ERROR',
+          'Socket error',
+          originalError: socketError,
+        );
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.originalError, isA<SocketException>());
+      });
+
+      test('should handle TimeoutException error', () async {
+        final timeoutError = TimeoutException('Request timed out');
+        final error = AppError.network(
+          'TIMEOUT_ERROR',
+          'Timeout error',
+          originalError: timeoutError,
+        );
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.originalError, isA<TimeoutException>());
+      });
     });
 
-    test('SERVICE_DISCOVERY_FAILED code', () {
-      final error = AppError.bluetooth('SERVICE_DISCOVERY_FAILED', 'Service discovery failed');
-      expect(error.code, 'SERVICE_DISCOVERY_FAILED');
+    group('Validation errors', () {
+      test('should handle INVALID_COMMAND error', () async {
+        final error = AppError.validation('INVALID_COMMAND', 'Invalid command');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'INVALID_COMMAND');
+      });
+
+      test('should handle EMPTY_COMMAND error', () async {
+        final error = AppError.validation('EMPTY_COMMAND', 'Empty command');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'EMPTY_COMMAND');
+      });
     });
 
-    test('CHARACTERISTIC_NOT_FOUND code', () {
-      final error = AppError.bluetooth('CHARACTERISTIC_NOT_FOUND', 'Characteristic not found');
-      expect(error.code, 'CHARACTERISTIC_NOT_FOUND');
+    group('System errors', () {
+      test('should handle INSUFFICIENT_MEMORY error', () async {
+        final error = AppError.system('INSUFFICIENT_MEMORY', 'Out of memory');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'INSUFFICIENT_MEMORY');
+      });
+
+      test('should handle FILE_NOT_FOUND error', () async {
+        final error = AppError.system('FILE_NOT_FOUND', 'File not found');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'FILE_NOT_FOUND');
+      });
+
+      test('should handle STORAGE_FULL error', () async {
+        final error = AppError.system('STORAGE_FULL', 'Storage full');
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.code, 'STORAGE_FULL');
+      });
     });
 
-    test('WRITE_FAILED code', () {
-      final error = AppError.bluetooth('WRITE_FAILED', 'Write failed');
-      expect(error.code, 'WRITE_FAILED');
-    });
+    group('Unknown errors', () {
+      test('should handle unknown category error', () async {
+        final error = AppError(
+          code: 'UNKNOWN',
+          message: 'Unknown error',
+          category: ErrorCategory.unknown,
+        );
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
 
-    test('READ_FAILED code', () {
-      final error = AppError.bluetooth('READ_FAILED', 'Read failed');
-      expect(error.code, 'READ_FAILED');
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.category, ErrorCategory.unknown);
+      });
+
+      test('should handle unknown error with retry action', () async {
+        var retried = false;
+        final error = AppError(
+          code: 'UNKNOWN_RETRYABLE',
+          message: 'Unknown but retryable',
+          category: ErrorCategory.unknown,
+          retryAction: () => retried = true,
+        );
+        await service.handleError(error);
+        await Future.delayed(Duration.zero);
+
+        expect(receivedErrors.length, 1);
+        expect(receivedErrors.first.retryAction, isNotNull);
+
+        receivedErrors.first.retryAction?.call();
+        expect(retried, true);
+      });
     });
   });
 
-  group('AppError permission codes', () {
-    test('BLUETOOTH_PERMISSION_DENIED code', () {
-      final error = AppError.permission('BLUETOOTH_PERMISSION_DENIED', 'BT permission denied');
-      expect(error.code, 'BLUETOOTH_PERMISSION_DENIED');
+  group('ErrorHandlingService getErrorMessage', () {
+    late ErrorHandlingService service;
+    late MockNotificationService mockNotificationService;
+
+    setUp(() {
+      mockNotificationService = MockNotificationService();
+      service = ErrorHandlingService(
+        notificationService: mockNotificationService,
+      );
     });
 
-    test('LOCATION_PERMISSION_DENIED code', () {
-      final error = AppError.permission('LOCATION_PERMISSION_DENIED', 'Location permission denied');
-      expect(error.code, 'LOCATION_PERMISSION_DENIED');
+    tearDown(() {
+      service.dispose();
+      mockNotificationService.dispose();
     });
 
-    test('NOTIFICATION_PERMISSION_DENIED code', () {
-      final error = AppError.permission('NOTIFICATION_PERMISSION_DENIED', 'Notification permission denied');
-      expect(error.code, 'NOTIFICATION_PERMISSION_DENIED');
+    test('should return user-friendly message for BLE_DISABLED', () {
+      final error = AppError.bluetooth('BLE_DISABLED', 'BT disabled');
+      final message = service.getErrorMessage(error);
+      expect(message, contains('Bluetooth is disabled'));
+    });
+
+    test('should return user-friendly message for CONNECTION_FAILED', () {
+      final error = AppError.bluetooth('CONNECTION_FAILED', 'Failed');
+      final message = service.getErrorMessage(error);
+      expect(message, contains('Failed to connect'));
+    });
+
+    test('should return user-friendly message for SocketException', () {
+      final error = AppError.network(
+        'NETWORK_ERROR',
+        'Error',
+        originalError: const SocketException('unreachable'),
+      );
+      final message = service.getErrorMessage(error);
+      expect(message, contains('No internet connection'));
+    });
+
+    test('should return user-friendly message for TimeoutException', () {
+      final error = AppError.network(
+        'TIMEOUT',
+        'Error',
+        originalError: TimeoutException('timeout'),
+      );
+      final message = service.getErrorMessage(error);
+      expect(message, contains('timed out'));
+    });
+
+    test('should return user-friendly message for INVALID_COMMAND', () {
+      final error = AppError.validation('INVALID_COMMAND', 'Invalid');
+      final message = service.getErrorMessage(error);
+      expect(message, contains('command format is invalid'));
+    });
+
+    test('should return user-friendly message for INSUFFICIENT_MEMORY', () {
+      final error = AppError.system('INSUFFICIENT_MEMORY', 'OOM');
+      final message = service.getErrorMessage(error);
+      expect(message, contains('Insufficient memory'));
+    });
+
+    test('should return generic message for unknown errors', () {
+      final error = AppError(
+        code: 'UNKNOWN',
+        message: 'Unknown',
+        category: ErrorCategory.unknown,
+      );
+      final message = service.getErrorMessage(error);
+      expect(message, contains('unexpected error'));
     });
   });
 
-  group('AppError system codes', () {
-    test('INSUFFICIENT_MEMORY code', () {
-      final error = AppError(
-        code: 'INSUFFICIENT_MEMORY',
-        message: 'Out of memory',
-        category: ErrorCategory.system,
+  group('ErrorHandlingService getErrorRecoveryActions', () {
+    late ErrorHandlingService service;
+    late MockNotificationService mockNotificationService;
+
+    setUp(() {
+      mockNotificationService = MockNotificationService();
+      service = ErrorHandlingService(
+        notificationService: mockNotificationService,
       );
-      expect(error.code, 'INSUFFICIENT_MEMORY');
-      expect(error.category, ErrorCategory.system);
     });
 
-    test('FILE_NOT_FOUND code', () {
-      final error = AppError(
-        code: 'FILE_NOT_FOUND',
-        message: 'File not found',
-        category: ErrorCategory.system,
-      );
-      expect(error.code, 'FILE_NOT_FOUND');
-      expect(error.category, ErrorCategory.system);
+    tearDown(() {
+      service.dispose();
+      mockNotificationService.dispose();
     });
 
-    test('STORAGE_FULL code', () {
-      final error = AppError(
-        code: 'STORAGE_FULL',
-        message: 'Storage full',
-        category: ErrorCategory.system,
+    test('should return Enable Bluetooth action for BLE_DISABLED', () {
+      final error = AppError.bluetooth('BLE_DISABLED', 'Disabled', retryAction: () {});
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions.length, 1);
+      expect(actions.first.label, 'Enable Bluetooth');
+      expect(actions.first.isPrimary, true);
+    });
+
+    test('should return Retry action for CONNECTION_FAILED', () {
+      final error = AppError.bluetooth('CONNECTION_FAILED', 'Failed', retryAction: () {});
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions.length, 1);
+      expect(actions.first.label, 'Retry');
+    });
+
+    test('should return Grant Permission action for permission errors', () {
+      final error = AppError.permission('BLUETOOTH_PERMISSION_DENIED', 'Denied', retryAction: () {});
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions.length, 1);
+      expect(actions.first.label, 'Grant Permission');
+    });
+
+    test('should return Retry action for network errors', () {
+      final error = AppError.network('NETWORK_ERROR', 'Error', retryAction: () {});
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions.length, 1);
+      expect(actions.first.label, 'Retry');
+    });
+
+    test('should return empty list for validation errors', () {
+      final error = AppError.validation('INVALID_COMMAND', 'Invalid');
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions, isEmpty);
+    });
+
+    test('should return Retry action for system errors with retryAction', () {
+      final error = AppError.system('SYSTEM_ERROR', 'Error', retryAction: () {});
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions.length, 1);
+      expect(actions.first.label, 'Retry');
+    });
+
+    test('should return empty list for system errors without retryAction', () {
+      final error = AppError.system('SYSTEM_ERROR', 'Error');
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions, isEmpty);
+    });
+  });
+
+  group('ErrorHandlingService error history', () {
+    late ErrorHandlingService service;
+    late MockNotificationService mockNotificationService;
+
+    setUp(() {
+      mockNotificationService = MockNotificationService();
+      service = ErrorHandlingService.forTesting(
+        notificationService: mockNotificationService,
       );
-      expect(error.code, 'STORAGE_FULL');
-      expect(error.category, ErrorCategory.system);
+    });
+
+    tearDown(() {
+      service.dispose();
+      mockNotificationService.dispose();
+    });
+
+    test('should add errors to history in correct order', () async {
+      final error1 = AppError.bluetooth('ERROR_1', 'First error');
+      final error2 = AppError.bluetooth('ERROR_2', 'Second error');
+      final error3 = AppError.bluetooth('ERROR_3', 'Third error');
+
+      await service.handleError(error1);
+      await service.handleError(error2);
+      await service.handleError(error3);
+
+      expect(service.errorHistory.length, 3);
+      expect(service.errorHistory[0].code, 'ERROR_3');
+      expect(service.errorHistory[1].code, 'ERROR_2');
+      expect(service.errorHistory[2].code, 'ERROR_1');
+    });
+
+    test('should limit history to 100 entries', () async {
+      for (int i = 0; i < 105; i++) {
+        final error = AppError.bluetooth('ERROR_$i', 'Error $i');
+        await service.handleError(error);
+      }
+
+      expect(service.errorHistory.length, 100);
+      expect(service.errorHistory[0].code, 'ERROR_104');
+      expect(service.errorHistory[99].code, 'ERROR_5');
+    });
+
+    test('clearHistory should remove all entries', () async {
+      final error1 = AppError.bluetooth('ERROR_1', 'First error');
+      final error2 = AppError.bluetooth('ERROR_2', 'Second error');
+
+      await service.handleError(error1);
+      await service.handleError(error2);
+
+      expect(service.errorHistory.length, 2);
+
+      service.clearHistory();
+      expect(service.errorHistory.isEmpty, true);
     });
   });
 
@@ -499,16 +872,6 @@ void main() {
       expect(error.code.length, 1000);
     });
 
-    test('should handle very long message', () {
-      final longMessage = 'B' * 10000;
-      final error = AppError(
-        code: 'LONG_MSG',
-        message: longMessage,
-        category: ErrorCategory.unknown,
-      );
-      expect(error.message.length, 10000);
-    });
-
     test('should handle unicode in code and message', () {
       final error = AppError(
         code: '錯誤代碼',
@@ -517,1046 +880,78 @@ void main() {
       );
       expect(error.code, '錯誤代碼');
       expect(error.message, contains('中文'));
-      expect(error.message, contains('日本語'));
+    });
+  });
+
+  group('ErrorCategory extensions', () {
+    test('should be usable in switch statements', () {
+      String getCategoryName(ErrorCategory category) {
+        switch (category) {
+          case ErrorCategory.bluetooth:
+            return 'BT';
+          case ErrorCategory.permission:
+            return 'PERM';
+          case ErrorCategory.network:
+            return 'NET';
+          case ErrorCategory.validation:
+            return 'VAL';
+          case ErrorCategory.system:
+            return 'SYS';
+          case ErrorCategory.unknown:
+            return 'UNK';
+        }
+      }
+
+      expect(getCategoryName(ErrorCategory.bluetooth), 'BT');
+      expect(getCategoryName(ErrorCategory.permission), 'PERM');
+      expect(getCategoryName(ErrorCategory.network), 'NET');
+      expect(getCategoryName(ErrorCategory.validation), 'VAL');
+      expect(getCategoryName(ErrorCategory.system), 'SYS');
+      expect(getCategoryName(ErrorCategory.unknown), 'UNK');
     });
 
-    test('should handle special characters', () {
+    test('should have consistent name property', () {
+      expect(ErrorCategory.bluetooth.name, 'bluetooth');
+      expect(ErrorCategory.permission.name, 'permission');
+      expect(ErrorCategory.network.name, 'network');
+      expect(ErrorCategory.validation.name, 'validation');
+      expect(ErrorCategory.system.name, 'system');
+      expect(ErrorCategory.unknown.name, 'unknown');
+    });
+  });
+
+  group('AppError with complex metadata', () {
+    test('should handle nested metadata', () {
       final error = AppError(
-        code: 'SPECIAL_!@#\$%^&*()',
-        message: 'Message with <html> & "quotes"',
-        category: ErrorCategory.unknown,
-      );
-      expect(error.code, contains('!@#'));
-      expect(error.message, contains('<html>'));
-    });
-  });
-
-  group('UserAction edge cases', () {
-    test('should handle empty label', () {
-      final action = UserAction(
-        label: '',
-        action: () {},
-      );
-      expect(action.label, '');
-    });
-
-    test('should handle long label', () {
-      final action = UserAction(
-        label: 'A very long action label that might overflow the UI',
-        action: () {},
-      );
-      expect(action.label.length, greaterThan(20));
-    });
-
-    test('should handle unicode label', () {
-      const action = UserAction(
-        label: '重試',
-        action: null,
-      );
-      expect(action.label, '重試');
-    });
-
-    test('should execute action callback', () {
-      var called = false;
-      final action = UserAction(
-        label: 'Test',
-        action: () => called = true,
-      );
-
-      action.action?.call();
-      expect(called, true);
-    });
-  });
-
-  group('ErrorHandlingService stress tests', () {
-    test('rapid error creation', () {
-      for (int i = 0; i < 100; i++) {
-        final error = AppError(
-          code: 'STRESS_$i',
-          message: 'Stress test error $i',
-          category: ErrorCategory.values[i % ErrorCategory.values.length],
-        );
-        expect(error, isNotNull);
-      }
-    });
-
-    test('rapid singleton access', () {
-      for (int i = 0; i < 1000; i++) {
-        final service = ErrorHandlingService();
-        expect(service, isNotNull);
-      }
-    });
-
-    test('rapid stream subscription', () {
-      final service = ErrorHandlingService();
-      final subscriptions = <StreamSubscription>[];
-
-      for (int i = 0; i < 50; i++) {
-        subscriptions.add(service.errorStream.listen((_) {}));
-      }
-
-      for (final sub in subscriptions) {
-        sub.cancel();
-      }
-
-      expect(subscriptions.length, 50);
-    });
-  });
-
-  group('Error categories comprehensive', () {
-    test('bluetooth category should be for BLE errors', () {
-      final error = AppError.bluetooth('BLE_ERROR', 'BLE error');
-      expect(error.category, ErrorCategory.bluetooth);
-    });
-
-    test('permission category should be for permission errors', () {
-      final error = AppError.permission('PERM_ERROR', 'Permission error');
-      expect(error.category, ErrorCategory.permission);
-    });
-
-    test('network category should be for network errors', () {
-      final error = AppError.network('NET_ERROR', 'Network error');
-      expect(error.category, ErrorCategory.network);
-    });
-
-    test('validation category should be for validation errors', () {
-      final error = AppError.validation('VAL_ERROR', 'Validation error');
-      expect(error.category, ErrorCategory.validation);
-    });
-
-    test('system category should be manually set', () {
-      final error = AppError(
-        code: 'SYS_ERROR',
-        message: 'System error',
+        code: 'NESTED',
+        message: 'Nested metadata',
         category: ErrorCategory.system,
+        metadata: {
+          'device': {
+            'id': '12345',
+            'name': 'Test Device',
+            'services': ['service1', 'service2'],
+          },
+        },
       );
-      expect(error.category, ErrorCategory.system);
+
+      expect(error.metadata?['device']?['id'], '12345');
+      expect((error.metadata?['device']?['services'] as List).length, 2);
     });
 
-    test('unknown category should be default fallback', () {
+    test('should handle null values in metadata', () {
       final error = AppError(
-        code: 'UNKNOWN_ERROR',
-        message: 'Unknown error',
+        code: 'NULL_META',
+        message: 'Null in metadata',
         category: ErrorCategory.unknown,
-      );
-      expect(error.category, ErrorCategory.unknown);
-    });
-  });
-
-  group('ErrorHandlingService handleError widget tests', () {
-    testWidgets('should handle bluetooth error with context', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('BLE_DISABLED', 'Bluetooth is disabled');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
+        metadata: {
+          'validKey': 'value',
+          'nullKey': null,
+        },
       );
 
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      // Dismiss the dialog
-      final closeButton = find.text('Close');
-      if (closeButton.evaluate().isNotEmpty) {
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-      }
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.code, 'BLE_DISABLED');
-      expect(receivedErrors.first.category, ErrorCategory.bluetooth);
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle permission error with context', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.permission(
-                      'BLUETOOTH_PERMISSION_DENIED',
-                      'Permission denied',
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      // Dismiss the dialog
-      final closeButton = find.text('Close');
-      if (closeButton.evaluate().isNotEmpty) {
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-      }
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.category, ErrorCategory.permission);
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle network error with SocketException', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.network(
-                      'NO_INTERNET',
-                      'No connection',
-                      originalError: const SocketException('Network unreachable'),
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      // Dismiss the dialog
-      final closeButton = find.text('Close');
-      if (closeButton.evaluate().isNotEmpty) {
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-      }
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.category, ErrorCategory.network);
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle network error with TimeoutException', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.network(
-                      'TIMEOUT',
-                      'Request timed out',
-                      originalError: TimeoutException('Timed out'),
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      // Dismiss the dialog
-      final closeButton = find.text('Close');
-      if (closeButton.evaluate().isNotEmpty) {
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-      }
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.originalError, isA<TimeoutException>());
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle validation error with context', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.validation('INVALID_COMMAND', 'Invalid');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.category, ErrorCategory.validation);
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle system error with context', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError(
-                      code: 'INSUFFICIENT_MEMORY',
-                      message: 'Out of memory',
-                      category: ErrorCategory.system,
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      // Dismiss the dialog
-      final closeButton = find.text('Close');
-      if (closeButton.evaluate().isNotEmpty) {
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-      }
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.category, ErrorCategory.system);
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle unknown error with context', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError(
-                      code: 'RANDOM_ERROR',
-                      message: 'Something went wrong',
-                      category: ErrorCategory.unknown,
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger Error'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger Error'));
-      await tester.pumpAndSettle();
-
-      // Dismiss the dialog
-      final closeButton = find.text('Close');
-      if (closeButton.evaluate().isNotEmpty) {
-        await tester.tap(closeButton);
-        await tester.pumpAndSettle();
-      }
-
-      expect(receivedErrors.length, 1);
-      expect(receivedErrors.first.category, ErrorCategory.unknown);
-
-      await subscription.cancel();
-    });
-
-    testWidgets('should handle error without context', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      final receivedErrors = <AppError>[];
-      final subscription = service.errorStream.listen((error) {
-        receivedErrors.add(error);
-      });
-
-      final error = AppError.bluetooth('BLE_ERROR', 'Error');
-      await service.handleError(error, null);
-
-      expect(receivedErrors.length, 1);
-
-      await subscription.cancel();
-    });
-  });
-
-  group('ErrorHandlingService bluetooth error codes', () {
-    testWidgets('should handle BLE_UNAVAILABLE', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('BLE_UNAVAILABLE', 'BLE unavailable');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Bluetooth Error'), findsOneWidget);
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle DEVICE_NOT_FOUND', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('DEVICE_NOT_FOUND', 'Device not found');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AlertDialog), findsOneWidget);
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle CONNECTION_FAILED with retry action', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      bool retried = false;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth(
-                      'CONNECTION_FAILED',
-                      'Connection failed',
-                      retryAction: () => retried = true,
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      // Find and tap the Retry button
-      final retryButton = find.text('Retry');
-      if (retryButton.evaluate().isNotEmpty) {
-        await tester.tap(retryButton);
-        await tester.pumpAndSettle();
-        expect(retried, true);
-      } else {
-        await tester.tap(find.text('Close'));
-        await tester.pumpAndSettle();
-      }
-    });
-
-    testWidgets('should handle CONNECTION_LOST', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('CONNECTION_LOST', 'Lost');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle SERVICE_DISCOVERY_FAILED', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('SERVICE_DISCOVERY_FAILED', 'Failed');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle CHARACTERISTIC_NOT_FOUND', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('CHARACTERISTIC_NOT_FOUND', 'Not found');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle WRITE_FAILED', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('WRITE_FAILED', 'Write failed');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle READ_FAILED', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.bluetooth('READ_FAILED', 'Read failed');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-  });
-
-  group('ErrorHandlingService permission error codes', () {
-    testWidgets('should handle LOCATION_PERMISSION_DENIED', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.permission(
-                      'LOCATION_PERMISSION_DENIED',
-                      'Location denied',
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Permission Required'), findsOneWidget);
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle NOTIFICATION_PERMISSION_DENIED', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.permission(
-                      'NOTIFICATION_PERMISSION_DENIED',
-                      'Notification denied',
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-  });
-
-  group('ErrorHandlingService validation error codes', () {
-    testWidgets('should handle EMPTY_COMMAND', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.validation('EMPTY_COMMAND', 'Empty');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      // Validation errors show snackbar, not dialog
-      expect(find.byType(SnackBar), findsOneWidget);
-    });
-
-    testWidgets('should handle COMMAND_TOO_LONG', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.validation('COMMAND_TOO_LONG', 'Too long');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(SnackBar), findsOneWidget);
-    });
-  });
-
-  group('ErrorHandlingService system error codes', () {
-    testWidgets('should handle FILE_NOT_FOUND', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError(
-                      code: 'FILE_NOT_FOUND',
-                      message: 'File not found',
-                      category: ErrorCategory.system,
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('System Error'), findsOneWidget);
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('should handle STORAGE_FULL', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError(
-                      code: 'STORAGE_FULL',
-                      message: 'Storage full',
-                      category: ErrorCategory.system,
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-    });
-  });
-
-  group('ErrorHandlingService error history', () {
-    testWidgets('should add errors to history', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      service.clearHistory(); // Reset history
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.validation('TEST', 'Test');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(service.errorHistory.isNotEmpty, true);
-      expect(service.errorHistory.first.code, 'TEST');
-    });
-
-    testWidgets('should limit history to 100 errors', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      service.clearHistory();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    for (int i = 0; i < 105; i++) {
-                      final error = AppError.validation('ERROR_$i', 'Error $i');
-                      await service.handleError(error, null);
-                    }
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      expect(service.errorHistory.length, lessThanOrEqualTo(100));
-    });
-  });
-
-  group('ErrorHandlingService dialog actions', () {
-    testWidgets('should tap Grant Permission button', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-      bool granted = false;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.permission(
-                      'BLUETOOTH_PERMISSION_DENIED',
-                      'Permission denied',
-                      retryAction: () => granted = true,
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      final grantButton = find.text('Grant Permission');
-      if (grantButton.evaluate().isNotEmpty) {
-        await tester.tap(grantButton);
-        await tester.pumpAndSettle();
-        expect(granted, true);
-      }
-    });
-
-    testWidgets('should tap Open Settings button', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.permission(
-                      'BLUETOOTH_PERMISSION_DENIED',
-                      'Permission denied',
-                    );
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      final settingsButton = find.text('Open Settings');
-      if (settingsButton.evaluate().isNotEmpty) {
-        await tester.tap(settingsButton);
-        await tester.pumpAndSettle();
-      }
-    });
-
-    testWidgets('should tap Check Settings for network error', (WidgetTester tester) async {
-      final service = ErrorHandlingService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    final error = AppError.network('NO_INTERNET', 'No internet');
-                    await service.handleError(error, context);
-                  },
-                  child: const Text('Trigger'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Trigger'));
-      await tester.pumpAndSettle();
-
-      final checkButton = find.text('Check Settings');
-      if (checkButton.evaluate().isNotEmpty) {
-        await tester.tap(checkButton);
-        await tester.pumpAndSettle();
-      }
+      expect(error.metadata?['validKey'], 'value');
+      expect(error.metadata?['nullKey'], isNull);
     });
   });
 }

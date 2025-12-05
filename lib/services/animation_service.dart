@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../utils/painters/scanning_radar_painter.dart';
+import '../utils/painters/checkmark_painter.dart';
+import '../utils/painters/error_mark_painter.dart';
+
+// Re-export painters for backward compatibility
+export '../utils/painters/scanning_radar_painter.dart' show ScanningRadarPainter;
+export '../utils/painters/checkmark_painter.dart' show CheckmarkPainter;
+export '../utils/painters/error_mark_painter.dart' show ErrorMarkPainter;
 
 /// Animation service for managing various animation effects throughout the app
 class AnimationService {
@@ -342,163 +350,4 @@ enum PageTransitionType {
   fade,
   scale,
   rotation,
-}
-
-/// Custom painter for scanning radar animation
-class ScanningRadarPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  ScanningRadarPainter({
-    required this.progress,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // Draw outer circle
-    final outerPaint = Paint()
-      ..color = color.withValues(alpha: 0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-
-    canvas.drawCircle(center, radius, outerPaint);
-
-    // Draw scanning arc
-    final arcPaint = Paint()
-      ..color = color.withValues(alpha: 0.8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
-
-    final sweepAngle = math.pi / 3; // 60 degrees
-    final startAngle = progress * 2 * math.pi;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      sweepAngle,
-      false,
-      arcPaint,
-    );
-
-    // Draw expanding ripples
-    for (int i = 0; i < 3; i++) {
-      final rippleProgress = (progress + i * 0.33) % 1.0;
-      final rippleRadius = radius * rippleProgress;
-      final rippleAlpha = (1.0 - rippleProgress) * 0.5;
-
-      final ripplePaint = Paint()
-        ..color = color.withValues(alpha: rippleAlpha)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-
-      canvas.drawCircle(center, rippleRadius, ripplePaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-/// Custom painter for checkmark animation
-class CheckmarkPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  CheckmarkPainter({
-    required this.progress,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    
-    // Draw checkmark path
-    final p1 = Offset(size.width * 0.2, size.height * 0.5);
-    final p2 = Offset(size.width * 0.45, size.height * 0.7);
-    final p3 = Offset(size.width * 0.8, size.height * 0.3);
-
-    if (progress <= 0.5) {
-      // First half: draw from p1 to p2
-      final currentProgress = progress * 2;
-      final currentPoint = Offset.lerp(p1, p2, currentProgress)!;
-      path.moveTo(p1.dx, p1.dy);
-      path.lineTo(currentPoint.dx, currentPoint.dy);
-    } else {
-      // Second half: draw from p2 to p3
-      final currentProgress = (progress - 0.5) * 2;
-      final currentPoint = Offset.lerp(p2, p3, currentProgress)!;
-      path.moveTo(p1.dx, p1.dy);
-      path.lineTo(p2.dx, p2.dy);
-      path.lineTo(currentPoint.dx, currentPoint.dy);
-    }
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-/// Custom painter for error mark animation
-class ErrorMarkPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  ErrorMarkPainter({
-    required this.progress,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width * 0.3;
-
-    if (progress <= 0.5) {
-      // First line of X
-      final currentProgress = progress * 2;
-      final start = Offset(center.dx - radius, center.dy - radius);
-      final end = Offset(center.dx + radius, center.dy + radius);
-      final currentEnd = Offset.lerp(start, end, currentProgress)!;
-      
-      canvas.drawLine(start, currentEnd, paint);
-    } else {
-      // Both lines of X
-      final currentProgress = (progress - 0.5) * 2;
-      
-      // First line (complete)
-      canvas.drawLine(
-        Offset(center.dx - radius, center.dy - radius),
-        Offset(center.dx + radius, center.dy + radius),
-        paint,
-      );
-      
-      // Second line (animated)
-      final start2 = Offset(center.dx - radius, center.dy + radius);
-      final end2 = Offset(center.dx + radius, center.dy - radius);
-      final currentEnd2 = Offset.lerp(start2, end2, currentProgress)!;
-      
-      canvas.drawLine(start2, currentEnd2, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

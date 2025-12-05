@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/theme_service.dart';
 import '../utils/responsive_utils.dart';
-import '../services/update_service.dart';
+import '../core/interfaces/update_service_interface.dart';
+import '../core/service_locator.dart' show getIt;
 import '../utils/logger.dart';
 
 /// Dialog that provides step-by-step installation guide for APK files
@@ -25,8 +26,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  late final UpdateServiceInterface _updateService;
   int _currentStep = 0;
-  final UpdateService _updateService = UpdateService();
   bool _hasTriggeredInstall = false;
   
   final List<InstallStep> _steps = [
@@ -79,12 +80,13 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   @override
   void initState() {
     super.initState();
-    
+    _updateService = getIt<UpdateServiceInterface>();
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _scaleAnimation = Tween<double>(
       begin: 0.8,
       end: 1.0,
@@ -92,9 +94,9 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       parent: _animationController,
       curve: Curves.elasticOut,
     ));
-    
+
     _animationController.forward();
-    
+
     // Trigger APK installation immediately if auto-install is enabled
     if (widget.autoInstall && widget.apkPath != null && !_hasTriggeredInstall) {
       _triggerApkInstallation();

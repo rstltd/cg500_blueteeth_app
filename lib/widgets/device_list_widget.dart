@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
 import '../models/ble_device.dart';
 import '../services/theme_service.dart';
 import 'animated_widgets.dart';
 
 /// A reusable widget for displaying BLE device list
 class DeviceListWidget extends StatelessWidget {
-  final SimpleBleController controller;
+  final BleControllerInterface controller;
   final Function(BleDeviceModel)? onDeviceConnect;
   final Function(BleDeviceModel)? onDeviceDisconnect;
   final Function(BleDeviceModel)? onDeviceFavorite;

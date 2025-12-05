@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
 import '../models/ble_device.dart';
 import '../services/theme_service.dart';
 import '../widgets/animated_widgets.dart';
 
 /// Widget for BLE scanning control panel with device count display
 class ControlPanelWidget extends StatelessWidget {
-  final SimpleBleController controller;
+  final BleControllerInterface controller;
 
   const ControlPanelWidget({
     super.key,

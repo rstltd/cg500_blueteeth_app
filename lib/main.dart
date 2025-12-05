@@ -1,10 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'views/simple_scanner_view.dart';
 import 'services/theme_service.dart';
 import 'controllers/app_update_manager.dart';
+import 'core/service_locator.dart';
 import 'utils/logger.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize the service locator (dependency injection)
+  await setupServiceLocator();
+
   runApp(const MyApp());
 }
 
@@ -16,16 +23,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  final ThemeService _themeService = ThemeService();
-  final AppUpdateManager _updateManager = AppUpdateManager();
+  late final ThemeService _themeService;
+  late final AppUpdateManager _updateManager;
   bool _isDarkMode = false;
   bool _isInitialized = false;
+
+  // StreamSubscription management
+  StreamSubscription<bool>? _themeSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
+    // Get services from service locator
+    _themeService = getIt<ThemeService>();
+    _updateManager = getIt<AppUpdateManager>();
+
     _initializeApp();
   }
 
@@ -38,7 +52,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _themeService.initialize();
       
       // Listen to theme changes
-      _themeService.isDarkModeStream.listen((isDark) {
+      _themeSubscription = _themeService.isDarkModeStream.listen((isDark) {
         if (mounted) {
           setState(() {
             _isDarkMode = isDark;
@@ -76,9 +90,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    // Cancel stream subscription to prevent memory leaks
+    _themeSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    _themeService.dispose();
-    _updateManager.dispose();
+    // Note: _themeService and _updateManager are managed by service locator
+    // and should not be manually disposed here
     super.dispose();
   }
 

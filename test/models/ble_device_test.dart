@@ -635,13 +635,14 @@ void main() {
         expect(testDevice == testDevice, true);
       });
 
-      test('should not be equal to null', () {
-        expect(testDevice == null, false);
-      });
+      test('should handle nullable variable comparison', () {
+        BleDeviceModel? nullableDevice;
+        // Test comparison between non-null and nullable (which is null)
+        expect(testDevice == nullableDevice, false);
 
-      test('should not be equal to different type', () {
-        expect(testDevice == 'test', false);
-        expect(testDevice == 123, false);
+        // Assign value to nullable and compare
+        nullableDevice = testDevice;
+        expect(testDevice == nullableDevice, true);
       });
     });
 

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/network_service.dart';
-import '../services/update_service.dart';
+import '../core/interfaces/network_service_interface.dart';
+import '../core/interfaces/update_service_interface.dart';
 import '../services/theme_service.dart';
 
 /// Widget for displaying network status and download suitability
 class NetworkInfoWidget extends StatelessWidget {
-  final NetworkService networkService;
-  final UpdateService updateService;
+  final NetworkServiceInterface networkService;
+  final UpdateServiceInterface updateService;
   final int downloadSize;
   final NetworkStatus networkStatus;
 

@@ -10,16 +10,19 @@ void main() {
       service = PermissionService();
     });
 
-    group('Singleton pattern', () {
-      test('should return same instance', () {
+    group('DI pattern', () {
+      test('should create independent instances with constructor', () {
         final instance1 = PermissionService();
         final instance2 = PermissionService();
 
-        expect(identical(instance1, instance2), isTrue);
+        // With DI pattern, each call creates a new instance
+        expect(identical(instance1, instance2), isFalse);
       });
 
-      test('should return same instance as existing', () {
-        expect(identical(service, PermissionService()), isTrue);
+      test('constructor instances are independent', () {
+        final testService = PermissionService();
+        // Each constructor call creates a new instance
+        expect(identical(service, testService), isFalse);
       });
     });
 

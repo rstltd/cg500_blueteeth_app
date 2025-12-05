@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../controllers/simple_ble_controller.dart';
+import '../controllers/ble_controller_interface.dart';
 
 /// Widget for displaying scanning status with animated progress indicator
 class ScanningIndicatorWidget extends StatelessWidget {
-  final SimpleBleController controller;
+  final BleControllerInterface controller;
 
   const ScanningIndicatorWidget({
     super.key,

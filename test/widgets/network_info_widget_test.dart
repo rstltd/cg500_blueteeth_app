@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/network_info_widget.dart';
-import 'package:cg500_blueteeth_app/services/network_service.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
+import '../mocks/mock_services.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('NetworkInfoWidget', () {
-    late NetworkService networkService;
-    late UpdateService updateService;
+    late MockNetworkService networkService;
+    late MockUpdateService updateService;
 
     setUp(() {
-      networkService = NetworkService();
-      updateService = UpdateService();
+      networkService = MockNetworkService();
+      updateService = MockUpdateService();
     });
 
     testWidgets('should render with WiFi status', (WidgetTester tester) async {
@@ -313,12 +313,12 @@ void main() {
   });
 
   group('NetworkInfoWidget icon colors', () {
-    late NetworkService networkService;
-    late UpdateService updateService;
+    late MockNetworkService networkService;
+    late MockUpdateService updateService;
 
     setUp(() {
-      networkService = NetworkService();
-      updateService = UpdateService();
+      networkService = MockNetworkService();
+      updateService = MockUpdateService();
     });
 
     testWidgets('should have icon with proper color', (WidgetTester tester) async {
@@ -341,12 +341,12 @@ void main() {
   });
 
   group('NetworkInfoWidget all status types', () {
-    late NetworkService networkService;
-    late UpdateService updateService;
+    late MockNetworkService networkService;
+    late MockUpdateService updateService;
 
     setUp(() {
-      networkService = NetworkService();
-      updateService = UpdateService();
+      networkService = MockNetworkService();
+      updateService = MockUpdateService();
     });
 
     for (final status in NetworkStatus.values) {

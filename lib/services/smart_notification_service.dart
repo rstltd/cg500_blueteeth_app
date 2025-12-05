@@ -1,14 +1,28 @@
 import 'dart:async';
 import 'notification_service.dart';
+import '../core/interfaces/notification_service_interface.dart';
+
+// Re-export NotificationModel for convenience
+export 'notification_service.dart' show NotificationModel, NotificationType;
 
 /// Smart notification service that filters and manages notifications
-/// to prevent notification spam and improve user experience
-class SmartNotificationService {
-  static final SmartNotificationService _instance = SmartNotificationService._internal();
-  factory SmartNotificationService() => _instance;
-  SmartNotificationService._internal();
+/// to prevent notification spam and improve user experience.
+///
+/// This service implements [NotificationServiceInterface] and can be used
+/// with dependency injection for improved testability.
+///
+/// Use [SmartNotificationService.withDependencies()] or [SmartNotificationService()]
+/// constructor and register via service locator for production use.
+class SmartNotificationService implements NotificationServiceInterface {
+  /// Default constructor for dependency injection via service locator.
+  SmartNotificationService() : _baseNotificationService = NotificationService();
 
-  final NotificationService _baseNotificationService = NotificationService();
+  /// Named constructor for dependency injection (alias for default constructor).
+  /// Use this when creating instances via the service locator.
+  SmartNotificationService.withDependencies()
+      : _baseNotificationService = NotificationService();
+
+  final NotificationService _baseNotificationService;
   final Map<String, DateTime> _lastNotificationTime = {};
   final Map<String, String> _lastNotificationMessage = {};
   final Map<String, Timer> _pendingNotifications = {};
@@ -39,10 +53,13 @@ class SmartNotificationService {
     'Bluetooth Disabled',
   };
 
+  @override
   Stream<NotificationModel> get notifications => _baseNotificationService.notifications;
+
   List<NotificationModel> get allNotifications => _baseNotificationService.allNotifications;
 
   /// Show info notification with smart filtering
+  @override
   void showInfo({
     required String title,
     required String message,
@@ -62,6 +79,7 @@ class SmartNotificationService {
   }
 
   /// Show success notification with smart filtering
+  @override
   void showSuccess({
     required String title,
     required String message,
@@ -81,6 +99,7 @@ class SmartNotificationService {
   }
 
   /// Show warning notification with smart filtering
+  @override
   void showWarning({
     required String title,
     required String message,
@@ -100,6 +119,7 @@ class SmartNotificationService {
   }
 
   /// Show error notification with smart filtering
+  @override
   void showError({
     required String title,
     required String message,
@@ -119,6 +139,7 @@ class SmartNotificationService {
   }
 
   /// Show connection status notification with debouncing
+  @override
   void showConnectionStatus({
     required String title,
     required String message,
@@ -152,6 +173,7 @@ class SmartNotificationService {
   }
 
   /// Show scanning status notification with debouncing
+  @override
   void showScanningStatus({
     required String title,
     required String message,
@@ -261,6 +283,7 @@ class SmartNotificationService {
 
   int get notificationCount => _baseNotificationService.notificationCount;
 
+  @override
   void dispose() {
     clearFilters();
     _baseNotificationService.dispose();

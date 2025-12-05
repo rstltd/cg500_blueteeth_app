@@ -1,31 +1,47 @@
 import 'dart:async';
-import '../services/ble_service.dart';
-import '../services/smart_notification_service.dart';
-import '../services/notification_service.dart'; // For NotificationModel
 import '../models/ble_device.dart';
 import '../models/ble_service.dart';
+import '../services/notification_service.dart' show NotificationModel;
+import '../core/interfaces/ble_service_interface.dart';
+import '../core/interfaces/notification_service_interface.dart';
+import 'ble_controller_interface.dart';
 
-/// Simple BLE Controller demonstrating the MVC architecture
+/// Simple BLE Controller demonstrating the MVC architecture.
+///
 /// This is a simplified version showing how Controllers coordinate
-/// between Services and Views in the new architecture
-class SimpleBleController {
-  static final SimpleBleController _instance = SimpleBleController._internal();
-  factory SimpleBleController() => _instance;
-  SimpleBleController._internal();
+/// between Services and Views in the new architecture.
+/// Supports dependency injection for improved testability.
+///
+/// Use [SimpleBleController.withDependencies()] constructor and register via
+/// service locator for production use.
+class SimpleBleController implements BleControllerInterface {
+  /// Named constructor for dependency injection.
+  /// Use this when creating instances via the service locator.
+  SimpleBleController.withDependencies({
+    required BleServiceInterface bleService,
+    required NotificationServiceInterface notificationService,
+  })  : _bleService = bleService,
+        _notificationService = notificationService;
 
-  final BleService _bleService = BleService();
-  final SmartNotificationService _notificationService = SmartNotificationService();
+  final BleServiceInterface _bleService;
+  final NotificationServiceInterface _notificationService;
 
   // Expose service streams for UI consumption
+  @override
   Stream<List<BleDeviceModel>> get devicesStream => _bleService.devicesStream;
+  @override
   Stream<bool> get scanningStream => _bleService.scanningStream;
+  @override
   Stream<BleDeviceModel?> get connectedDeviceStream => _bleService.connectedDeviceStream;
+  @override
   Stream<String> get commandResponseStream => _bleService.commandResponseStream;
 
   // Expose notification stream for UI
+  @override
   Stream<NotificationModel> get notificationStream => _notificationService.notifications;
 
   // Initialize the controller and underlying services
+  @override
   Future<bool> initialize() async {
     try {
       bool success = await _bleService.initialize();
@@ -51,6 +67,7 @@ class SimpleBleController {
   }
 
   // Start scanning for devices
+  @override
   Future<bool> startScanning({Duration? timeout}) async {
     try {
       _notificationService.showInfo(
@@ -71,6 +88,7 @@ class SimpleBleController {
   }
 
   // Stop scanning
+  @override
   Future<void> stopScanning() async {
     try {
       await _bleService.stopScanning();
@@ -87,6 +105,7 @@ class SimpleBleController {
   }
 
   // Connect to a device
+  @override
   Future<bool> connectToDevice(String deviceId) async {
     try {
       _notificationService.showInfo(
@@ -112,6 +131,7 @@ class SimpleBleController {
   }
 
   // Disconnect from current device
+  @override
   Future<void> disconnectDevice() async {
     try {
       await _bleService.disconnectDevice();
@@ -124,6 +144,7 @@ class SimpleBleController {
   }
 
   // Discover services for a connected device
+  @override
   Future<List<BleServiceModel>> discoverServices(String deviceId) async {
     try {
       _notificationService.showInfo(
@@ -156,12 +177,17 @@ class SimpleBleController {
   }
 
   // Get current state information
+  @override
   bool get isScanning => _bleService.isScanning;
+  @override
   BleDeviceModel? get connectedDevice => _bleService.connectedDevice;
+  @override
   List<BleDeviceModel> get scannedDevices => _bleService.scannedDevices;
+  @override
   bool get isInitialized => _bleService.isInitialized;
 
   // Clear scanned devices list
+  @override
   void clearDevices() {
     _bleService.clearScannedDevices();
     _notificationService.showInfo(
@@ -171,6 +197,7 @@ class SimpleBleController {
   }
 
   // Send text command to connected device
+  @override
   Future<bool> sendCommand(String command) async {
     if (command.trim().isEmpty) {
       _notificationService.showWarning(
@@ -192,11 +219,13 @@ class SimpleBleController {
   }
 
   // Get command communication information
+  @override
   Map<String, dynamic> getCommandInfo() {
     return _bleService.getCommandInfo();
   }
 
   // Dispose resources
+  @override
   void dispose() {
     _bleService.dispose();
     _notificationService.dispose();

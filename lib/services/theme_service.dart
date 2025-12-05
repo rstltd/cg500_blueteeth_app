@@ -2,21 +2,33 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// Re-export AppColors for backward compatibility
+// New code should import from '../utils/app_colors.dart' directly
+export '../utils/app_colors.dart' show AppColors;
+
 enum AppThemeMode {
   light,
   dark,
   system,
 }
 
+/// Service for managing app theme (light/dark mode).
+///
+/// Use [ThemeService()] constructor and register via service locator
+/// for production use.
 class ThemeService {
-  static final ThemeService _instance = ThemeService._internal();
-  factory ThemeService() => _instance;
-  ThemeService._internal();
+  /// Default constructor for dependency injection via service locator.
+  ThemeService()
+      : _themeModeController = StreamController<AppThemeMode>.broadcast(),
+        _isDarkModeController = StreamController<bool>.broadcast();
 
-  final StreamController<AppThemeMode> _themeModeController = 
-      StreamController<AppThemeMode>.broadcast();
-  final StreamController<bool> _isDarkModeController = 
-      StreamController<bool>.broadcast();
+  /// Named constructor for testing that creates a fresh instance.
+  ThemeService.forTesting()
+      : _themeModeController = StreamController<AppThemeMode>.broadcast(),
+        _isDarkModeController = StreamController<bool>.broadcast();
+
+  final StreamController<AppThemeMode> _themeModeController;
+  final StreamController<bool> _isDarkModeController;
 
   Stream<AppThemeMode> get themeModeStream => _themeModeController.stream;
   Stream<bool> get isDarkModeStream => _isDarkModeController.stream;
@@ -145,81 +157,5 @@ class ThemeService {
   void dispose() {
     _themeModeController.close();
     _isDarkModeController.close();
-  }
-}
-
-// Theme-aware colors for custom widgets
-class AppColors {
-  static Color surfaceColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF1E1E1E)
-        : Colors.white;
-  }
-
-  static Color cardColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF2C2C2C)
-        : Colors.white;
-  }
-
-  static Color backgroundGradientStart(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF121212)
-        : Colors.blue.shade50;
-  }
-
-  static Color backgroundGradientEnd(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF1E1E1E)
-        : Colors.indigo.shade50;
-  }
-
-  static Color textPrimary(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.grey.shade800;
-  }
-
-  static Color textSecondary(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.grey.shade400
-        : Colors.grey.shade600;
-  }
-
-  static Color borderColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.grey.shade700
-        : Colors.grey.shade300;
-  }
-
-  static Color shadowColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.black.withValues(alpha: 0.3)
-        : Colors.black.withValues(alpha: 0.1);
-  }
-
-  // Status colors that work in both themes
-  static Color successColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.green.shade400
-        : Colors.green.shade600;
-  }
-
-  static Color warningColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.orange.shade400
-        : Colors.orange.shade600;
-  }
-
-  static Color errorColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.red.shade400
-        : Colors.red.shade600;
-  }
-
-  static Color infoColor(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.blue.shade400
-        : Colors.blue.shade600;
   }
 }

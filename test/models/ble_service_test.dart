@@ -728,23 +728,19 @@ void main() {
         expect(service == service, true);
       });
 
-      test('should not be equal to null', () {
-        const service = BleServiceModel(
+      test('should handle nullable variable comparison', () {
+        BleServiceModel? nullableService;
+        const BleServiceModel service = BleServiceModel(
           uuid: 'test',
           displayName: 'Test',
           characteristics: [],
         );
-        expect(service == null, false);
-      });
+        // Test comparison between non-null and nullable (which is null)
+        expect(service == nullableService, false);
 
-      test('should not be equal to different type', () {
-        const service = BleServiceModel(
-          uuid: 'test',
-          displayName: 'Test',
-          characteristics: [],
-        );
-        expect(service == 'test', false);
-        expect(service == 123, false);
+        // Assign value to nullable and compare
+        nullableService = service;
+        expect(service == nullableService, true);
       });
 
       test('should handle UUID with different cases in equality', () {

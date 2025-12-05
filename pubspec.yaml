@@ -53,6 +53,9 @@ dependencies:
   # Network connectivity detection
   connectivity_plus: ^6.0.5
 
+  # Dependency injection
+  get_it: ^7.6.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,14 +1,21 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/update_service.dart';
-import '../services/network_service.dart';
-// Removed InstallGuideDialog import - now using direct installation
+import '../core/interfaces/update_service_interface.dart';
+import '../core/interfaces/network_service_interface.dart';
+import '../core/interfaces/update_ui_delegate.dart';
+import '../services/update_service.dart' show UpdateInfo;
+import '../core/service_locator.dart' show getIt;
 import '../utils/logger.dart';
 
 /// Manager for handling update logic including download, install, and skip operations
 class UpdateLogicManager {
-  final UpdateService _updateService = UpdateService();
-  final NetworkService _networkService = NetworkService();
-  
+  late final UpdateServiceInterface _updateService;
+  late final NetworkServiceInterface _networkService;
+  late final UpdateUIDelegate _uiDelegate;
+
+  // StreamSubscription management
+  final List<StreamSubscription> _subscriptions = [];
+
   // State management
   bool _isDownloading = false;
   double _downloadProgress = 0.0;
@@ -20,8 +27,9 @@ class UpdateLogicManager {
   double get downloadProgress => _downloadProgress;
   String get downloadStatus => _downloadStatus;
   NetworkStatus get networkStatus => _networkStatus;
-  UpdateService get updateService => _updateService;
-  NetworkService get networkService => _networkService;
+  UpdateServiceInterface get updateService => _updateService;
+  NetworkServiceInterface get networkService => _networkService;
+  UpdateUIDelegate get uiDelegate => _uiDelegate;
 
   // Callbacks
   Function(bool)? onDownloadStateChanged;
@@ -32,26 +40,49 @@ class UpdateLogicManager {
     this.onDownloadStateChanged,
     this.onProgressUpdated,
     this.onNetworkStatusChanged,
-  });
+    UpdateUIDelegate? uiDelegate,
+  }) {
+    _updateService = getIt<UpdateServiceInterface>();
+    _networkService = getIt<NetworkServiceInterface>();
+    _uiDelegate = uiDelegate ?? const DefaultUpdateUIDelegate();
+  }
+
+  /// Constructor for dependency injection (used in testing)
+  UpdateLogicManager.withDependencies({
+    required UpdateServiceInterface updateService,
+    required NetworkServiceInterface networkService,
+    UpdateUIDelegate? uiDelegate,
+    this.onDownloadStateChanged,
+    this.onProgressUpdated,
+    this.onNetworkStatusChanged,
+  }) {
+    _updateService = updateService;
+    _networkService = networkService;
+    _uiDelegate = uiDelegate ?? const DefaultUpdateUIDelegate();
+  }
 
   /// Initialize the manager with listeners
   void initialize() {
     // Get initial network status
     _networkStatus = _networkService.currentStatus;
     onNetworkStatusChanged?.call(_networkStatus);
-    
+
     // Listen to network changes
-    _networkService.networkStream.listen((status) {
-      _networkStatus = status;
-      onNetworkStatusChanged?.call(status);
-    });
-    
+    _subscriptions.add(
+      _networkService.networkStream.listen((status) {
+        _networkStatus = status;
+        onNetworkStatusChanged?.call(status);
+      }),
+    );
+
     // Listen to download progress
-    _updateService.downloadStream.listen((progress) {
-      _downloadProgress = progress.progress;
-      _downloadStatus = progress.sizeText;
-      onProgressUpdated?.call(_downloadProgress, _downloadStatus);
-    });
+    _subscriptions.add(
+      _updateService.downloadStream.listen((progress) {
+        _downloadProgress = progress.progress;
+        _downloadStatus = progress.sizeText;
+        onProgressUpdated?.call(_downloadProgress, _downloadStatus);
+      }),
+    );
   }
 
   /// Start update download
@@ -90,136 +121,71 @@ class UpdateLogicManager {
   /// Install update directly without guide dialog
   Future<void> _installUpdate(String apkPath, BuildContext context) async {
     if (!context.mounted) return;
-    
-    Logger.info('Installing APK directly: $apkPath');
 
-    // Save context reference before async operation
-    ScaffoldMessengerState? scaffoldMessenger;
-    if (context.mounted) {
-      scaffoldMessenger = ScaffoldMessenger.of(context);
-    }
+    Logger.info('Installing APK directly: $apkPath');
 
     try {
       // Trigger APK installation directly - Android system will handle UI
       final success = await _updateService.installUpdate(apkPath);
-      
+
+      if (!context.mounted) return;
+
       if (success) {
         Logger.info('✅ APK installation triggered successfully - Android system will take over');
-        
-        // Show simple success message
-        scaffoldMessenger?.showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('Installation started. Follow the system prompts to complete.')),
-              ],
-            ),
-            backgroundColor: Colors.green.shade600,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _uiDelegate.showInstallationStarted(context);
       } else {
         Logger.error('❌ Failed to trigger APK installation');
-        
-        // Show error message with manual install option
-        scaffoldMessenger?.showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('Installation failed. Please check permissions and try again.')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            duration: const Duration(seconds: 6),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _uiDelegate.showInstallationFailed(context);
       }
     } catch (e) {
       Logger.error('Error during APK installation', error: e);
-
-      scaffoldMessenger?.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.warning, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(child: Text('Installation error: $e')),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade600,
-          duration: const Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (context.mounted) {
+        _uiDelegate.showInstallationError(context, e.toString());
+      }
     }
-          
+
     // Reset download state after installation attempt
     _isDownloading = false;
     onDownloadStateChanged?.call(false);
   }
 
   /// Skip version with confirmation dialog
-  void skipVersion(UpdateInfo updateInfo, BuildContext context, VoidCallback? onComplete) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Skip Version'),
-        content: Text(
-          'Do you want to skip version ${updateInfo.latestVersion}? '
-          'You won\'t be notified about this version again.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              // Save context references before async operation
-              NavigatorState? navigator;
-              ScaffoldMessengerState? scaffoldMessenger;
-              
-              if (context.mounted) {
-                navigator = Navigator.of(context);
-                scaffoldMessenger = ScaffoldMessenger.of(context);
-                navigator.pop(); // Close confirmation dialog
-                navigator.pop(); // Close update dialog
-              }
-              
-              await _updateService.skipVersion(updateInfo.latestVersion);
-              onComplete?.call();
-              
-              if (context.mounted && scaffoldMessenger != null) {
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Version ${updateInfo.latestVersion} skipped'),
-                    action: SnackBarAction(
-                      label: 'Undo',
-                      onPressed: () {
-                        _updateService.preferences?.unskipVersion(updateInfo.latestVersion);
-                        _updateService.preferences?.save();
-                      },
-                    ),
-                  ),
-                );
-              }
-            },
-            child: const Text('Skip'),
-          ),
-        ],
-      ),
+  Future<void> skipVersion(
+    UpdateInfo updateInfo,
+    BuildContext context,
+    VoidCallback? onComplete,
+  ) async {
+    final confirmed = await _uiDelegate.showSkipVersionConfirmation(
+      context,
+      updateInfo.latestVersion,
     );
+
+    if (!confirmed || !context.mounted) return;
+
+    // Close dialogs (confirmation + update dialog)
+    _uiDelegate.closeDialogs(context, count: 2);
+
+    await _updateService.skipVersion(updateInfo.latestVersion);
+    onComplete?.call();
+
+    if (context.mounted) {
+      _uiDelegate.showVersionSkipped(
+        context,
+        updateInfo.latestVersion,
+        () {
+          _updateService.preferences?.unskipVersion(updateInfo.latestVersion);
+          _updateService.preferences?.save();
+        },
+      );
+    }
   }
 
   /// Clean up resources
   void dispose() {
-    // No specific cleanup needed for now
-    // Stream subscriptions are handled by the services themselves
+    // Cancel all stream subscriptions to prevent memory leaks
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
   }
 }

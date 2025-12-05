@@ -109,7 +109,7 @@ void main() {
             body: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.green.shade100),
               ),
