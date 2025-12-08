@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
-import 'responsive_layout.dart';
 
 /// Widget for displaying BLE devices in a responsive grid layout
 class DeviceGridWidget extends StatelessWidget {
@@ -33,8 +33,8 @@ class DeviceGridWidget extends StatelessWidget {
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             childAspectRatio: 1.2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            crossAxisSpacing: DesignTokens.spacingM,
+            mainAxisSpacing: DesignTokens.spacingM,
           ),
           itemCount: devices.length,
           itemBuilder: (context, index) => _buildDeviceGridCard(context, devices[index]),
@@ -52,7 +52,7 @@ class DeviceGridWidget extends StatelessWidget {
         return ResponsiveCard(
           child: InkWell(
             onTap: () => onDeviceDetails?.call(device),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: DesignTokens.borderRadiusL,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -63,7 +63,7 @@ class DeviceGridWidget extends StatelessWidget {
                       ? AppColors.successColor(context)
                       : AppColors.infoColor(context),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: DesignTokens.spacingM - 4),
                 ResponsiveText(
                   device.displayName,
                   fontSize: 16,
@@ -73,13 +73,13 @@ class DeviceGridWidget extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: DesignTokens.spacingS),
                 ResponsiveText(
                   '${device.rssi} dBm',
                   fontSize: 12,
                   color: AppColors.textSecondary(context),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: DesignTokens.spacingM - 4),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -109,10 +109,10 @@ class DeviceGridWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: DesignTokens.paddingL,
             decoration: BoxDecoration(
               color: AppColors.backgroundGradientStart(context),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: DesignTokens.borderRadiusXL,
             ),
             child: ResponsiveIcon(
               Icons.bluetooth_searching,
@@ -120,14 +120,14 @@ class DeviceGridWidget extends StatelessWidget {
               color: AppColors.textSecondary(context),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: DesignTokens.spacingL),
           ResponsiveText(
             'No BLE devices found',
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary(context),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacingS),
           ResponsiveText(
             'Start scanning to discover nearby devices',
             fontSize: 14,

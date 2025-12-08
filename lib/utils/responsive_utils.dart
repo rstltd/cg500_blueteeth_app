@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../design/design_tokens.dart';
 
 /// Device type classification based on screen size
 enum DeviceType {
@@ -19,16 +20,20 @@ class ResponsiveUtils {
   /// Screen breakpoints
   static const double mobileBreakpoint = 600;
   static const double tabletBreakpoint = 1024;
-  
-  /// Padding and margin constants
-  static const double mobilePadding = 16.0;
-  static const double tabletPadding = 24.0;
-  static const double desktopPadding = 32.0;
-  
+
+  /// Padding and margin constants - now derived from DesignTokens
+  static double get mobilePadding => DesignTokens.spacingM;
+  static double get tabletPadding => DesignTokens.spacingL;
+  static double get desktopPadding => DesignTokens.spacingXL;
+
   /// Card width constraints
   static const double mobileCardMaxWidth = double.infinity;
   static const double tabletCardMaxWidth = 400.0;
   static const double desktopCardMaxWidth = 480.0;
+
+  /// Tablet-specific breakpoints for better layout optimization
+  static const double tabletSmallBreakpoint = 600;
+  static const double tabletLargeBreakpoint = 840;
 
   /// Get device type based on screen width
   static DeviceType getDeviceType(BuildContext context) {
@@ -278,7 +283,7 @@ class ResponsiveUtils {
   /// Get responsive font size based on device type and base size
   static double getFontSize(BuildContext context, {required double base}) {
     final deviceType = getDeviceType(context);
-    
+
     switch (deviceType) {
       case DeviceType.mobile:
         return base;
@@ -292,7 +297,7 @@ class ResponsiveUtils {
   /// Get responsive icon size based on device type and base size
   static double getIconSize(BuildContext context, {required double base}) {
     final deviceType = getDeviceType(context);
-    
+
     switch (deviceType) {
       case DeviceType.mobile:
         return base;
@@ -301,5 +306,85 @@ class ResponsiveUtils {
       case DeviceType.desktop:
         return base * 1.3;
     }
+  }
+
+  // --- Tablet-specific optimization methods ---
+
+  /// Check if tablet is in small configuration (600-840px)
+  static bool isTabletSmall(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return screenWidth >= tabletSmallBreakpoint &&
+        screenWidth < tabletLargeBreakpoint;
+  }
+
+  /// Check if tablet is in large configuration (840-1024px)
+  static bool isTabletLarge(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return screenWidth >= tabletLargeBreakpoint &&
+        screenWidth < tabletBreakpoint;
+  }
+
+  /// Get sidebar width optimized for tablet layouts
+  static double getTabletSidebarWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscapeMode = isLandscape(context);
+
+    if (screenWidth >= tabletLargeBreakpoint) {
+      return isLandscapeMode ? 360.0 : 320.0;
+    } else {
+      return isLandscapeMode ? 280.0 : 260.0;
+    }
+  }
+
+  /// Get optimal content width for tablets
+  static double getTabletContentWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscapeMode = isLandscape(context);
+
+    if (isLandscapeMode) {
+      // Leave room for sidebar
+      return screenWidth - getTabletSidebarWidth(context) - desktopPadding;
+    } else {
+      // Full width with padding
+      return screenWidth - (tabletPadding * 2);
+    }
+  }
+
+  /// Get number of columns optimized for tablet grid layouts
+  static int getTabletGridColumns(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscapeMode = isLandscape(context);
+
+    if (screenWidth >= tabletLargeBreakpoint) {
+      return isLandscapeMode ? 3 : 2;
+    } else {
+      return isLandscapeMode ? 2 : 1;
+    }
+  }
+
+  /// Get the optimal list item height for tablet
+  static double getTabletListItemHeight(BuildContext context) {
+    final isLandscapeMode = isLandscape(context);
+    return isLandscapeMode ? 72.0 : 80.0;
+  }
+
+  /// Get gap between items in tablet layouts
+  static double getTabletItemGap(BuildContext context) {
+    return isTabletLarge(context) ? DesignTokens.spacingM : DesignTokens.spacingS;
+  }
+
+  /// Check if tablet should use split-view layout
+  static bool shouldUseSplitView(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscapeMode = isLandscape(context);
+
+    // Use split view in landscape on larger tablets
+    return isLandscapeMode && screenWidth >= tabletLargeBreakpoint;
+  }
+
+  /// Get optimal aspect ratio for cards on tablet
+  static double getTabletCardAspectRatio(BuildContext context) {
+    final isLandscapeMode = isLandscape(context);
+    return isLandscapeMode ? 1.6 : 1.2;
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../core/view_model/view_model.dart';
+import '../design/design_system.dart';
 import '../services/notification_service.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../view_models/command_interface_view_model.dart';
-import '../widgets/responsive_layout.dart';
 import '../widgets/message_bubble_widget.dart';
 import '../widgets/connection_status_widget.dart';
 import '../widgets/device_status_panel_widget.dart';
@@ -112,13 +112,13 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
         title: const Text('Command Interface'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text('Initializing command interface...'),
+            const CircularProgressIndicator(),
+            SizedBox(height: DesignTokens.spacingL - 4),
+            const Text('Initializing command interface...'),
           ],
         ),
       ),
@@ -135,10 +135,10 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
+            Icon(Icons.error_outline, size: DesignTokens.iconXL, color: Colors.red),
+            SizedBox(height: DesignTokens.spacingM),
             Text('Error: $error'),
-            const SizedBox(height: 16),
+            SizedBox(height: DesignTokens.spacingM),
             ElevatedButton(
               onPressed: () => viewModel.initialize(),
               child: const Text('Retry'),
@@ -159,18 +159,15 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
         viewModel.messages.map((m) => m.toMap()).toList();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignTokens.paddingM,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Communication',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTextStyles.titleSmall(context),
               ),
               const Spacer(),
               IconButton(
@@ -180,14 +177,14 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacingS),
           Expanded(
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                color: AppColors.cardColor(context),
+                borderRadius: DesignTokens.borderRadiusM,
+                border: Border.all(color: AppColors.borderColor(context)),
               ),
               child: MessageListWidget(
                 messages: messageMaps,
@@ -255,23 +252,33 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
   }
 
   Widget _buildTabletLandscapeLayout() {
+    final sidebarWidth = ResponsiveUtils.getTabletSidebarWidth(context);
+
     return ResponsiveContainer(
       child: Row(
         children: [
           SizedBox(
-            width: 300,
+            width: sidebarWidth,
             child: Column(
               children: [
                 _buildStatusPanel(),
-                const SizedBox(height: 16),
+                SizedBox(height: ResponsiveUtils.getTabletItemGap(context)),
                 _buildCommandHistoryPanel(),
+                // Show connection stats on larger tablets
+                if (ResponsiveUtils.isTabletLarge(context)) ...[
+                  SizedBox(height: DesignTokens.spacingM),
+                  ConnectionStatsPanelWidget(
+                    controller: viewModel.controller,
+                    commandManager: viewModel.commandManager,
+                  ),
+                ],
               ],
             ),
           ),
           Container(
-            width: 1,
+            width: DesignTokens.dividerThickness,
             color: AppColors.borderColor(context),
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: DesignTokens.paddingHorizontalM,
           ),
           Expanded(
             child: Column(
@@ -295,9 +302,9 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
             child: Column(
               children: [
                 _buildStatusPanel(),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacingM),
                 _buildCommandHistoryPanel(),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacingM),
                 ConnectionStatsPanelWidget(
                   controller: viewModel.controller,
                   commandManager: viewModel.commandManager,
@@ -308,7 +315,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           Container(
             width: 1,
             color: AppColors.borderColor(context),
-            margin: const EdgeInsets.symmetric(horizontal: 24),
+            margin: DesignTokens.paddingHorizontalL,
           ),
           Expanded(
             child: Column(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
 import '../views/command_interface_view.dart';
-import 'responsive_layout.dart';
 
 /// Widget for displaying connected device information in a card format
 class ConnectedDeviceCardWidget extends StatelessWidget {
@@ -25,7 +25,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
                 size: 24,
                 color: AppColors.successColor(context),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: DesignTokens.spacingM - 4),
               Expanded(
                 child: ResponsiveText(
                   'Connected',
@@ -36,28 +36,28 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: DesignTokens.spacingM - 4),
           ResponsiveText(
             device.displayName,
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary(context),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacingS),
           ResponsiveText(
             'RSSI: ${device.rssi} dBm',
             fontSize: 14,
             color: AppColors.textSecondary(context),
           ),
           if (device.services.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: DesignTokens.spacingS),
             ResponsiveText(
               'Services: ${device.services.length}',
               fontSize: 14,
               color: AppColors.textSecondary(context),
             ),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spacingM),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(

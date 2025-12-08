@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
-import 'responsive_layout.dart';
 
 /// Widget for displaying BLE connection status and device information
 class ConnectionStatusWidget extends StatelessWidget {
@@ -35,7 +35,7 @@ class ConnectionStatusWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignTokens.paddingM,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -45,12 +45,12 @@ class ConnectionStatusWidget extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusM,
         border: Border.all(color: Colors.green.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.green.withValues(alpha: 0.1),
-            blurRadius: 8,
+            blurRadius: DesignTokens.blurRadiusM,
             offset: const Offset(0, 2),
           ),
         ],
@@ -60,7 +60,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         children: [
           _buildStatusHeader(context, true),
           if (showDeviceInfo) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: DesignTokens.spacingM - 4),
             _buildDeviceInfo(context, device),
           ],
         ],
@@ -77,13 +77,11 @@ class ConnectionStatusWidget extends StatelessWidget {
           color: Colors.green,
           size: ResponsiveUtils.getIconSize(context, base: 20),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: DesignTokens.spacingS),
         Text(
           'Connected',
-          style: TextStyle(
+          style: AppTextStyles.labelLarge(context).copyWith(
             color: Colors.green,
-            fontWeight: FontWeight.bold,
-            fontSize: ResponsiveUtils.getFontSize(context, base: 14),
           ),
         ),
         if (showDeviceInfo) ...[
@@ -105,21 +103,20 @@ class ConnectionStatusWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: DesignTokens.paddingM,
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusM,
         border: Border.all(color: Colors.orange.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildStatusHeader(context, false),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacingS),
           Text(
             'Please connect a BLE device to send commands',
-            style: TextStyle(
-              fontSize: ResponsiveUtils.getFontSize(context, base: 14),
+            style: AppTextStyles.bodyMedium(context).copyWith(
               color: Colors.orange.shade700,
             ),
           ),
@@ -137,13 +134,11 @@ class ConnectionStatusWidget extends StatelessWidget {
           color: Colors.red,
           size: ResponsiveUtils.getIconSize(context, base: 20),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: DesignTokens.spacingS),
         Text(
           'Disconnected',
-          style: TextStyle(
+          style: AppTextStyles.labelLarge(context).copyWith(
             color: Colors.red,
-            fontWeight: FontWeight.bold,
-            fontSize: ResponsiveUtils.getFontSize(context, base: 14),
           ),
         ),
       ],
@@ -154,10 +149,10 @@ class ConnectionStatusWidget extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: DesignTokens.paddingS,
           decoration: BoxDecoration(
             color: isConnected ? Colors.green.shade100 : Colors.orange.shade100,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: DesignTokens.borderRadiusS,
           ),
           child: Icon(
             isConnected ? Icons.bluetooth_connected : Icons.warning_rounded,
@@ -165,23 +160,20 @@ class ConnectionStatusWidget extends StatelessWidget {
             size: ResponsiveUtils.getIconSize(context, base: 20),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: DesignTokens.spacingM - 4),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 isConnected ? 'Device Connected' : 'No Device Connected',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: ResponsiveUtils.getFontSize(context, base: 16),
+                style: AppTextStyles.titleSmall(context).copyWith(
                   color: isConnected ? Colors.green.shade800 : Colors.orange.shade800,
                 ),
               ),
               Text(
                 isConnected ? 'Ready to send commands' : 'Connect a device first',
-                style: TextStyle(
-                  fontSize: ResponsiveUtils.getFontSize(context, base: 12),
+                style: AppTextStyles.bodySmall(context).copyWith(
                   color: isConnected ? Colors.green.shade700 : Colors.orange.shade700,
                 ),
               ),
@@ -194,10 +186,10 @@ class ConnectionStatusWidget extends StatelessWidget {
 
   Widget _buildDeviceInfo(BuildContext context, BleDeviceModel device) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(DesignTokens.spacingM - 4),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: DesignTokens.borderRadiusS,
         border: Border.all(color: Colors.green.shade100),
       ),
       child: Column(
@@ -217,26 +209,22 @@ class ConnectionStatusWidget extends StatelessWidget {
 
   Widget _buildInfoRow(BuildContext context, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: EdgeInsets.symmetric(vertical: DesignTokens.spacingXS / 2),
       child: Row(
         children: [
           SizedBox(
             width: ResponsiveUtils.isDesktop(context) ? 100 : 80,
             child: Text(
               '$label:',
-              style: TextStyle(
+              style: AppTextStyles.caption(context).copyWith(
                 fontWeight: FontWeight.w500,
-                fontSize: ResponsiveUtils.getFontSize(context, base: 12),
-                color: AppColors.textSecondary(context),
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: ResponsiveUtils.getFontSize(context, base: 12),
-                color: AppColors.textPrimary(context),
+              style: AppTextStyles.bodySmall(context).copyWith(
                 fontFamily: label == 'ID' ? 'monospace' : null,
               ),
             ),
@@ -283,7 +271,7 @@ class ConnectionStatusAppBar extends StatelessWidget implements PreferredSizeWid
           compact: true,
           showDeviceInfo: false,
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: DesignTokens.spacingM),
         ...?actions,
       ],
     );

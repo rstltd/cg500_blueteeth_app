@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../core/interfaces/network_service_interface.dart';
 import '../core/interfaces/update_service_interface.dart';
 import '../core/view_model/view_model.dart';
+import '../design/design_system.dart';
 import '../models/update_preferences.dart';
 import '../utils/formatting_utils.dart';
 import '../view_models/update_settings_view_model.dart';
-import '../widgets/responsive_layout.dart';
 
 /// Update Settings View using ViewModelProvider pattern.
 ///
@@ -109,22 +109,22 @@ class _UpdateSettingsContent extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 32 : 16,
-          vertical: 16,
+          horizontal: isDesktop ? DesignTokens.spacingXL : DesignTokens.spacingM,
+          vertical: DesignTokens.spacingM,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _NetworkStatusCard(viewModel: viewModel),
-            const SizedBox(height: 24),
+            SizedBox(height: DesignTokens.spacingL),
             _UpdateCheckSettingsCard(viewModel: viewModel),
-            const SizedBox(height: 24),
+            SizedBox(height: DesignTokens.spacingL),
             _DownloadSettingsCard(viewModel: viewModel),
-            const SizedBox(height: 24),
+            SizedBox(height: DesignTokens.spacingL),
             _SkippedVersionsCard(viewModel: viewModel),
-            const SizedBox(height: 24),
+            SizedBox(height: DesignTokens.spacingL),
             _CurrentVersionCard(viewModel: viewModel),
-            const SizedBox(height: 24),
+            SizedBox(height: DesignTokens.spacingL),
             _ResetSettingsCard(viewModel: viewModel),
           ],
         ),
@@ -146,11 +146,11 @@ class _NetworkStatusCard extends StatelessWidget {
     final statusIcon = FormattingUtils.getNetworkStatusIcon(viewModel.networkStatus);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
+      duration: DesignTokens.durationNormal,
+      padding: DesignTokens.paddingM,
       decoration: BoxDecoration(
         color: AppColors.cardColor(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusM,
         border: Border.all(
           color: statusColor,
           width: 2,
@@ -159,34 +159,30 @@ class _NetworkStatusCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: DesignTokens.paddingS,
             decoration: BoxDecoration(
               color: statusColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: DesignTokens.borderRadiusS,
             ),
             child: Icon(
               statusIcon,
               color: statusColor,
-              size: 24,
+              size: DesignTokens.iconM,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: DesignTokens.spacingM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Network Status',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary(context),
-                  ),
+                  style: AppTextStyles.titleSmall(context),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: DesignTokens.spacingXS),
                 Text(
                   viewModel.networkStatusDescription,
-                  style: TextStyle(
+                  style: AppTextStyles.bodyMedium(context).copyWith(
                     color: AppColors.textSecondary(context),
                   ),
                 ),
@@ -291,10 +287,10 @@ class _SkippedVersionsCard extends StatelessWidget {
       children: [
         if (prefs.skippedVersions.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: DesignTokens.paddingVerticalM,
             child: Text(
               'No versions skipped',
-              style: TextStyle(
+              style: AppTextStyles.bodyMedium(context).copyWith(
                 color: AppColors.textSecondary(context),
                 fontStyle: FontStyle.italic,
               ),
@@ -311,7 +307,7 @@ class _SkippedVersionsCard extends StatelessWidget {
               )),
         if (prefs.skippedVersions.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: EdgeInsets.only(top: DesignTokens.spacingS),
             child: TextButton.icon(
               onPressed: viewModel.clearSkippedVersions,
               icon: const Icon(Icons.clear_all),
@@ -423,30 +419,26 @@ class _SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
+      elevation: DesignTokens.elevationM,
       color: AppColors.cardColor(context),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: DesignTokens.paddingM,
             decoration: BoxDecoration(
               color: AppColors.backgroundGradientStart(context),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(DesignTokens.radiusM),
+                topRight: Radius.circular(DesignTokens.radiusM),
               ),
             ),
             child: Row(
               children: [
                 Icon(icon, color: AppColors.textPrimary(context)),
-                const SizedBox(width: 16),
+                SizedBox(width: DesignTokens.spacingM),
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary(context),
-                  ),
+                  style: AppTextStyles.titleMedium(context),
                 ),
               ],
             ),

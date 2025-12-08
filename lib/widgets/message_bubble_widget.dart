@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'responsive_layout.dart';
+import '../design/design_system.dart';
 
 /// A reusable message bubble widget for chat-style communication
 class MessageBubbleWidget extends StatelessWidget {
@@ -21,7 +21,10 @@ class MessageBubbleWidget extends StatelessWidget {
     final DateTime timestamp = message['timestamp'] ?? DateTime.now();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      margin: EdgeInsets.symmetric(
+        vertical: DesignTokens.spacingXS,
+        horizontal: DesignTokens.spacingM - 4, // 12dp
+      ),
       child: Column(
         crossAxisAlignment: isCommand ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
@@ -40,7 +43,7 @@ class MessageBubbleWidget extends StatelessWidget {
       onLongPress: () => _copyToClipboard(context, text),
       child: Container(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        padding: EdgeInsets.all(isDesktop ? 16 : 12),
+        padding: EdgeInsets.all(isDesktop ? DesignTokens.spacingM : DesignTokens.spacingM - 4),
         decoration: _getBubbleDecoration(context, isCommand, isError),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,20 +58,19 @@ class MessageBubbleWidget extends StatelessWidget {
 
   Widget _buildCommandHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.only(bottom: DesignTokens.spacingXS),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.send,
-            size: 14,
+            size: DesignTokens.fontM,
             color: Colors.white.withValues(alpha: 0.8),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: DesignTokens.spacingXS),
           Text(
             'Command',
-            style: TextStyle(
-              fontSize: 11,
+            style: AppTextStyles.captionSmall(context).copyWith(
               fontWeight: FontWeight.w500,
               color: Colors.white.withValues(alpha: 0.8),
             ),
@@ -93,16 +95,13 @@ class MessageBubbleWidget extends StatelessWidget {
   Widget _buildTimestamp(BuildContext context, DateTime timestamp, bool isCommand) {
     return Container(
       margin: EdgeInsets.only(
-        top: 4,
-        left: isCommand ? 0 : 8,
-        right: isCommand ? 8 : 0,
+        top: DesignTokens.spacingXS,
+        left: isCommand ? 0 : DesignTokens.spacingS,
+        right: isCommand ? DesignTokens.spacingS : 0,
       ),
       child: Text(
         _formatTimestamp(timestamp),
-        style: TextStyle(
-          fontSize: 11,
-          color: AppColors.textSecondary(context),
-        ),
+        style: AppTextStyles.captionSmall(context),
       ),
     );
   }
@@ -111,7 +110,7 @@ class MessageBubbleWidget extends StatelessWidget {
     if (isError) {
       return BoxDecoration(
         color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: DesignTokens.borderRadiusL,
         border: Border.all(color: Colors.red.shade200),
       );
     }
@@ -126,28 +125,16 @@ class MessageBubbleWidget extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: DesignTokens.borderRadiusL,
+        boxShadow: DesignTokens.cardShadow(context),
       );
     }
 
     return BoxDecoration(
       color: AppColors.backgroundGradientStart(context),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: DesignTokens.borderRadiusL,
       border: Border.all(color: AppColors.borderColor(context)),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.1),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
-        ),
-      ],
+      boxShadow: DesignTokens.subtleShadow(context),
     );
   }
 
@@ -177,7 +164,7 @@ class MessageBubbleWidget extends StatelessWidget {
         content: const Text('Message copied to clipboard'),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusS),
       ),
     );
   }
@@ -235,7 +222,7 @@ class _MessageListWidgetState extends State<MessageListWidget> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(8),
+      padding: DesignTokens.paddingS,
       itemCount: widget.messages.length,
       itemBuilder: (context, index) {
         return MessageBubbleWidget(
@@ -251,32 +238,27 @@ class _MessageListWidgetState extends State<MessageListWidget> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: DesignTokens.paddingL,
             decoration: BoxDecoration(
               color: AppColors.backgroundGradientStart(context),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: DesignTokens.borderRadiusXL,
             ),
             child: Icon(
               Icons.chat_bubble_outline,
-              size: 48,
+              size: DesignTokens.iconXL,
               color: AppColors.textSecondary(context),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: DesignTokens.spacingM),
           Text(
             'No messages yet',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary(context),
-            ),
+            style: AppTextStyles.titleMedium(context),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacingS),
           Text(
             'Send a command to start the conversation',
-            style: TextStyle(
+            style: AppTextStyles.bodyMedium(context).copyWith(
               color: AppColors.textSecondary(context),
-              fontSize: 14,
             ),
             textAlign: TextAlign.center,
           ),

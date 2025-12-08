@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
-import '../services/theme_service.dart';
 import '../widgets/animated_widgets.dart';
 
 /// Widget for BLE scanning control panel with device count display
@@ -16,8 +16,8 @@ class ControlPanelWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      margin: DesignTokens.paddingM,
+      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -27,14 +27,8 @@ class ControlPanelWidget extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: DesignTokens.borderRadiusL,
+        boxShadow: DesignTokens.cardShadow(context),
       ),
       child: Column(
         children: [
@@ -57,11 +51,11 @@ class ControlPanelWidget extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: DesignTokens.spacingM - 4), // 12dp
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: DesignTokens.borderRadiusM,
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: IconButton(
@@ -72,7 +66,7 @@ class ControlPanelWidget extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: DesignTokens.spacingM - 4), // 12dp
           _buildDeviceCount(),
         ],
       ),
@@ -88,14 +82,12 @@ class ControlPanelWidget extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.devices, color: Colors.grey.shade600, size: 16),
-            const SizedBox(width: 6),
+            Icon(Icons.devices, color: Colors.grey.shade600, size: DesignTokens.iconXS),
+            SizedBox(width: DesignTokens.spacingXS + 2), // 6dp
             Text(
               '$deviceCount devices found',
-              style: TextStyle(
+              style: AppTextStyles.labelLarge(context).copyWith(
                 color: Colors.grey.shade600,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],

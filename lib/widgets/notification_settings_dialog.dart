@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../design/design_system.dart';
 import '../services/smart_notification_service.dart';
-import 'responsive_layout.dart';
 
 /// Dialog for configuring notification preferences
 class NotificationSettingsDialog extends StatefulWidget {
@@ -33,14 +33,8 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
         ),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: DesignTokens.borderRadiusL,
+          boxShadow: DesignTokens.elevatedShadow(context),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -56,7 +50,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -66,43 +60,38 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(16),
-          topRight: Radius.circular(16),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(DesignTokens.radiusL),
+          topRight: Radius.circular(DesignTokens.radiusL),
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(DesignTokens.spacingM - 4), // 12dp
             decoration: BoxDecoration(
               color: AppColors.infoColor(context).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: DesignTokens.borderRadiusM,
             ),
             child: Icon(
               Icons.notifications_outlined,
               color: AppColors.infoColor(context),
-              size: 24,
+              size: DesignTokens.iconM,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: DesignTokens.spacingM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Notification Settings',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary(context),
-                  ),
+                  style: AppTextStyles.titleLarge(context),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: DesignTokens.spacingXS),
                 Text(
                   'Configure when and how notifications are shown',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: AppTextStyles.bodyMedium(context).copyWith(
                     color: AppColors.textSecondary(context),
                   ),
                 ),
@@ -116,18 +105,18 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildContent() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader('Smart Filtering', Icons.filter_alt),
           _buildSmartFilteringCard(),
-          
-          const SizedBox(height: 24),
+
+          SizedBox(height: DesignTokens.spacingL),
           _buildSectionHeader('Notification Categories', Icons.category),
           _buildNotificationCategories(),
-          
-          const SizedBox(height: 24),
+
+          SizedBox(height: DesignTokens.spacingL),
           _buildSectionHeader('Statistics', Icons.analytics),
           _buildStatisticsCard(),
         ],
@@ -137,22 +126,18 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: DesignTokens.spacingM - 4), // 12dp
       child: Row(
         children: [
           Icon(
             icon,
-            size: 20,
+            size: DesignTokens.iconS,
             color: AppColors.textSecondary(context),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: DesignTokens.spacingS),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary(context),
-            ),
+            style: AppTextStyles.titleSmall(context),
           ),
         ],
       ),
@@ -163,14 +148,14 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusM,
         side: BorderSide(
           color: AppColors.borderColor(context),
           width: 1,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignTokens.paddingM,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -186,26 +171,25 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
               contentPadding: EdgeInsets.zero,
             ),
             if (_enableSmartFiltering) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: DesignTokens.spacingM - 4), // 12dp
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(DesignTokens.spacingM - 4), // 12dp
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: DesignTokens.borderRadiusS,
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.lightbulb_outline,
                       color: Colors.blue.shade700,
-                      size: 20,
+                      size: DesignTokens.iconS,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: DesignTokens.spacingS),
                     Expanded(
                       child: Text(
                         'Smart filtering prevents duplicate notifications, reduces connection status spam, and silences internal operations.',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.bodySmall(context).copyWith(
                           color: Colors.blue.shade700,
                         ),
                       ),
@@ -224,14 +208,14 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusM,
         side: BorderSide(
           color: AppColors.borderColor(context),
           width: 1,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignTokens.paddingM,
         child: Column(
           children: [
             _buildCategorySwitch(
@@ -281,35 +265,30 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: DesignTokens.paddingS,
           decoration: BoxDecoration(
             color: AppColors.backgroundGradientStart(context),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: DesignTokens.borderRadiusS,
           ),
           child: Icon(
             icon,
-            size: 20,
+            size: DesignTokens.iconS,
             color: AppColors.infoColor(context),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: DesignTokens.spacingM - 4), // 12dp
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary(context),
-                ),
+                style: AppTextStyles.labelLarge(context),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: DesignTokens.spacingXS / 2), // 2dp
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.bodySmall(context).copyWith(
                   color: AppColors.textSecondary(context),
                 ),
               ),
@@ -326,26 +305,26 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildStatisticsCard() {
     final stats = _notificationService.getStatistics();
-    
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusM,
         side: BorderSide(
           color: AppColors.borderColor(context),
           width: 1,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: DesignTokens.paddingM,
         child: Column(
           children: [
             _buildStatRow('Total Notifications', '${stats['total_notifications']}'),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignTokens.spacingS),
             _buildStatRow('Filtered Notifications', '${stats['filtered_notifications']}'),
-            const SizedBox(height: 8),
+            SizedBox(height: DesignTokens.spacingS),
             _buildStatRow('Pending Notifications', '${stats['pending_notifications']}'),
-            const SizedBox(height: 12),
+            SizedBox(height: DesignTokens.spacingM - 4), // 12dp
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -376,18 +355,11 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
-            color: AppColors.textSecondary(context),
-          ),
+          style: AppTextStyles.caption(context),
         ),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary(context),
-          ),
+          style: AppTextStyles.labelMedium(context),
         ),
       ],
     );
@@ -395,7 +367,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildActions() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -411,13 +383,16 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: DesignTokens.spacingM - 4), // 12dp
           ElevatedButton(
             onPressed: _applySettings,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.infoColor(context),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingL,
+                vertical: DesignTokens.spacingM - 4, // 12dp
+              ),
             ),
             child: const Text('Apply Settings'),
           ),

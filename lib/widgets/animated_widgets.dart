@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../design/design_system.dart';
 import '../services/animation_service.dart';
+import '../utils/accessibility_utils.dart';
 
 /// Animated scanning button with radar animation
 class AnimatedScanButton extends StatefulWidget {
@@ -107,15 +109,15 @@ class _AnimatedScanButtonState extends State<AnimatedScanButton>
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: widget.isScanning 
-              ? Colors.red.shade600 
+          backgroundColor: widget.isScanning
+              ? Colors.red.shade600
               : Colors.blue.shade600,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: EdgeInsets.symmetric(vertical: DesignTokens.spacingM),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: DesignTokens.borderRadiusM,
           ),
-          elevation: widget.isScanning ? 2 : 6,
+          elevation: widget.isScanning ? DesignTokens.elevationS : DesignTokens.elevationL,
         ),
       ),
     );
@@ -473,12 +475,23 @@ class _AnimatedFeedbackState extends State<AnimatedFeedback>
   }
 }
 
-/// Animated list item with staggered entrance
+/// Animated list item with staggered entrance and reduced motion support.
+///
+/// Features:
+/// - Respects user's "Reduce motion" accessibility setting
+/// - Limits animation delay for large lists (performance optimization)
+/// - Uses efficient RepaintBoundary for list items
 class AnimatedListItem extends StatefulWidget {
   final Widget child;
   final int index;
   final Duration delay;
   final Curve curve;
+
+  /// Maximum index to apply staggered animation (for performance)
+  static const int maxAnimatedIndex = 20;
+
+  /// Maximum delay to prevent long waits in large lists
+  static const Duration maxTotalDelay = Duration(milliseconds: 1000);
 
   const AnimatedListItem({
     super.key,
@@ -497,12 +510,13 @@ class _AnimatedListItemState extends State<AnimatedListItem>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _reducedMotion = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400), // Shorter for performance
       vsync: this,
     );
 
@@ -515,15 +529,41 @@ class _AnimatedListItemState extends State<AnimatedListItem>
     ));
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.3, 0.0),
+      begin: const Offset(0.2, 0.0), // Reduced slide distance
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: widget.curve,
     ));
+  }
 
-    // Staggered entrance
-    Future.delayed(widget.delay * widget.index, () {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reducedMotion = AccessibilityUtils.prefersReducedMotion(context);
+    _startAnimation();
+  }
+
+  void _startAnimation() {
+    // Skip animation if reduced motion is preferred
+    if (_reducedMotion) {
+      _controller.value = 1.0;
+      return;
+    }
+
+    // Skip animation for items beyond the threshold (performance)
+    if (widget.index >= AnimatedListItem.maxAnimatedIndex) {
+      _controller.value = 1.0;
+      return;
+    }
+
+    // Calculate staggered delay with cap for performance
+    final calculatedDelay = widget.delay * widget.index;
+    final effectiveDelay = calculatedDelay > AnimatedListItem.maxTotalDelay
+        ? AnimatedListItem.maxTotalDelay
+        : calculatedDelay;
+
+    Future.delayed(effectiveDelay, () {
       if (mounted) {
         _controller.forward();
       }
@@ -538,12 +578,65 @@ class _AnimatedListItemState extends State<AnimatedListItem>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: widget.child,
-      ),
+    // Use RepaintBoundary to optimize list item rendering
+    return RepaintBoundary(
+      child: _reducedMotion
+          ? widget.child // No animation for reduced motion
+          : FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: widget.child,
+              ),
+            ),
+    );
+  }
+}
+
+/// A high-performance list widget that uses item recycling and
+/// optimized animations for large datasets.
+class PerformantAnimatedList extends StatelessWidget {
+  final int itemCount;
+  final Widget Function(BuildContext, int) itemBuilder;
+  final EdgeInsets? padding;
+  final ScrollController? controller;
+  final ScrollPhysics? physics;
+
+  const PerformantAnimatedList({
+    super.key,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.padding,
+    this.controller,
+    this.physics,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final reducedMotion = AccessibilityUtils.prefersReducedMotion(context);
+
+    return ListView.builder(
+      controller: controller,
+      physics: physics,
+      padding: padding,
+      itemCount: itemCount,
+      // Use cacheExtent for smoother scrolling with large lists
+      cacheExtent: 200,
+      // Add semantic indexes for accessibility
+      addSemanticIndexes: true,
+      itemBuilder: (context, index) {
+        final item = itemBuilder(context, index);
+
+        // Skip animation wrapper for reduced motion or large lists
+        if (reducedMotion || index >= AnimatedListItem.maxAnimatedIndex) {
+          return RepaintBoundary(child: item);
+        }
+
+        return AnimatedListItem(
+          index: index,
+          child: item,
+        );
+      },
     );
   }
 }

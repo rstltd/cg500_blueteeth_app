@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/app_update_manager.dart';
 import '../core/view_model/view_model.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
 import '../services/animation_service.dart';
 import '../services/notification_service.dart';
@@ -10,7 +11,6 @@ import '../utils/formatting_utils.dart';
 import '../view_models/simple_scanner_view_model.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
-import '../widgets/responsive_layout.dart';
 import '../widgets/update_notification_banner.dart';
 import '../widgets/control_panel_widget.dart';
 import '../widgets/scanning_indicator_widget.dart';
@@ -106,13 +106,13 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
           title: const Text('CG500 BLE Scanner'),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 20),
-              Text('Initializing BLE Controller...'),
+              const CircularProgressIndicator(),
+              SizedBox(height: DesignTokens.spacingL - 4),
+              const Text('Initializing BLE Controller...'),
             ],
           ),
         ),
@@ -193,7 +193,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
           child: Row(
             children: [
               const Icon(Icons.refresh),
-              const SizedBox(width: 12),
+              SizedBox(width: DesignTokens.spacingM - 4),
               const Text('Check for Updates'),
             ],
           ),
@@ -203,7 +203,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
           child: Row(
             children: [
               const Icon(Icons.system_update_alt),
-              const SizedBox(width: 12),
+              SizedBox(width: DesignTokens.spacingM - 4),
               const Text('Update Settings'),
             ],
           ),
@@ -217,7 +217,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
               return Row(
                 children: [
                   Icon(viewModel.themeModeIcon),
-                  const SizedBox(width: 12),
+                  SizedBox(width: DesignTokens.spacingM - 4),
                   Text(viewModel.themeModeDescription),
                 ],
               );
@@ -331,17 +331,19 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
   }
 
   Widget _buildTabletLandscapeLayout() {
+    final sidebarWidth = ResponsiveUtils.getTabletSidebarWidth(context);
+
     return Row(
       children: [
-        // Left Panel
+        // Left Panel - optimized width based on tablet size
         Container(
-          width: 320,
+          width: sidebarWidth,
           padding: ResponsiveUtils.getResponsivePadding(context),
           child: Column(
             children: [
               _buildControlPanel(),
               _buildScanningIndicator(),
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveUtils.getTabletItemGap(context)),
               StreamBuilder<BleDeviceModel?>(
                 stream: viewModel.connectedDeviceStream,
                 builder: (context, snapshot) {
@@ -351,11 +353,16 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
                   return const SizedBox.shrink();
                 },
               ),
+              // Show quick stats on larger tablets
+              if (ResponsiveUtils.isTabletLarge(context)) ...[
+                SizedBox(height: DesignTokens.spacingM),
+                _buildQuickStats(),
+              ],
             ],
           ),
         ),
         Container(
-          width: 1,
+          width: DesignTokens.dividerThickness,
           color: AppColors.borderColor(context),
         ),
         Expanded(
@@ -378,7 +385,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
               children: [
                 _buildControlPanel(),
                 _buildScanningIndicator(),
-                const SizedBox(height: 20),
+                SizedBox(height: DesignTokens.spacingL - 4),
                 StreamBuilder<BleDeviceModel?>(
                   stream: viewModel.connectedDeviceStream,
                   builder: (context, snapshot) {
@@ -388,7 +395,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
                     return const SizedBox.shrink();
                   },
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacingM),
                 _buildQuickStats(),
               ],
             ),
@@ -402,7 +409,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: DesignTokens.paddingM,
                   child: Row(
                     children: [
                       ResponsiveText(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/interfaces/update_service_interface.dart';
 import '../core/service_locator.dart' show getIt;
+import '../design/design_system.dart';
 import '../utils/logger.dart';
-import 'responsive_layout.dart';
 
 /// Dialog that provides step-by-step installation guide for APK files
 class InstallGuideDialog extends StatefulWidget {
@@ -82,7 +82,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
     _updateService = getIt<UpdateServiceInterface>();
 
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: DesignTokens.durationNormal,
       vsync: this,
     );
 
@@ -171,14 +171,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
               ),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                borderRadius: DesignTokens.borderRadiusXL,
+                boxShadow: DesignTokens.elevatedShadow(context),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -197,7 +191,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: DesignTokens.paddingL,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -207,44 +201,41 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(DesignTokens.radiusXL),
+          topRight: Radius.circular(DesignTokens.radiusXL),
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(DesignTokens.spacingM - 4), // 12dp
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: DesignTokens.borderRadiusM,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.help_outline,
               color: Colors.white,
-              size: 28,
+              size: DesignTokens.iconL - 4, // 28dp
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: DesignTokens.spacingM),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Installation Guide',
-                  style: TextStyle(
+                  style: AppTextStyles.titleLarge(context).copyWith(
                     color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: DesignTokens.spacingXS),
                 Text(
                   'Step ${_currentStep + 1} of ${_steps.length}',
-                  style: TextStyle(
+                  style: AppTextStyles.bodyLarge(context).copyWith(
                     color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 16,
                   ),
                 ),
               ],
@@ -258,11 +249,11 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   Widget _buildContent() {
     return Flexible(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: DesignTokens.paddingL,
         child: Column(
           children: [
             _buildProgressIndicator(),
-            const SizedBox(height: 32),
+            SizedBox(height: DesignTokens.spacingXL),
             _buildCurrentStep(),
           ],
         ),

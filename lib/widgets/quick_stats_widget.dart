@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
 import '../models/connection_state.dart';
-import 'responsive_layout.dart';
 
 /// Widget for displaying quick statistics about BLE devices
 class QuickStatsWidget extends StatelessWidget {
@@ -31,7 +31,7 @@ class QuickStatsWidget extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary(context),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: DesignTokens.spacingM),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -54,7 +54,7 @@ class QuickStatsWidget extends StatelessWidget {
           size: 24,
           color: AppColors.infoColor(context),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: DesignTokens.spacingS),
         ResponsiveText(
           value,
           fontSize: 20,

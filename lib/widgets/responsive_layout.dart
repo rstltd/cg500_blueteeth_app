@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../utils/responsive_utils.dart';
-import '../utils/app_colors.dart';
 
 // Re-export utilities for convenient single import
 export '../utils/responsive_utils.dart';

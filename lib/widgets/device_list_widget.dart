@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
+import '../design/design_system.dart';
 import '../models/ble_device.dart';
-import '../services/theme_service.dart';
 import 'animated_widgets.dart';
 
 /// A reusable widget for displaying BLE device list
@@ -49,36 +49,33 @@ class DeviceListWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: DesignTokens.paddingL,
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: DesignTokens.borderRadiusXL,
             ),
             child: Icon(
               Icons.bluetooth_searching,
-              size: 64,
+              size: DesignTokens.iconHero,
               color: Colors.grey.shade400,
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: DesignTokens.spacingL),
           Text(
             'No BLE devices found',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.titleMedium(context).copyWith(
               color: Colors.grey.shade700,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: DesignTokens.spacingS),
           Text(
             'Start scanning to discover nearby devices',
-            style: TextStyle(
+            style: AppTextStyles.bodyMedium(context).copyWith(
               color: Colors.grey.shade600,
-              fontSize: 14,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: DesignTokens.spacingL),
           StreamBuilder<bool>(
             stream: controller.scanningStream,
             initialData: false,
@@ -86,28 +83,30 @@ class DeviceListWidget extends StatelessWidget {
               bool isScanning = snapshot.data ?? false;
               if (isScanning) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingL - 4, // 20dp
+                    vertical: DesignTokens.spacingM - 4, // 12dp
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(25),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: DesignTokens.iconXS,
+                        height: DesignTokens.iconXS,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: DesignTokens.spacingS),
                       Text(
                         'Scanning...',
-                        style: TextStyle(
+                        style: AppTextStyles.labelLarge(context).copyWith(
                           color: Colors.blue.shade800,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -128,48 +127,45 @@ class DeviceListWidget extends StatelessWidget {
       stream: controller.connectedDeviceStream,
       builder: (context, connectedSnapshot) {
         bool isConnected = connectedSnapshot.data?.id == device.id;
-        
+
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          margin: EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingM,
+            vertical: DesignTokens.spacingXS + 2, // 6dp
+          ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: isConnected 
+            borderRadius: DesignTokens.borderRadiusL,
+            gradient: isConnected
                 ? LinearGradient(
                     colors: [Colors.blue.shade50, Colors.green.shade50],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
                 : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: DesignTokens.cardShadow(context),
           ),
           child: Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: isConnected 
+              borderRadius: DesignTokens.borderRadiusL,
+              side: isConnected
                   ? BorderSide(color: Colors.green.shade300, width: 2)
                   : BorderSide.none,
             ),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: DesignTokens.borderRadiusL,
                 color: Theme.of(context).cardColor,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: DesignTokens.paddingM,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDeviceHeader(context, device, isConnected),
-                    const SizedBox(height: 12),
+                    SizedBox(height: DesignTokens.spacingM - 4), // 12dp
                     _buildDeviceInfo(context, device),
-                    const SizedBox(height: 16),
+                    SizedBox(height: DesignTokens.spacingM),
                     _buildDeviceActions(context, device, isConnected),
                   ],
                 ),
@@ -186,37 +182,31 @@ class DeviceListWidget extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: DesignTokens.paddingS,
           decoration: BoxDecoration(
             color: isConnected ? Colors.green.shade100 : Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: DesignTokens.borderRadiusS,
           ),
           child: Icon(
             isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
             color: isConnected ? Colors.green.shade600 : Colors.blue.shade600,
-            size: 20,
+            size: DesignTokens.iconS,
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: DesignTokens.spacingM - 4), // 12dp
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 device.name.isNotEmpty ? device.name : 'Unknown Device',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary(context),
-                ),
+                style: AppTextStyles.titleSmall(context),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: DesignTokens.spacingXS / 2), // 2dp
               Text(
                 device.id,
-                style: TextStyle(
-                  fontSize: 12,
+                style: AppTextStyles.monospace(context).copyWith(
                   color: AppColors.textSecondary(context),
-                  fontFamily: 'monospace',
                 ),
               ),
             ],
@@ -233,11 +223,11 @@ class DeviceListWidget extends StatelessWidget {
       children: [
         _buildInfoRow(context, 'RSSI', '${device.rssi} dBm'),
         if (device.services.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          SizedBox(height: DesignTokens.spacingXS),
           _buildInfoRow(context, 'Services', '${device.services.length} available'),
         ],
         if (device.lastSeen != null) ...[
-          const SizedBox(height: 4),
+          SizedBox(height: DesignTokens.spacingXS),
           _buildInfoRow(context, 'Last Seen', _formatLastSeen(device.lastSeen!)),
         ],
       ],
@@ -251,18 +241,11 @@ class DeviceListWidget extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: AppColors.textSecondary(context),
-            fontSize: 13,
-          ),
+          style: AppTextStyles.caption(context),
         ),
         Text(
           value,
-          style: TextStyle(
-            color: AppColors.textPrimary(context),
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
+          style: AppTextStyles.labelMedium(context),
         ),
       ],
     );
@@ -315,13 +298,13 @@ class DeviceListWidget extends StatelessWidget {
           icon: Icon(
             device.isFavorite ? Icons.favorite : Icons.favorite_border,
             color: device.isFavorite ? Colors.red : Colors.grey,
-            size: 20,
+            size: DesignTokens.iconS,
           ),
           tooltip: device.isFavorite ? 'Remove from favorites' : 'Add to favorites',
         ),
-        
+
         const Spacer(),
-        
+
         // Connect/Disconnect button
         ElevatedButton.icon(
           onPressed: () {
@@ -333,18 +316,21 @@ class DeviceListWidget extends StatelessWidget {
           },
           icon: Icon(
             isConnected ? Icons.link_off : Icons.link,
-            size: 16,
+            size: DesignTokens.iconXS,
           ),
           label: Text(
             isConnected ? 'Disconnect' : 'Connect',
-            style: const TextStyle(fontSize: 13),
+            style: AppTextStyles.buttonSmall(context).copyWith(color: Colors.white),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: isConnected ? Colors.red.shade600 : Colors.blue.shade600,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingM - 4, // 12dp
+              vertical: DesignTokens.spacingS,
+            ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: DesignTokens.borderRadiusS,
             ),
           ),
         ),
