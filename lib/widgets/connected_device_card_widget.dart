@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/ble_device.dart';
-import '../services/theme_service.dart';
-import '../widgets/responsive_layout.dart';
 import '../views/command_interface_view.dart';
+import 'responsive_layout.dart';
 
 /// Widget for displaying connected device information in a card format
 class ConnectedDeviceCardWidget extends StatelessWidget {

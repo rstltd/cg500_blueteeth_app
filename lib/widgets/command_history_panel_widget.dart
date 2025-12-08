@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../controllers/command_manager.dart';
-import '../services/theme_service.dart';
 import 'responsive_layout.dart';
 
 /// Widget displaying command history for larger screens (tablet/desktop).

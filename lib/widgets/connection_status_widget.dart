@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../models/ble_device.dart';
-import '../services/theme_service.dart';
-import '../utils/responsive_utils.dart';
+import 'responsive_layout.dart';
 
 /// Widget for displaying BLE connection status and device information
 class ConnectionStatusWidget extends StatelessWidget {

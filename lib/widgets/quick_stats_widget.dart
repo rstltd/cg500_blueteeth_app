@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../models/ble_device.dart';
 import '../models/connection_state.dart';
-import '../services/theme_service.dart';
-import '../widgets/responsive_layout.dart';
+import 'responsive_layout.dart';
 
 /// Widget for displaying quick statistics about BLE devices
 class QuickStatsWidget extends StatelessWidget {

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/theme_service.dart';
-import '../utils/responsive_utils.dart';
 import '../core/interfaces/update_service_interface.dart';
 import '../core/service_locator.dart' show getIt;
 import '../utils/logger.dart';
+import 'responsive_layout.dart';
 
 /// Dialog that provides step-by-step installation guide for APK files
 class InstallGuideDialog extends StatefulWidget {

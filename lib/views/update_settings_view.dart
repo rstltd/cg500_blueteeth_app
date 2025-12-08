@@ -1,81 +1,56 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/update_preferences.dart';
-import '../core/interfaces/update_service_interface.dart';
 import '../core/interfaces/network_service_interface.dart';
-import '../services/theme_service.dart';
-import '../core/service_locator.dart' show getIt;
+import '../core/interfaces/update_service_interface.dart';
+import '../core/view_model/view_model.dart';
+import '../models/update_preferences.dart';
 import '../utils/formatting_utils.dart';
-import '../utils/responsive_utils.dart';
+import '../view_models/update_settings_view_model.dart';
+import '../widgets/responsive_layout.dart';
 
-/// Settings view for managing app update preferences
-class UpdateSettingsView extends StatefulWidget {
-  const UpdateSettingsView({super.key});
+/// Update Settings View using ViewModelProvider pattern.
+///
+/// Uses the ViewModelProvider pattern for better separation of concerns.
+///
+/// Key features:
+/// - State management via UpdateSettingsViewModel
+/// - Automatic subscription lifecycle management
+/// - Clean, testable code structure
+class UpdateSettingsView extends StatelessWidget {
+  /// Creates an UpdateSettingsView using the service locator.
+  const UpdateSettingsView({super.key})
+      : _updateService = null,
+        _networkService = null;
+
+  /// Creates an UpdateSettingsView with explicit dependencies for testing.
+  const UpdateSettingsView.withDependencies({
+    super.key,
+    required UpdateServiceInterface updateService,
+    required NetworkServiceInterface networkService,
+  })  : _updateService = updateService,
+        _networkService = networkService;
+
+  final UpdateServiceInterface? _updateService;
+  final NetworkServiceInterface? _networkService;
 
   @override
-  State<UpdateSettingsView> createState() => _UpdateSettingsViewState();
+  Widget build(BuildContext context) {
+    return ViewModelProvider<UpdateSettingsViewModel>(
+      create: () => UpdateSettingsViewModel(
+        updateService: _updateService,
+        networkService: _networkService,
+      ),
+      builder: (context, viewModel, child) {
+        return _UpdateSettingsContent(viewModel: viewModel);
+      },
+    );
+  }
 }
 
-class _UpdateSettingsViewState extends State<UpdateSettingsView> {
-  late final UpdateServiceInterface _updateService;
-  late final NetworkServiceInterface _networkService;
+/// The main content widget that uses the ViewModel.
+class _UpdateSettingsContent extends StatelessWidget {
+  const _UpdateSettingsContent({required this.viewModel});
 
-  // StreamSubscription management
-  StreamSubscription<NetworkStatus>? _networkSubscription;
-
-  UpdatePreferences? _preferences;
-  NetworkStatus _networkStatus = NetworkStatus.unknown;
-  bool _isLoading = true;
-  bool _isCheckingUpdate = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateService = getIt<UpdateServiceInterface>();
-    _networkService = getIt<NetworkServiceInterface>();
-    _loadPreferences();
-    _listenToNetwork();
-  }
-
-  Future<void> _loadPreferences() async {
-    try {
-      final preferences = await UpdatePreferences.load();
-      setState(() {
-        _preferences = preferences;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _preferences = UpdatePreferences();
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _listenToNetwork() {
-    _networkSubscription = _networkService.networkStream.listen((status) {
-      if (mounted) {
-        setState(() {
-          _networkStatus = status;
-        });
-      }
-    });
-    _networkStatus = _networkService.currentStatus;
-  }
-
-  @override
-  void dispose() {
-    _networkSubscription?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _savePreferences() async {
-    if (_preferences != null) {
-      await _preferences!.save();
-      // Update the UpdateService with new preferences
-      await _updateService.updatePreferences(_preferences!);
-    }
-  }
+  final UpdateSettingsViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -86,8 +61,8 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: _isCheckingUpdate ? null : _checkForUpdates,
-            icon: _isCheckingUpdate
+            onPressed: viewModel.isCheckingUpdate ? null : viewModel.checkForUpdates,
+            icon: viewModel.isCheckingUpdate
                 ? const SizedBox(
                     width: 20,
                     height: 20,
@@ -98,21 +73,29 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildContent(),
+      body: _buildBody(context),
     );
   }
 
-  Widget _buildContent() {
-    if (_preferences == null) {
+  Widget _buildBody(BuildContext context) {
+    // Show loading state
+    if (!viewModel.isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Show error state
+    if (!viewModel.hasPreferences) {
       return const Center(
         child: Text('Failed to load update settings'),
       );
     }
 
+    return _buildContent(context);
+  }
+
+  Widget _buildContent(BuildContext context) {
     final isDesktop = ResponsiveUtils.isDesktop(context);
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -132,24 +115,36 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildNetworkStatus(),
+            _NetworkStatusCard(viewModel: viewModel),
             const SizedBox(height: 24),
-            _buildUpdateCheckSettings(),
+            _UpdateCheckSettingsCard(viewModel: viewModel),
             const SizedBox(height: 24),
-            _buildDownloadSettings(),
+            _DownloadSettingsCard(viewModel: viewModel),
             const SizedBox(height: 24),
-            _buildSkippedVersions(),
+            _SkippedVersionsCard(viewModel: viewModel),
             const SizedBox(height: 24),
-            _buildCurrentVersion(),
+            _CurrentVersionCard(viewModel: viewModel),
             const SizedBox(height: 24),
-            _buildResetSettings(),
+            _ResetSettingsCard(viewModel: viewModel),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildNetworkStatus() {
+// --- Card Widgets ---
+
+class _NetworkStatusCard extends StatelessWidget {
+  const _NetworkStatusCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = FormattingUtils.getNetworkStatusColor(viewModel.networkStatus);
+    final statusIcon = FormattingUtils.getNetworkStatusIcon(viewModel.networkStatus);
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(16),
@@ -157,7 +152,7 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
         color: AppColors.cardColor(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _getNetworkStatusColor(),
+          color: statusColor,
           width: 2,
         ),
       ),
@@ -166,12 +161,12 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _getNetworkStatusColor().withValues(alpha: 0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              _getNetworkStatusIcon(),
-              color: _getNetworkStatusColor(),
+              statusIcon,
+              color: statusColor,
               size: 24,
             ),
           ),
@@ -190,7 +185,7 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _networkService.getStatusDescription(),
+                  viewModel.networkStatusDescription,
                   style: TextStyle(
                     color: AppColors.textSecondary(context),
                   ),
@@ -202,80 +197,99 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
       ),
     );
   }
+}
 
-  Widget _buildUpdateCheckSettings() {
-    return _buildSettingsSection(
+class _UpdateCheckSettingsCard extends StatelessWidget {
+  const _UpdateCheckSettingsCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = viewModel.preferences!;
+
+    return _SettingsSection(
       title: 'Update Checking',
       icon: Icons.update,
       children: [
-        _buildSwitchTile(
-          title: 'Auto Check for Updates',
-          subtitle: 'Automatically check for updates when app starts',
-          value: _preferences!.autoCheckEnabled,
-          onChanged: (value) {
-            setState(() {
-              _preferences = _preferences!.copyWith(autoCheckEnabled: value);
-            });
-            _savePreferences();
-          },
+        SwitchListTile(
+          title: const Text('Auto Check for Updates'),
+          subtitle: const Text('Automatically check for updates when app starts'),
+          value: prefs.autoCheckEnabled,
+          onChanged: viewModel.setAutoCheckEnabled,
+          activeColor: Colors.blue.shade600,
         ),
-        _buildDropdownTile<UpdateFrequency>(
-          title: 'Check Frequency',
-          subtitle: 'How often to check for updates',
-          value: _preferences!.updateFrequency,
-          items: UpdateFrequency.values,
-          onChanged: _preferences!.autoCheckEnabled
-              ? (value) {
-                  if (value != null) {
-                    setState(() {
-                      _preferences = _preferences!.copyWith(updateFrequency: value);
-                    });
-                    _savePreferences();
+        ListTile(
+          title: const Text('Check Frequency'),
+          subtitle: const Text('How often to check for updates'),
+          trailing: DropdownButton<UpdateFrequency>(
+            value: prefs.updateFrequency,
+            onChanged: prefs.autoCheckEnabled
+                ? (value) {
+                    if (value != null) {
+                      viewModel.setUpdateFrequency(value);
+                    }
                   }
-                }
-              : null,
+                : null,
+            items: UpdateFrequency.values.map((item) {
+              return DropdownMenuItem<UpdateFrequency>(
+                value: item,
+                child: Text(item.displayName),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildDownloadSettings() {
-    return _buildSettingsSection(
+class _DownloadSettingsCard extends StatelessWidget {
+  const _DownloadSettingsCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = viewModel.preferences!;
+
+    return _SettingsSection(
       title: 'Download Settings',
       icon: Icons.download,
       children: [
-        _buildSwitchTile(
-          title: 'Auto Download Updates',
-          subtitle: 'Automatically download updates when found',
-          value: _preferences!.autoDownloadEnabled,
-          onChanged: (value) {
-            setState(() {
-              _preferences = _preferences!.copyWith(autoDownloadEnabled: value);
-            });
-            _savePreferences();
-          },
+        SwitchListTile(
+          title: const Text('Auto Download Updates'),
+          subtitle: const Text('Automatically download updates when found'),
+          value: prefs.autoDownloadEnabled,
+          onChanged: viewModel.setAutoDownloadEnabled,
+          activeColor: Colors.blue.shade600,
         ),
-        _buildSwitchTile(
-          title: 'WiFi Only Downloads',
-          subtitle: 'Only download updates when connected to WiFi',
-          value: _preferences!.wifiOnlyDownload,
-          onChanged: (value) {
-            setState(() {
-              _preferences = _preferences!.copyWith(wifiOnlyDownload: value);
-            });
-            _savePreferences();
-          },
+        SwitchListTile(
+          title: const Text('WiFi Only Downloads'),
+          subtitle: const Text('Only download updates when connected to WiFi'),
+          value: prefs.wifiOnlyDownload,
+          onChanged: viewModel.setWifiOnlyDownload,
+          activeColor: Colors.blue.shade600,
         ),
       ],
     );
   }
+}
 
-  Widget _buildSkippedVersions() {
-    return _buildSettingsSection(
+class _SkippedVersionsCard extends StatelessWidget {
+  const _SkippedVersionsCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = viewModel.preferences!;
+
+    return _SettingsSection(
       title: 'Skipped Versions',
       icon: Icons.skip_next,
       children: [
-        if (_preferences!.skippedVersions.isEmpty)
+        if (prefs.skippedVersions.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
@@ -287,29 +301,19 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
             ),
           )
         else
-          ..._preferences!.skippedVersions.map((version) => ListTile(
+          ...prefs.skippedVersions.map((version) => ListTile(
                 leading: const Icon(Icons.block),
                 title: Text('Version $version'),
                 trailing: IconButton(
                   icon: const Icon(Icons.close),
-                  onPressed: () {
-                    setState(() {
-                      _preferences!.unskipVersion(version);
-                    });
-                    _savePreferences();
-                  },
+                  onPressed: () => viewModel.unskipVersion(version),
                 ),
               )),
-        if (_preferences!.skippedVersions.isNotEmpty)
+        if (prefs.skippedVersions.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: TextButton.icon(
-              onPressed: () {
-                setState(() {
-                  _preferences!.clearSkippedVersions();
-                });
-                _savePreferences();
-              },
+              onPressed: viewModel.clearSkippedVersions,
               icon: const Icon(Icons.clear_all),
               label: const Text('Clear All'),
             ),
@@ -317,11 +321,18 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
       ],
     );
   }
+}
 
-  Widget _buildCurrentVersion() {
-    final versionInfo = _updateService.getCurrentVersionInfo();
-    
-    return _buildSettingsSection(
+class _CurrentVersionCard extends StatelessWidget {
+  const _CurrentVersionCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final versionInfo = viewModel.currentVersionInfo;
+
+    return _SettingsSection(
       title: 'Current Version',
       icon: Icons.info_outline,
       children: [
@@ -342,9 +353,16 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
       ],
     );
   }
+}
 
-  Widget _buildResetSettings() {
-    return _buildSettingsSection(
+class _ResetSettingsCard extends StatelessWidget {
+  const _ResetSettingsCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsSection(
       title: 'Reset',
       icon: Icons.restore,
       children: [
@@ -352,17 +370,58 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
           title: const Text('Reset to Defaults'),
           subtitle: const Text('Reset all update settings to default values'),
           trailing: const Icon(Icons.restore),
-          onTap: _showResetDialog,
+          onTap: () => _showResetDialog(context),
         ),
       ],
     );
   }
 
-  Widget _buildSettingsSection({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
+  void _showResetDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Settings'),
+        content: const Text(
+          'Are you sure you want to reset all update settings to their default values? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              viewModel.resetToDefaults();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Settings reset to defaults'),
+                ),
+              );
+            },
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- Helper Widgets ---
+
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
       elevation: 4,
       color: AppColors.cardColor(context),
@@ -396,112 +455,5 @@ class _UpdateSettingsViewState extends State<UpdateSettingsView> {
         ],
       ),
     );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool>? onChanged,
-  }) {
-    return SwitchListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      value: value,
-      onChanged: onChanged,
-      activeColor: Colors.blue.shade600,
-    );
-  }
-
-  Widget _buildDropdownTile<T>({
-    required String title,
-    required String subtitle,
-    required T value,
-    required List<T> items,
-    required ValueChanged<T?>? onChanged,
-  }) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: DropdownButton<T>(
-        value: value,
-        onChanged: onChanged,
-        items: items.map((item) {
-          String displayName;
-          if (item is UpdateFrequency) {
-            displayName = item.displayName;
-          } else {
-            displayName = item.toString();
-          }
-          
-          return DropdownMenuItem<T>(
-            value: item,
-            child: Text(displayName),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Future<void> _checkForUpdates() async {
-    setState(() {
-      _isCheckingUpdate = true;
-    });
-
-    try {
-      await _updateService.checkForUpdates(showNotification: true);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCheckingUpdate = false;
-        });
-      }
-    }
-  }
-
-  void _showResetDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Settings'),
-        content: const Text(
-          'Are you sure you want to reset all update settings to their default values? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _resetToDefaults();
-            },
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _resetToDefaults() {
-    setState(() {
-      _preferences = UpdatePreferences();
-    });
-    _savePreferences();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings reset to defaults'),
-      ),
-    );
-  }
-
-  Color _getNetworkStatusColor() {
-    return FormattingUtils.getNetworkStatusColor(_networkStatus);
-  }
-
-  IconData _getNetworkStatusIcon() {
-    return FormattingUtils.getNetworkStatusIcon(_networkStatus);
   }
 }

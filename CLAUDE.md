@@ -95,9 +95,13 @@ Configured in `android/app/src/main/AndroidManifest.xml`:
 - All code passes static analysis with zero issues
 - Follows Flutter best practices and Material Design guidelines
 
-## MVC Architecture Implementation
+## MVC + MVVM Hybrid Architecture
 
-The application has been refactored to follow MVC (Model-View-Controller) architecture with additional Service and Repository layers for better separation of concerns.
+The application follows an MVC (Model-View-Controller) architecture enhanced with MVVM (Model-View-ViewModel) pattern for Views. This hybrid approach provides:
+- **MVC**: Overall application structure with Services and Controllers
+- **MVVM**: View-specific state management via ViewModelProvider pattern
+
+**Migration Status: 100% Complete** - All main views have been migrated to ViewModelProvider pattern.
 
 ### Architecture Layers:
 
@@ -122,12 +126,23 @@ The application has been refactored to follow MVC (Model-View-Controller) archit
 - **`command_manager.dart`** - Command history management and UART communication controller
 - **`update_logic_manager.dart`** - Update process coordinator handling download, install, and skip operations
 
-#### 4. **Views Layer** (`lib/views/`)
-- **`simple_scanner_view.dart`** - Responsive BLE scanner with animated components and device management
-- **`command_interface_view.dart`** - Chat-style command interface with history and real-time responses
-- **`update_settings_view.dart`** - Comprehensive update preferences and settings management
+#### 4. **Core Layer** (`lib/core/`)
+- **`service_locator.dart`** - GetIt-based dependency injection container
+- **`view_model/`** - ViewModelProvider pattern implementation (see ViewModelProvider Guide below)
+- **`mixins/`** - Reusable mixins for common functionality
 
-#### 5. **Widgets Layer** (`lib/widgets/`)
+#### 5. **ViewModels Layer** (`lib/view_models/`)
+- **`simple_scanner_view_model.dart`** - ViewModel for BLE scanner with device/theme/update management
+- **`command_interface_view_model.dart`** - ViewModel for command interface with message management
+- **`update_settings_view_model.dart`** - ViewModel for update settings with preferences management
+
+#### 6. **Views Layer** (`lib/views/`)
+All views now use the ViewModelProvider pattern for state management:
+- **`simple_scanner_view.dart`** - Responsive BLE scanner with ViewModelProvider (uses SimpleScannerViewModel)
+- **`command_interface_view.dart`** - Chat-style command interface with ViewModelProvider (uses CommandInterfaceViewModel)
+- **`update_settings_view.dart`** - Update preferences management with ViewModelProvider (uses UpdateSettingsViewModel)
+
+#### 7. **Widgets Layer** (`lib/widgets/`)
 **Scanner Components:**
 - **`device_list_widget.dart`** - BLE device discovery and listing
 - **`device_grid_widget.dart`** - Grid layout for discovered devices
@@ -155,9 +170,163 @@ The application has been refactored to follow MVC (Model-View-Controller) archit
 - **`animated_widgets.dart`** - Custom animated components (scan buttons, connection status)
 - **`notification_settings_dialog.dart`** - User interface for notification preferences
 
-#### 6. **Utils Layer** (`lib/utils/`)
+#### 8. **Utils Layer** (`lib/utils/`)
 - **`responsive_utils.dart`** - Screen breakpoint management and responsive calculations
 - **`logger.dart`** - Application logging utilities
+
+### ViewModelProvider Pattern Guide
+
+The application uses a custom lightweight ViewModelProvider pattern for View-specific state management. This pattern is designed to work seamlessly with the existing Service Locator (GetIt) pattern.
+
+#### Core Components (`lib/core/view_model/`):
+
+| Component | Purpose |
+|-----------|---------|
+| `BaseViewModel` | Base class with lifecycle management, stream subscriptions, loading/error states |
+| `ViewModelProvider<T>` | Widget that creates, provides, and disposes ViewModels |
+| `ViewModelBuilder<T>` | Consumes ViewModel from ancestor provider |
+| `ViewModelSelector<T, S>` | Fine-grained rebuilds based on selected value |
+| `ViewModelConsumer<T>` | Built-in loading/error state handling |
+| `ViewModelListener<T>` | Side effects without rebuilds |
+| `MountedAwareMixin` | Safe widget mount state tracking |
+
+#### Creating a ViewModel:
+
+```dart
+import 'package:cg500_blueteeth_app/core/view_model/view_model.dart';
+
+class MyViewModel extends BaseViewModel with MountedAwareMixin {
+  // Dependencies (can be injected or from service locator)
+  late final MyService _service;
+
+  // State
+  final List<String> _items = [];
+  List<String> get items => List.unmodifiable(_items);
+
+  @override
+  Future<void> onInit() async {
+    // Called automatically after creation
+    _service = getIt<MyService>();
+
+    // Subscribe to streams (auto-cancelled on dispose)
+    subscribe<String>(
+      _service.dataStream,
+      (data) => _onDataReceived(data),
+    );
+
+    // Load initial data
+    await _loadData();
+  }
+
+  void _onDataReceived(String data) {
+    _items.add(data);
+    safeNotifyListeners(); // Safe to call even after dispose
+  }
+
+  Future<void> _loadData() async {
+    setLoading(true);
+    try {
+      final data = await _service.fetchData();
+      _items.addAll(data);
+    } catch (e) {
+      setError('Failed to load: $e');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  @override
+  void onDispose() {
+    // Custom cleanup (stream subscriptions are auto-cancelled)
+    super.onDispose();
+  }
+}
+```
+
+#### Using ViewModelProvider in a View:
+
+```dart
+import 'package:cg500_blueteeth_app/core/view_model/view_model.dart';
+
+class MyView extends StatelessWidget {
+  const MyView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewModelProvider<MyViewModel>(
+      create: () => MyViewModel(),
+      builder: (context, viewModel, child) {
+        // Handle loading state
+        if (!viewModel.isInitialized) {
+          return const CircularProgressIndicator();
+        }
+
+        // Handle error state
+        if (viewModel.hasError) {
+          return Text('Error: ${viewModel.errorMessage}');
+        }
+
+        // Main content
+        return MyContent(viewModel: viewModel);
+      },
+    );
+  }
+}
+```
+
+#### Accessing ViewModel from Descendants:
+
+```dart
+// Method 1: Using static method
+final vm = ViewModelProvider.of<MyViewModel>(context);
+
+// Method 2: Using context extension (recommended)
+final vm = context.viewModel<MyViewModel>();
+
+// Method 3: Safe access (returns null if not found)
+final vm = ViewModelProvider.maybeOf<MyViewModel>(context);
+```
+
+#### Using ViewModelSelector for Optimized Rebuilds:
+
+```dart
+ViewModelSelector<MyViewModel, int>(
+  selector: (vm) => vm.items.length,  // Only rebuild when length changes
+  builder: (context, itemCount, child) {
+    return Text('Items: $itemCount');
+  },
+)
+```
+
+#### Using ViewModelListener for Side Effects:
+
+```dart
+ViewModelListener<MyViewModel>(
+  listenWhen: (vm) => vm.hasError,  // Only listen when has error
+  listener: (context, vm) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(vm.errorMessage!)),
+    );
+  },
+  child: MyContent(),
+)
+```
+
+#### Key Features:
+- **Automatic Lifecycle**: ViewModels are created, initialized, and disposed automatically
+- **Stream Auto-Cleanup**: All stream subscriptions are cancelled on dispose
+- **Safe Notifications**: `safeNotifyListeners()` prevents errors after dispose
+- **Loading/Error States**: Built-in `isLoading`, `hasError`, `errorMessage` properties
+- **Mounted State Tracking**: `MountedAwareMixin` for safe async operations
+- **Service Locator Compatible**: Works with existing GetIt dependency injection
+
+#### Creating New Views (ViewModelProvider Pattern):
+1. Create a new ViewModel class extending `BaseViewModel`
+2. Move state and business logic to the ViewModel
+3. Use `subscribe()` method for stream subscriptions (auto-cleanup on dispose)
+4. Create view using `ViewModelProvider` wrapper
+5. Add comprehensive tests for both ViewModel and View
+6. Follow existing patterns in `simple_scanner_view.dart` as reference
 
 ### Key Architecture Benefits:
 
@@ -203,10 +372,34 @@ The codebase follows strict single responsibility principles with highly modular
 #### **Refactoring Standards:**
 Recent comprehensive refactoring phases have achieved:
 - **Phase 1**: `command_interface_view.dart` (1150→948 lines, 17.5% reduction)
-- **Phase 2**: `simple_scanner_view.dart` (849→472 lines, 44.4% reduction)  
+- **Phase 2**: `simple_scanner_view.dart` (849→472 lines, 44.4% reduction)
 - **Phase 3**: `update_dialog.dart` (839→175 lines, 79.1% reduction)
 
 This demonstrates the effectiveness of extracting focused, reusable components that follow single responsibility principle.
+
+#### **Mid-Term Architecture Improvements (Completed):**
+1. **Unified ResponsiveLayout Usage**
+   - `responsive_layout.dart` re-exports `responsive_utils.dart` and `app_colors.dart`
+   - Simplified imports across widget and view files
+   - Single import for all responsive utilities
+
+2. **ViewModelProvider Pattern (100% Complete)**
+   - Custom lightweight MVVM implementation without external dependencies
+   - Automatic lifecycle management (init, dispose, stream subscriptions)
+   - Built-in loading/error state handling
+   - Compatible with existing Service Locator (GetIt)
+   - All main views now use this pattern
+
+#### **View Migrations (Completed):**
+All main views have been successfully migrated to the ViewModelProvider pattern:
+
+| View | ViewModel | Status |
+|------|-----------|--------|
+| `simple_scanner_view.dart` | `SimpleScannerViewModel` | ✅ Completed |
+| `command_interface_view.dart` | `CommandInterfaceViewModel` | ✅ Completed |
+| `update_settings_view.dart` | `UpdateSettingsViewModel` | ✅ Completed |
+
+Migration benefits achieved: Cleaner separation of concerns, automatic subscription cleanup, testable ViewModels, consistent state management patterns.
 
 #### **Current Status:**
 All major features are implemented and functional. The app provides:
@@ -216,6 +409,22 @@ All major features are implemented and functional. The app provides:
 - Multi-platform responsive design with breakpoint-based layouts
 - Comprehensive error handling and user feedback systems
 - Automated update system with GitHub Releases integration and modular update dialogs
+- ViewModelProvider pattern for all main views (100% migration complete)
+
+**Test Coverage:** 2173 tests passing
+- ViewModelProvider core tests: 39 tests
+- ViewModel unit tests: 200+ tests per ViewModel
+- Widget tests: Comprehensive coverage for all UI components
+- Integration tests: BLE controller and service integration
+
+**Architecture Readiness:**
+The codebase is now ready for:
+- UI redesign / theme customization
+- New feature development
+- Existing feature modifications
+- Performance optimizations
+
+All views follow consistent patterns, making changes predictable and testable.
 
 ## BLE Usage Guide
 

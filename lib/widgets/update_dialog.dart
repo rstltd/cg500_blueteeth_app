@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../services/update_service.dart' show UpdateInfo;
 import '../core/interfaces/network_service_interface.dart';
-import '../utils/responsive_utils.dart';
 import '../controllers/update_logic_manager.dart';
-import '../widgets/update_header_widget.dart';
-import '../widgets/version_info_widget.dart';
-import '../widgets/update_progress_widget.dart';
-import '../widgets/network_info_widget.dart';
-import '../widgets/update_actions_widget.dart';
+import 'responsive_layout.dart';
+import 'update_header_widget.dart';
+import 'version_info_widget.dart';
+import 'update_progress_widget.dart';
+import 'network_info_widget.dart';
+import 'update_actions_widget.dart';
 
 /// Dialog for displaying update information and handling user actions
 class UpdateDialog extends StatefulWidget {

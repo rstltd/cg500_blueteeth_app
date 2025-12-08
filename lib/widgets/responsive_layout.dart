@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../utils/responsive_utils.dart';
+import '../utils/app_colors.dart';
+
+// Re-export utilities for convenient single import
+export '../utils/responsive_utils.dart';
+export '../utils/app_colors.dart';
 
 /// A responsive layout widget that adapts to different screen sizes
 class ResponsiveLayout extends StatelessWidget {

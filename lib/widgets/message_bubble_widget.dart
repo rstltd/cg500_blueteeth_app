@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/theme_service.dart';
-import '../utils/responsive_utils.dart';
+import 'responsive_layout.dart';
 
 /// A reusable message bubble widget for chat-style communication
 class MessageBubbleWidget extends StatelessWidget {

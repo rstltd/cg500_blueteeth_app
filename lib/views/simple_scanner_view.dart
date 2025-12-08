@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/app_update_manager.dart';
+import '../core/view_model/view_model.dart';
 import '../models/ble_device.dart';
 import '../services/animation_service.dart';
-import '../services/notification_service.dart'; // For NotificationModel and NotificationType
+import '../services/notification_service.dart';
 import '../services/theme_service.dart';
-import '../core/service_locator.dart';
-import '../core/mixins/notification_listener_mixin.dart';
-import '../utils/responsive_utils.dart';
+import '../utils/formatting_utils.dart';
+import '../view_models/simple_scanner_view_model.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
 import '../widgets/responsive_layout.dart';
@@ -21,14 +21,16 @@ import '../widgets/device_details_dialog.dart';
 import 'command_interface_view.dart';
 import 'update_settings_view.dart';
 
-/// Simple Scanner View demonstrating MVC architecture usage.
-/// Shows how Views interact with Controllers instead of directly with Services.
+/// Simple Scanner View using ViewModelProvider pattern.
 ///
-/// Supports dependency injection for testability:
-/// - Use default constructor for production (uses service locator)
-/// - Use [SimpleScannerView.withDependencies] for testing
-class SimpleScannerView extends StatefulWidget {
-  /// Creates a SimpleScannerView using the service locator for dependencies.
+/// Uses the ViewModelProvider pattern for better separation of concerns.
+///
+/// Key features:
+/// - State management via SimpleScannerViewModel
+/// - Automatic subscription lifecycle management
+/// - Clean, testable code structure
+class SimpleScannerView extends StatelessWidget {
+  /// Creates a SimpleScannerView using the service locator.
   const SimpleScannerView({super.key})
       : _controller = null,
         _themeService = null,
@@ -49,48 +51,56 @@ class SimpleScannerView extends StatefulWidget {
   final AppUpdateManager? _updateManager;
 
   @override
-  State<SimpleScannerView> createState() => _SimpleScannerViewState();
+  Widget build(BuildContext context) {
+    return ViewModelProvider<SimpleScannerViewModel>(
+      create: () => SimpleScannerViewModel(
+        controller: _controller,
+        themeService: _themeService,
+        updateManager: _updateManager,
+      ),
+      builder: (context, viewModel, child) {
+        return _SimpleScannerContent(viewModel: viewModel);
+      },
+    );
+  }
 }
 
-class _SimpleScannerViewState extends State<SimpleScannerView>
-    with NotificationListenerMixin<SimpleScannerView> {
-  late final BleControllerInterface _controller;
-  late final ThemeService _themeService;
-  late final AppUpdateManager _updateManager;
-  bool _isInitialized = false;
+/// The main content widget that uses the ViewModel.
+class _SimpleScannerContent extends StatefulWidget {
+  const _SimpleScannerContent({required this.viewModel});
+
+  final SimpleScannerViewModel viewModel;
 
   @override
-  Stream<NotificationModel> get notificationStream =>
-      _controller.notificationStream;
+  State<_SimpleScannerContent> createState() => _SimpleScannerContentState();
+}
+
+class _SimpleScannerContentState extends State<_SimpleScannerContent> {
+  SimpleScannerViewModel get viewModel => widget.viewModel;
 
   @override
   void initState() {
     super.initState();
-    // Use injected dependencies or fall back to service locator
-    _controller = widget._controller ?? getIt<BleControllerInterface>();
-    _themeService = widget._themeService ?? getIt<ThemeService>();
-    _updateManager = widget._updateManager ?? getIt<AppUpdateManager>();
-    _initializeController();
-    initializeNotificationListener();
+    // Subscribe to notifications for SnackBar display
+    viewModel.notificationStream.listen(_handleNotification);
   }
 
-  @override
-  void dispose() {
-    disposeNotificationListener();
-    // Note: Don't dispose controller as it's managed by service locator
-    super.dispose();
-  }
-
-  Future<void> _initializeController() async {
-    bool success = await _controller.initialize();
-    setState(() {
-      _isInitialized = success;
-    });
+  void _handleNotification(NotificationModel notification) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${notification.title}: ${notification.message}'),
+          backgroundColor: FormattingUtils.getNotificationColor(notification.type),
+          duration: notification.duration ?? const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
+    // Show loading state
+    if (!viewModel.isInitialized) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('CG500 BLE Scanner'),
@@ -110,120 +120,14 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('CG500 BLE Scanner'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          // Notification Settings Button
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => showDialog(
-              context: context,
-              builder: (context) => const NotificationSettingsDialog(),
-            ),
-            tooltip: 'Notification Settings',
-          ),
-          
-          // More Settings Menu
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            tooltip: 'More Settings',
-            onSelected: (String value) {
-              switch (value) {
-                case 'check_updates':
-                  _updateManager.checkForUpdatesWithUI(force: true);
-                  break;
-                case 'update_settings':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const UpdateSettingsView(),
-                    ),
-                  );
-                  break;
-                case 'toggle_theme':
-                  _themeService.toggleTheme();
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
-                value: 'check_updates',
-                child: Row(
-                  children: [
-                    const Icon(Icons.refresh),
-                    const SizedBox(width: 12),
-                    const Text('Check for Updates'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'update_settings',
-                child: Row(
-                  children: [
-                    const Icon(Icons.system_update_alt),
-                    const SizedBox(width: 12),
-                    const Text('Update Settings'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'toggle_theme',
-                child: StreamBuilder<AppThemeMode>(
-                  stream: _themeService.themeModeStream,
-                  initialData: _themeService.currentThemeMode,
-                  builder: (context, snapshot) {
-                    return Row(
-                      children: [
-                        Icon(_themeService.themeModeIcon),
-                        const SizedBox(width: 12),
-                        Text(_themeService.themeModeDescription),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          
-          // Connected Device Actions
-          StreamBuilder<BleDeviceModel?>(
-            stream: _controller.connectedDeviceStream,
-            builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chat),
-                      onPressed: () => Navigator.of(context).push(
-                        AnimationService.createPageTransition(
-                          page: const CommandInterfaceView(),
-                          type: PageTransitionType.slideFromBottom,
-                        ),
-                      ),
-                      tooltip: 'Command Interface',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.bluetooth_connected),
-                      onPressed: () => _showConnectedDeviceInfo(snapshot.data!),
-                      tooltip: 'Device Info',
-                    ),
-                  ],
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(context),
       body: Column(
         children: [
-          // Update notification banner (replaces legacy banner)
+          // Update notification banner
           UpdateNotificationBanner(
-            updateManager: _updateManager,
+            updateManager: viewModel.updateManager,
           ),
-          
+
           // Main content
           Expanded(
             child: ResponsiveLayout(
@@ -237,34 +141,147 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
     );
   }
 
+  AppBar _buildAppBar(BuildContext context) {
+    return AppBar(
+      title: const Text('CG500 BLE Scanner'),
+      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      actions: [
+        // Notification Settings Button
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          onPressed: () => showDialog(
+            context: context,
+            builder: (context) => const NotificationSettingsDialog(),
+          ),
+          tooltip: 'Notification Settings',
+        ),
+
+        // More Settings Menu
+        _buildSettingsMenu(context),
+
+        // Connected Device Actions
+        _buildConnectedDeviceActions(context),
+      ],
+    );
+  }
+
+  Widget _buildSettingsMenu(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert),
+      tooltip: 'More Settings',
+      onSelected: (String value) {
+        switch (value) {
+          case 'check_updates':
+            viewModel.checkForUpdates(force: true);
+            break;
+          case 'update_settings':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const UpdateSettingsView(),
+              ),
+            );
+            break;
+          case 'toggle_theme':
+            viewModel.toggleTheme();
+            break;
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        PopupMenuItem<String>(
+          value: 'check_updates',
+          child: Row(
+            children: [
+              const Icon(Icons.refresh),
+              const SizedBox(width: 12),
+              const Text('Check for Updates'),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'update_settings',
+          child: Row(
+            children: [
+              const Icon(Icons.system_update_alt),
+              const SizedBox(width: 12),
+              const Text('Update Settings'),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'toggle_theme',
+          child: StreamBuilder<AppThemeMode>(
+            stream: viewModel.themeModeStream,
+            initialData: viewModel.themeMode,
+            builder: (context, snapshot) {
+              return Row(
+                children: [
+                  Icon(viewModel.themeModeIcon),
+                  const SizedBox(width: 12),
+                  Text(viewModel.themeModeDescription),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectedDeviceActions(BuildContext context) {
+    return StreamBuilder<BleDeviceModel?>(
+      stream: viewModel.connectedDeviceStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chat),
+                onPressed: () => Navigator.of(context).push(
+                  AnimationService.createPageTransition(
+                    page: const CommandInterfaceView(),
+                    type: PageTransitionType.slideFromBottom,
+                  ),
+                ),
+                tooltip: 'Command Interface',
+              ),
+              IconButton(
+                icon: const Icon(Icons.bluetooth_connected),
+                onPressed: () => _showConnectedDeviceInfo(snapshot.data!),
+                tooltip: 'Device Info',
+              ),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  // --- Layout Builders ---
+
   Widget _buildControlPanel() {
-    return ControlPanelWidget(controller: _controller);
+    return ControlPanelWidget(controller: viewModel.controller);
   }
 
   Widget _buildScanningIndicator() {
-    return ScanningIndicatorWidget(controller: _controller);
+    return ScanningIndicatorWidget(controller: viewModel.controller);
   }
 
   Widget _buildDeviceList() {
     return DeviceListWidget(
-      controller: _controller,
-      onDeviceConnect: (device) => _controller.connectToDevice(device.id),
-      onDeviceDisconnect: (device) => _controller.disconnectDevice(),
+      controller: viewModel.controller,
+      onDeviceConnect: (device) => viewModel.connectToDevice(device.id),
+      onDeviceDisconnect: (device) => viewModel.disconnectDevice(),
       onDeviceFavorite: (device) => _toggleDeviceFavorite(device),
     );
   }
 
-  /// Toggle device favorite status
   void _toggleDeviceFavorite(BleDeviceModel device) {
-    // Use the built-in toggleFavorite method from the model
-    // In a real app, this might save to persistent storage via controller
-    final updatedDevice = device.toggleFavorite();
-    // Notify controller of the change (assuming controller has such a method)
-    // For now, this is a placeholder as we need to update the controller
+    final updatedDevice = viewModel.toggleDeviceFavorite(device);
     debugPrint('Device ${device.id} favorite toggled: ${updatedDevice.isFavorite}');
   }
-
-
 
   void _showDeviceDetails(BleDeviceModel device) {
     DeviceDetailsDialog.show(context, device);
@@ -274,23 +291,18 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
     DeviceDetailsDialog.show(context, device);
   }
 
-  // Mobile Layout (Portrait and small screens)
+  // Mobile Layout
   Widget _buildMobileLayout() {
     return Column(
       children: [
-        // Control Panel
         _buildControlPanel(),
-        
-        // Scanning Indicator
         _buildScanningIndicator(),
-        
-        // Device List
         Expanded(child: _buildDeviceList()),
       ],
     );
   }
 
-  // Tablet Layout (Medium screens)
+  // Tablet Layout
   Widget _buildTabletLayout() {
     return ResponsiveUtils.isLandscape(context)
         ? _buildTabletLandscapeLayout()
@@ -301,13 +313,8 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
     return ResponsiveContainer(
       child: Column(
         children: [
-          // Control Panel
           _buildControlPanel(),
-          
-          // Scanning Indicator
           _buildScanningIndicator(),
-          
-          // Device List with responsive card width
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -326,7 +333,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
   Widget _buildTabletLandscapeLayout() {
     return Row(
       children: [
-        // Left Panel - Control and Connected Device Info
+        // Left Panel
         Container(
           width: 320,
           padding: ResponsiveUtils.getResponsivePadding(context),
@@ -335,9 +342,8 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
               _buildControlPanel(),
               _buildScanningIndicator(),
               const SizedBox(height: 16),
-              // Connected device quick info
               StreamBuilder<BleDeviceModel?>(
-                stream: _controller.connectedDeviceStream,
+                stream: viewModel.connectedDeviceStream,
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     return _buildConnectedDeviceCard(snapshot.data!);
@@ -348,14 +354,10 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
             ],
           ),
         ),
-        
-        // Divider
         Container(
           width: 1,
           color: AppColors.borderColor(context),
         ),
-        
-        // Right Panel - Device List
         Expanded(
           child: _buildDeviceList(),
         ),
@@ -363,7 +365,7 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
     );
   }
 
-  // Desktop Layout (Large screens)
+  // Desktop Layout
   Widget _buildDesktopLayout() {
     return ResponsiveContainer(
       child: Row(
@@ -377,10 +379,8 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
                 _buildControlPanel(),
                 _buildScanningIndicator(),
                 const SizedBox(height: 20),
-                
-                // Connected device detailed info
                 StreamBuilder<BleDeviceModel?>(
-                  stream: _controller.connectedDeviceStream,
+                  stream: viewModel.connectedDeviceStream,
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       return _buildConnectedDeviceCard(snapshot.data!);
@@ -388,25 +388,19 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
                     return const SizedBox.shrink();
                   },
                 ),
-                
-                // Quick stats
                 const SizedBox(height: 16),
                 _buildQuickStats(),
               ],
             ),
           ),
-          
-          // Divider
           Container(
             width: 1,
             color: AppColors.borderColor(context),
           ),
-          
           // Main content area
           Expanded(
             child: Column(
               children: [
-                // Header with search functionality (future enhancement)
                 Container(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -418,12 +412,9 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
                         color: AppColors.textPrimary(context),
                       ),
                       const Spacer(),
-                      // Future: Add search and filter buttons here
                     ],
                   ),
                 ),
-                
-                // Device grid for desktop
                 Expanded(
                   child: _buildResponsiveDeviceGrid(),
                 ),
@@ -435,20 +426,17 @@ class _SimpleScannerViewState extends State<SimpleScannerView>
     );
   }
 
-  // Connected device card for sidebar
   Widget _buildConnectedDeviceCard(BleDeviceModel device) {
     return ConnectedDeviceCardWidget(device: device);
   }
 
-  // Quick stats widget
   Widget _buildQuickStats() {
-    return QuickStatsWidget(controller: _controller);
+    return QuickStatsWidget(controller: viewModel.controller);
   }
 
-  // Responsive device grid for larger screens
   Widget _buildResponsiveDeviceGrid() {
     return DeviceGridWidget(
-      controller: _controller,
+      controller: viewModel.controller,
       onDeviceDetails: _showDeviceDetails,
     );
   }

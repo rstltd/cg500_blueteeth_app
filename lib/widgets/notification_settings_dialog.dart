@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/smart_notification_service.dart';
-import '../services/theme_service.dart';
-import '../utils/responsive_utils.dart';
+import 'responsive_layout.dart';
 
 /// Dialog for configuring notification preferences
 class NotificationSettingsDialog extends StatefulWidget {
