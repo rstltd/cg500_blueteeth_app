@@ -1,9 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cg500_blueteeth_app/widgets/notification_settings_dialog.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
+import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
+import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
+import '../mocks/mock_ble_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  late MockBleController mockController;
+  late SmartNotificationService mockNotificationService;
+
+  setUp(() async {
+    // Reset GetIt before each test
+    final getIt = GetIt.instance;
+    await getIt.reset();
+
+    // Set up mock SharedPreferences
+    SharedPreferences.setMockInitialValues({});
+
+    // Create mock services
+    mockController = MockBleController();
+    mockNotificationService = SmartNotificationService();
+
+    // Register services with GetIt
+    getIt.registerSingleton<NotificationServiceInterface>(mockNotificationService);
+    getIt.registerSingleton<BleControllerInterface>(mockController);
+  });
+
+  tearDown(() async {
+    mockController.dispose();
+    final getIt = GetIt.instance;
+    await getIt.reset();
+  });
 
   group('NotificationSettingsDialog', () {
     testWidgets('should create without error', (WidgetTester tester) async {
@@ -100,6 +132,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Smart Filtering'), findsOneWidget);
       expect(find.byIcon(Icons.filter_alt), findsOneWidget);
@@ -113,6 +146,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Notification Categories'), findsOneWidget);
       expect(find.byIcon(Icons.category), findsOneWidget);
@@ -126,6 +160,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Statistics'), findsOneWidget);
       expect(find.byIcon(Icons.analytics), findsOneWidget);
@@ -141,6 +176,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Enable Smart Filtering'), findsOneWidget);
       expect(find.text('Automatically reduce notification spam and duplicates'), findsOneWidget);
@@ -154,11 +190,17 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(SwitchListTile), findsOneWidget);
     });
 
     testWidgets('should toggle smart filtering switch', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -166,6 +208,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Find the SwitchListTile and tap it
       final switchFinder = find.byType(SwitchListTile);
@@ -179,6 +222,11 @@ void main() {
     });
 
     testWidgets('should show info card when smart filtering is enabled', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -186,6 +234,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Smart filtering is enabled by default
       expect(find.byIcon(Icons.lightbulb_outline), findsOneWidget);
@@ -202,6 +251,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Connection Events'), findsOneWidget);
       expect(find.text('Show notifications when devices connect/disconnect'), findsOneWidget);
@@ -216,6 +266,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Scanning Events'), findsOneWidget);
       expect(find.text('Show notifications during device scanning'), findsOneWidget);
@@ -230,6 +281,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('MTU Configuration'), findsOneWidget);
       expect(find.text('Show notifications about MTU setup'), findsOneWidget);
@@ -244,6 +296,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Command Feedback'), findsOneWidget);
       expect(find.text('Show notifications for sent commands'), findsOneWidget);
@@ -258,6 +311,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // 4 category switches + 1 smart filtering switch = 5 switches
       expect(find.byType(Switch), findsNWidgets(5));
@@ -273,6 +327,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Total Notifications'), findsOneWidget);
     });
@@ -285,6 +340,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Filtered Notifications'), findsOneWidget);
     });
@@ -297,6 +353,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Pending Notifications'), findsOneWidget);
     });
@@ -309,6 +366,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.text('Clear Filters'), findsOneWidget);
       expect(find.byIcon(Icons.clear_all), findsOneWidget);
@@ -324,6 +382,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(SingleChildScrollView), findsOneWidget);
     });
@@ -336,6 +395,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(Column), findsWidgets);
     });
@@ -348,6 +408,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(Row), findsWidgets);
     });
@@ -360,6 +421,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(Card), findsWidgets);
     });
@@ -372,6 +434,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(Divider), findsWidgets);
     });
@@ -387,6 +450,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
@@ -400,6 +464,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
@@ -417,6 +482,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
@@ -437,6 +503,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
@@ -453,6 +520,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
@@ -469,6 +537,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
@@ -476,6 +545,11 @@ void main() {
 
   group('NotificationSettingsDialog interactions', () {
     testWidgets('should toggle connection events switch', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -483,6 +557,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Find switches - Connection events is enabled by default
       final switches = find.byType(Switch);
@@ -497,6 +572,11 @@ void main() {
     });
 
     testWidgets('should toggle scanning events switch', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -504,6 +584,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       final switches = find.byType(Switch);
       await tester.tap(switches.at(2)); // Scanning Events switch
@@ -513,6 +594,11 @@ void main() {
     });
 
     testWidgets('should toggle MTU configuration switch', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -520,6 +606,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       final switches = find.byType(Switch);
       await tester.tap(switches.at(3)); // MTU Configuration switch
@@ -529,6 +616,11 @@ void main() {
     });
 
     testWidgets('should toggle command feedback switch', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -536,6 +628,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       final switches = find.byType(Switch);
       await tester.tap(switches.at(4)); // Command Feedback switch
@@ -545,6 +638,11 @@ void main() {
     });
 
     testWidgets('should hide info card when smart filtering is disabled', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -552,6 +650,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Initially smart filtering is enabled, so info card is visible
       expect(find.byIcon(Icons.lightbulb_outline), findsOneWidget);
@@ -567,6 +666,11 @@ void main() {
 
   group('NotificationSettingsDialog buttons', () {
     testWidgets('Cancel button should be TextButton', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -574,11 +678,17 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.widgetWithText(TextButton, 'Cancel'), findsOneWidget);
     });
 
     testWidgets('Apply Settings button should be ElevatedButton', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -586,11 +696,17 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       expect(find.widgetWithText(ElevatedButton, 'Apply Settings'), findsOneWidget);
     });
 
     testWidgets('Clear Filters should be TextButton.icon', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -598,6 +714,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // TextButton.icon creates a TextButton with icon and label
       // Verify both the text and the clear_all icon exist
@@ -608,6 +725,11 @@ void main() {
 
   group('NotificationSettingsDialog state', () {
     testWidgets('should maintain state during rebuilds', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -615,6 +737,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Toggle a switch
       final switches = find.byType(Switch);
@@ -629,12 +752,18 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Widget should still be present
       expect(find.byType(NotificationSettingsDialog), findsOneWidget);
     });
 
     testWidgets('should handle rapid toggle interactions', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -642,6 +771,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       final switchListTile = find.byType(SwitchListTile);
 
@@ -657,6 +787,11 @@ void main() {
 
   group('NotificationSettingsDialog accessibility', () {
     testWidgets('should have all required icons', (WidgetTester tester) async {
+      // Use larger screen size to accommodate dialog content
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -664,6 +799,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
       // Header icons
       expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);

@@ -673,9 +673,11 @@ void main() {
       await resetServiceLocator();
       mockBleService = MockBleService();
       mockNotificationService = MockNotificationService();
+      // Use DefaultBleNotificationDelegate to ensure all notifications are shown for testing
       diController = SimpleBleController.withDependencies(
         bleService: mockBleService,
         notificationService: mockNotificationService,
+        notificationDelegate: DefaultBleNotificationDelegate(mockNotificationService),
       );
     });
 
@@ -1095,13 +1097,13 @@ void main() {
         expect(controller.notificationDelegate, same(mockDelegate));
       });
 
-      test('should use DefaultBleNotificationDelegate when not provided', () {
+      test('should use ConfigurableBleNotificationDelegate when not provided', () {
         final defaultController = SimpleBleController.withDependencies(
           bleService: mockBleService,
           notificationService: mockNotificationService,
         );
 
-        expect(defaultController.notificationDelegate, isA<DefaultBleNotificationDelegate>());
+        expect(defaultController.notificationDelegate, isA<ConfigurableBleNotificationDelegate>());
         defaultController.dispose();
       });
     });

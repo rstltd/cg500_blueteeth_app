@@ -665,7 +665,14 @@ class _NewDevicePulseAnimationState extends State<NewDevicePulseAnimation>
         weight: 60,
       ),
     ]).animate(_controller);
+    // Note: Don't call _startAnimation() here - context is not available yet
+    // Animation will be started in didChangeDependencies() instead
+  }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Start animation here after dependencies (including MediaQuery) are available
     if (widget.isNew && !_hasPlayed) {
       _startAnimation();
     }

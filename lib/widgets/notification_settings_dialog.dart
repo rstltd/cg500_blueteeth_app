@@ -334,9 +334,12 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             color: AppColors.textSecondary(context),
           ),
           SizedBox(width: DesignTokens.spacingS),
-          Text(
-            title,
-            style: AppTextStyles.titleSmall(context),
+          Flexible(
+            child: Text(
+              title,
+              style: AppTextStyles.titleSmall(context),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
