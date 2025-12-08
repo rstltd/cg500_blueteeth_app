@@ -41,6 +41,54 @@ class MockBleController implements BleControllerInterface {
   BleDeviceModel? _connectedDevice;
   bool _isInitialized = false;
 
+  // Configurable behavior for testing
+  bool _shouldSendCommandSucceed = true;
+  bool _shouldConnectSucceed = true;
+  Duration _commandDelay = Duration.zero;
+  final List<String> _sentCommands = [];
+
+  // Test inspection getters
+  List<String> get sentCommands => List.unmodifiable(_sentCommands);
+  int get sendCommandCallCount => _sentCommands.length;
+
+  /// Configure send command behavior
+  void configureSendCommand({
+    bool succeed = true,
+    Duration delay = Duration.zero,
+  }) {
+    _shouldSendCommandSucceed = succeed;
+    _commandDelay = delay;
+  }
+
+  /// Configure connect behavior
+  void configureConnect({bool succeed = true}) {
+    _shouldConnectSucceed = succeed;
+  }
+
+  /// Simulate a connected device directly
+  void simulateConnected(BleDeviceModel device) {
+    _connectedDevice = device;
+    _connectedDeviceController.add(device);
+  }
+
+  /// Simulate disconnection
+  void simulateDisconnected() {
+    _connectedDevice = null;
+    _connectedDeviceController.add(null);
+  }
+
+  /// Reset all mock state
+  void reset() {
+    _devices = [];
+    _isScanning = false;
+    _connectedDevice = null;
+    _isInitialized = false;
+    _shouldSendCommandSucceed = true;
+    _shouldConnectSucceed = true;
+    _commandDelay = Duration.zero;
+    _sentCommands.clear();
+  }
+
   // Getters - same interface as SimpleBleController
   @override
   bool get isScanning => _isScanning;
@@ -108,6 +156,9 @@ class MockBleController implements BleControllerInterface {
   /// Connect to a device
   @override
   Future<bool> connectToDevice(String deviceId) async {
+    if (!_shouldConnectSucceed) {
+      return false;
+    }
     final device = _devices.firstWhere(
       (d) => d.id == deviceId,
       orElse: () => BleDeviceModel(
@@ -137,8 +188,32 @@ class MockBleController implements BleControllerInterface {
   /// Send command
   @override
   Future<bool> sendCommand(String command) async {
-    _commandResponseController.add('Response to: $command');
-    return true;
+    _sentCommands.add(command);
+
+    if (_commandDelay > Duration.zero) {
+      await Future.delayed(_commandDelay);
+    }
+
+    if (_shouldSendCommandSucceed) {
+      _commandResponseController.add('Response to: $command');
+    }
+    return _shouldSendCommandSucceed;
+  }
+
+  // Configurable command info for testing
+  bool _hasCommandChannel = true;
+  bool _hasResponseChannel = true;
+  int _mtu = 247;
+
+  /// Configure command info for testing
+  void configureCommandInfo({
+    bool hasCommandChannel = true,
+    bool hasResponseChannel = true,
+    int mtu = 247,
+  }) {
+    _hasCommandChannel = hasCommandChannel;
+    _hasResponseChannel = hasResponseChannel;
+    _mtu = mtu;
   }
 
   /// Get command info
@@ -148,6 +223,9 @@ class MockBleController implements BleControllerInterface {
       'txCharacteristic': 'mock-tx',
       'rxCharacteristic': 'mock-rx',
       'connected': _connectedDevice != null,
+      'hasCommandChannel': _hasCommandChannel,
+      'hasResponseChannel': _hasResponseChannel,
+      'mtu': _mtu,
     };
   }
 

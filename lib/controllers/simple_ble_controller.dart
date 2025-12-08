@@ -4,6 +4,7 @@ import '../models/ble_service.dart';
 import '../services/notification_service.dart' show NotificationModel;
 import '../core/interfaces/ble_service_interface.dart';
 import '../core/interfaces/notification_service_interface.dart';
+import '../core/interfaces/ble_notification_delegate.dart';
 import 'ble_controller_interface.dart';
 
 /// Simple BLE Controller demonstrating the MVC architecture.
@@ -20,11 +21,18 @@ class SimpleBleController implements BleControllerInterface {
   SimpleBleController.withDependencies({
     required BleServiceInterface bleService,
     required NotificationServiceInterface notificationService,
+    BleNotificationDelegate? notificationDelegate,
   })  : _bleService = bleService,
-        _notificationService = notificationService;
+        _notificationService = notificationService,
+        _notificationDelegate = notificationDelegate ??
+            DefaultBleNotificationDelegate(notificationService);
 
   final BleServiceInterface _bleService;
   final NotificationServiceInterface _notificationService;
+  final BleNotificationDelegate _notificationDelegate;
+
+  /// Getter for notification delegate (for testing)
+  BleNotificationDelegate get notificationDelegate => _notificationDelegate;
 
   // Expose service streams for UI consumption
   @override
@@ -46,22 +54,13 @@ class SimpleBleController implements BleControllerInterface {
     try {
       bool success = await _bleService.initialize();
       if (success) {
-        _notificationService.showSuccess(
-          title: 'Controller Ready',
-          message: 'BLE Controller initialized successfully',
-        );
+        _notificationDelegate.onInitializeSuccess();
       } else {
-        _notificationService.showError(
-          title: 'Initialization Failed',
-          message: 'Failed to initialize BLE Controller',
-        );
+        _notificationDelegate.onInitializeFailed();
       }
       return success;
     } catch (e) {
-      _notificationService.showError(
-        title: 'Controller Error',
-        message: 'Unexpected error during initialization: $e',
-      );
+      _notificationDelegate.onInitializeError(e.toString());
       return false;
     }
   }
@@ -70,19 +69,13 @@ class SimpleBleController implements BleControllerInterface {
   @override
   Future<bool> startScanning({Duration? timeout}) async {
     try {
-      _notificationService.showInfo(
-        title: 'Scanning Started',
-        message: 'Looking for BLE devices nearby...',
-      );
-      
+      _notificationDelegate.onScanStarted();
+
       return await _bleService.startScanning(
         timeout: timeout ?? const Duration(seconds: 15),
       );
     } catch (e) {
-      _notificationService.showError(
-        title: 'Scan Error',
-        message: 'Failed to start scanning: $e',
-      );
+      _notificationDelegate.onScanError(e.toString());
       return false;
     }
   }
@@ -92,15 +85,9 @@ class SimpleBleController implements BleControllerInterface {
   Future<void> stopScanning() async {
     try {
       await _bleService.stopScanning();
-      _notificationService.showInfo(
-        title: 'Scanning Stopped',
-        message: 'Device scanning has been stopped',
-      );
+      _notificationDelegate.onScanStopped();
     } catch (e) {
-      _notificationService.showError(
-        title: 'Stop Scan Error',
-        message: 'Failed to stop scanning: $e',
-      );
+      _notificationDelegate.onStopScanError(e.toString());
     }
   }
 
@@ -108,24 +95,18 @@ class SimpleBleController implements BleControllerInterface {
   @override
   Future<bool> connectToDevice(String deviceId) async {
     try {
-      _notificationService.showInfo(
-        title: 'Connecting',
-        message: 'Attempting to connect to device...',
-      );
+      _notificationDelegate.onConnecting();
 
       bool success = await _bleService.connectToDevice(deviceId);
-      
+
       if (success) {
         // Automatically discover services after connection
         await discoverServices(deviceId);
       }
-      
+
       return success;
     } catch (e) {
-      _notificationService.showError(
-        title: 'Connection Error',
-        message: 'Failed to connect to device: $e',
-      );
+      _notificationDelegate.onConnectionError(e.toString());
       return false;
     }
   }
@@ -136,10 +117,7 @@ class SimpleBleController implements BleControllerInterface {
     try {
       await _bleService.disconnectDevice();
     } catch (e) {
-      _notificationService.showError(
-        title: 'Disconnect Error',
-        message: 'Failed to disconnect device: $e',
-      );
+      _notificationDelegate.onDisconnectError(e.toString());
     }
   }
 
@@ -147,31 +125,20 @@ class SimpleBleController implements BleControllerInterface {
   @override
   Future<List<BleServiceModel>> discoverServices(String deviceId) async {
     try {
-      _notificationService.showInfo(
-        title: 'Discovering Services',
-        message: 'Exploring device capabilities...',
-      );
+      _notificationDelegate.onDiscoveringServices();
 
-      List<BleServiceModel> services = await _bleService.discoverServices(deviceId);
-      
+      List<BleServiceModel> services =
+          await _bleService.discoverServices(deviceId);
+
       if (services.isNotEmpty) {
-        _notificationService.showSuccess(
-          title: 'Services Found',
-          message: 'Discovered ${services.length} service(s)',
-        );
+        _notificationDelegate.onServicesFound(services.length);
       } else {
-        _notificationService.showWarning(
-          title: 'No Services',
-          message: 'No GATT services found on device',
-        );
+        _notificationDelegate.onNoServicesFound();
       }
-      
+
       return services;
     } catch (e) {
-      _notificationService.showError(
-        title: 'Service Discovery Error',
-        message: 'Failed to discover services: $e',
-      );
+      _notificationDelegate.onServiceDiscoveryError(e.toString());
       return [];
     }
   }
@@ -190,30 +157,21 @@ class SimpleBleController implements BleControllerInterface {
   @override
   void clearDevices() {
     _bleService.clearScannedDevices();
-    _notificationService.showInfo(
-      title: 'Devices Cleared',
-      message: 'Cleared device list',
-    );
+    _notificationDelegate.onDevicesCleared();
   }
 
   // Send text command to connected device
   @override
   Future<bool> sendCommand(String command) async {
     if (command.trim().isEmpty) {
-      _notificationService.showWarning(
-        title: 'Empty Command',
-        message: 'Please enter a command to send',
-      );
+      _notificationDelegate.onEmptyCommand();
       return false;
     }
 
     try {
       return await _bleService.sendCommand(command.trim());
     } catch (e) {
-      _notificationService.showError(
-        title: 'Command Error',
-        message: 'Failed to send command: $e',
-      );
+      _notificationDelegate.onCommandError(e.toString());
       return false;
     }
   }

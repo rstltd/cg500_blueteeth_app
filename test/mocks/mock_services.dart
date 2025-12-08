@@ -7,6 +7,7 @@ import 'package:cg500_blueteeth_app/core/interfaces/ble_service_interface.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/error_handling_service_interface.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
@@ -204,6 +205,125 @@ class MockBleService implements BleServiceInterface {
   bool _isScanning = false;
   bool _isInitialized = false;
 
+  // Configurable behavior for testing different scenarios
+  bool _initializeSuccess = true;
+  bool _initializeThrowError = false;
+  String _initializeErrorMessage = 'Mock initialize error';
+
+  bool _startScanningThrowError = false;
+  String _startScanningErrorMessage = 'Mock scanning error';
+
+  bool _stopScanningThrowError = false;
+  String _stopScanningErrorMessage = 'Mock stop scanning error';
+
+  bool _connectSuccess = true;
+  bool _connectThrowError = false;
+  String _connectErrorMessage = 'Mock connect error';
+
+  bool _disconnectThrowError = false;
+  String _disconnectErrorMessage = 'Mock disconnect error';
+
+  int _discoverServicesCount = 0;
+  bool _discoverServicesThrowError = false;
+  String _discoverServicesErrorMessage = 'Mock service discovery error';
+
+  bool _sendCommandSuccess = true;
+  bool _sendCommandThrowError = false;
+  String _sendCommandErrorMessage = 'Mock send command error';
+
+  /// Configure initialize behavior
+  void configureInitialize({
+    bool success = true,
+    bool throwError = false,
+    String errorMessage = 'Mock initialize error',
+  }) {
+    _initializeSuccess = success;
+    _initializeThrowError = throwError;
+    _initializeErrorMessage = errorMessage;
+  }
+
+  /// Configure startScanning behavior
+  void configureStartScanning({
+    bool throwError = false,
+    String errorMessage = 'Mock scanning error',
+  }) {
+    _startScanningThrowError = throwError;
+    _startScanningErrorMessage = errorMessage;
+  }
+
+  /// Configure stopScanning behavior
+  void configureStopScanning({
+    bool throwError = false,
+    String errorMessage = 'Mock stop scanning error',
+  }) {
+    _stopScanningThrowError = throwError;
+    _stopScanningErrorMessage = errorMessage;
+  }
+
+  /// Configure connect behavior
+  void configureConnect({
+    bool success = true,
+    bool throwError = false,
+    String errorMessage = 'Mock connect error',
+  }) {
+    _connectSuccess = success;
+    _connectThrowError = throwError;
+    _connectErrorMessage = errorMessage;
+  }
+
+  /// Configure disconnect behavior
+  void configureDisconnect({
+    bool throwError = false,
+    String errorMessage = 'Mock disconnect error',
+  }) {
+    _disconnectThrowError = throwError;
+    _disconnectErrorMessage = errorMessage;
+  }
+
+  /// Configure discoverServices behavior
+  void configureDiscoverServices({
+    int serviceCount = 0,
+    bool throwError = false,
+    String errorMessage = 'Mock service discovery error',
+  }) {
+    _discoverServicesCount = serviceCount;
+    _discoverServicesThrowError = throwError;
+    _discoverServicesErrorMessage = errorMessage;
+  }
+
+  /// Configure sendCommand behavior
+  void configureSendCommand({
+    bool success = true,
+    bool throwError = false,
+    String errorMessage = 'Mock send command error',
+  }) {
+    _sendCommandSuccess = success;
+    _sendCommandThrowError = throwError;
+    _sendCommandErrorMessage = errorMessage;
+  }
+
+  /// Reset all configurable behavior to defaults
+  void resetConfiguration() {
+    _initializeSuccess = true;
+    _initializeThrowError = false;
+    _initializeErrorMessage = 'Mock initialize error';
+    _startScanningThrowError = false;
+    _startScanningErrorMessage = 'Mock scanning error';
+    _stopScanningThrowError = false;
+    _stopScanningErrorMessage = 'Mock stop scanning error';
+    _connectSuccess = true;
+    _connectThrowError = false;
+    _connectErrorMessage = 'Mock connect error';
+    _disconnectThrowError = false;
+    _disconnectErrorMessage = 'Mock disconnect error';
+    _discoverServicesCount = 0;
+    _discoverServicesThrowError = false;
+    _discoverServicesErrorMessage = 'Mock service discovery error';
+    _sendCommandSuccess = true;
+    _sendCommandThrowError = false;
+    _sendCommandErrorMessage = 'Mock send command error';
+  }
+
   @override
   Stream<List<BleDeviceModel>> get devicesStream => _devicesController.stream;
   @override
@@ -230,8 +350,11 @@ class MockBleService implements BleServiceInterface {
 
   @override
   Future<bool> initialize() async {
-    _isInitialized = true;
-    return true;
+    if (_initializeThrowError) {
+      throw Exception(_initializeErrorMessage);
+    }
+    _isInitialized = _initializeSuccess;
+    return _initializeSuccess;
   }
 
   @override
@@ -242,6 +365,9 @@ class MockBleService implements BleServiceInterface {
 
   @override
   Future<bool> startScanning({Duration timeout = const Duration(seconds: 15)}) async {
+    if (_startScanningThrowError) {
+      throw Exception(_startScanningErrorMessage);
+    }
     _isScanning = true;
     _scanningController.add(true);
     return true;
@@ -249,6 +375,9 @@ class MockBleService implements BleServiceInterface {
 
   @override
   Future<void> stopScanning() async {
+    if (_stopScanningThrowError) {
+      throw Exception(_stopScanningErrorMessage);
+    }
     _isScanning = false;
     _scanningController.add(false);
   }
@@ -261,6 +390,12 @@ class MockBleService implements BleServiceInterface {
 
   @override
   Future<bool> connectToDevice(String deviceId) async {
+    if (_connectThrowError) {
+      throw Exception(_connectErrorMessage);
+    }
+    if (!_connectSuccess) {
+      return false;
+    }
     _connectedDevice = _devices.firstWhere(
       (d) => d.id == deviceId,
       orElse: () => BleDeviceModel(id: deviceId, name: 'Mock', displayName: 'Mock'),
@@ -271,19 +406,42 @@ class MockBleService implements BleServiceInterface {
 
   @override
   Future<void> disconnectDevice() async {
+    if (_disconnectThrowError) {
+      throw Exception(_disconnectErrorMessage);
+    }
     _connectedDevice = null;
     _connectedDeviceController.add(null);
   }
 
   @override
   Future<List<BleServiceModel>> discoverServices(String deviceId) async {
-    return [];
+    if (_discoverServicesThrowError) {
+      throw Exception(_discoverServicesErrorMessage);
+    }
+    if (_discoverServicesCount == 0) {
+      return [];
+    }
+    // Generate mock services based on configured count
+    return List.generate(
+      _discoverServicesCount,
+      (index) => BleServiceModel(
+        uuid: '0000180${index}-0000-1000-8000-00805f9b34fb',
+        displayName: 'Mock Service $index',
+        characteristics: [],
+      ),
+    );
   }
 
   @override
   Future<bool> sendCommand(String command) async {
+    if (_sendCommandThrowError) {
+      throw Exception(_sendCommandErrorMessage);
+    }
     // Check if connected - return false when not connected
     if (_connectedDevice == null) {
+      return false;
+    }
+    if (!_sendCommandSuccess) {
       return false;
     }
     _commandResponseController.add('Response: $command');
@@ -529,6 +687,163 @@ class MockErrorHandlingService implements ErrorHandlingServiceInterface {
   @override
   void dispose() {
     _errorController.close();
+  }
+}
+
+/// Mock implementation of BleNotificationDelegate for testing
+class MockBleNotificationDelegate implements BleNotificationDelegate {
+  // Track all delegate calls for verification
+  final List<String> calls = [];
+
+  // Specific call tracking
+  int initializeSuccessCount = 0;
+  int initializeFailedCount = 0;
+  final List<String> initializeErrors = [];
+  int scanStartedCount = 0;
+  int scanStoppedCount = 0;
+  final List<String> scanErrors = [];
+  final List<String> stopScanErrors = [];
+  int connectingCount = 0;
+  int connectedCount = 0;
+  final List<String> connectionErrors = [];
+  final List<String> disconnectErrors = [];
+  int discoveringServicesCount = 0;
+  final List<int> servicesFoundCounts = [];
+  int noServicesFoundCount = 0;
+  final List<String> serviceDiscoveryErrors = [];
+  int emptyCommandCount = 0;
+  final List<String> commandErrors = [];
+  int devicesClearedCount = 0;
+
+  @override
+  void onInitializeSuccess() {
+    calls.add('onInitializeSuccess');
+    initializeSuccessCount++;
+  }
+
+  @override
+  void onInitializeFailed() {
+    calls.add('onInitializeFailed');
+    initializeFailedCount++;
+  }
+
+  @override
+  void onInitializeError(String error) {
+    calls.add('onInitializeError: $error');
+    initializeErrors.add(error);
+  }
+
+  @override
+  void onScanStarted() {
+    calls.add('onScanStarted');
+    scanStartedCount++;
+  }
+
+  @override
+  void onScanStopped() {
+    calls.add('onScanStopped');
+    scanStoppedCount++;
+  }
+
+  @override
+  void onScanError(String error) {
+    calls.add('onScanError: $error');
+    scanErrors.add(error);
+  }
+
+  @override
+  void onStopScanError(String error) {
+    calls.add('onStopScanError: $error');
+    stopScanErrors.add(error);
+  }
+
+  @override
+  void onConnecting() {
+    calls.add('onConnecting');
+    connectingCount++;
+  }
+
+  @override
+  void onConnected() {
+    calls.add('onConnected');
+    connectedCount++;
+  }
+
+  @override
+  void onConnectionError(String error) {
+    calls.add('onConnectionError: $error');
+    connectionErrors.add(error);
+  }
+
+  @override
+  void onDisconnectError(String error) {
+    calls.add('onDisconnectError: $error');
+    disconnectErrors.add(error);
+  }
+
+  @override
+  void onDiscoveringServices() {
+    calls.add('onDiscoveringServices');
+    discoveringServicesCount++;
+  }
+
+  @override
+  void onServicesFound(int count) {
+    calls.add('onServicesFound: $count');
+    servicesFoundCounts.add(count);
+  }
+
+  @override
+  void onNoServicesFound() {
+    calls.add('onNoServicesFound');
+    noServicesFoundCount++;
+  }
+
+  @override
+  void onServiceDiscoveryError(String error) {
+    calls.add('onServiceDiscoveryError: $error');
+    serviceDiscoveryErrors.add(error);
+  }
+
+  @override
+  void onEmptyCommand() {
+    calls.add('onEmptyCommand');
+    emptyCommandCount++;
+  }
+
+  @override
+  void onCommandError(String error) {
+    calls.add('onCommandError: $error');
+    commandErrors.add(error);
+  }
+
+  @override
+  void onDevicesCleared() {
+    calls.add('onDevicesCleared');
+    devicesClearedCount++;
+  }
+
+  /// Reset all tracked calls
+  void reset() {
+    calls.clear();
+    initializeSuccessCount = 0;
+    initializeFailedCount = 0;
+    initializeErrors.clear();
+    scanStartedCount = 0;
+    scanStoppedCount = 0;
+    scanErrors.clear();
+    stopScanErrors.clear();
+    connectingCount = 0;
+    connectedCount = 0;
+    connectionErrors.clear();
+    disconnectErrors.clear();
+    discoveringServicesCount = 0;
+    servicesFoundCounts.clear();
+    noServicesFoundCount = 0;
+    serviceDiscoveryErrors.clear();
+    emptyCommandCount = 0;
+    commandErrors.clear();
+    devicesClearedCount = 0;
   }
 }
 

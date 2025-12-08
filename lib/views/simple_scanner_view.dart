@@ -1,14 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/app_update_manager.dart';
 import '../models/ble_device.dart';
-import '../models/connection_state.dart';
 import '../services/animation_service.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
 import '../core/service_locator.dart';
-import '../utils/formatting_utils.dart';
+import '../core/mixins/notification_listener_mixin.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
@@ -19,41 +17,66 @@ import '../widgets/scanning_indicator_widget.dart';
 import '../widgets/connected_device_card_widget.dart';
 import '../widgets/quick_stats_widget.dart';
 import '../widgets/device_grid_widget.dart';
+import '../widgets/device_details_dialog.dart';
 import 'command_interface_view.dart';
 import 'update_settings_view.dart';
 
-/// Simple Scanner View demonstrating MVC architecture usage
-/// Shows how Views interact with Controllers instead of directly with Services
+/// Simple Scanner View demonstrating MVC architecture usage.
+/// Shows how Views interact with Controllers instead of directly with Services.
+///
+/// Supports dependency injection for testability:
+/// - Use default constructor for production (uses service locator)
+/// - Use [SimpleScannerView.withDependencies] for testing
 class SimpleScannerView extends StatefulWidget {
-  const SimpleScannerView({super.key});
+  /// Creates a SimpleScannerView using the service locator for dependencies.
+  const SimpleScannerView({super.key})
+      : _controller = null,
+        _themeService = null,
+        _updateManager = null;
+
+  /// Creates a SimpleScannerView with explicit dependencies for testing.
+  const SimpleScannerView.withDependencies({
+    super.key,
+    required BleControllerInterface controller,
+    required ThemeService themeService,
+    required AppUpdateManager updateManager,
+  })  : _controller = controller,
+        _themeService = themeService,
+        _updateManager = updateManager;
+
+  final BleControllerInterface? _controller;
+  final ThemeService? _themeService;
+  final AppUpdateManager? _updateManager;
 
   @override
   State<SimpleScannerView> createState() => _SimpleScannerViewState();
 }
 
-class _SimpleScannerViewState extends State<SimpleScannerView> {
+class _SimpleScannerViewState extends State<SimpleScannerView>
+    with NotificationListenerMixin<SimpleScannerView> {
   late final BleControllerInterface _controller;
   late final ThemeService _themeService;
   late final AppUpdateManager _updateManager;
   bool _isInitialized = false;
 
-  // StreamSubscription management
-  StreamSubscription<NotificationModel>? _notificationSubscription;
+  @override
+  Stream<NotificationModel> get notificationStream =>
+      _controller.notificationStream;
 
   @override
   void initState() {
     super.initState();
-    _controller = getIt<BleControllerInterface>();
-    _themeService = getIt<ThemeService>();
-    _updateManager = getIt<AppUpdateManager>();
+    // Use injected dependencies or fall back to service locator
+    _controller = widget._controller ?? getIt<BleControllerInterface>();
+    _themeService = widget._themeService ?? getIt<ThemeService>();
+    _updateManager = widget._updateManager ?? getIt<AppUpdateManager>();
     _initializeController();
-    _listenToNotifications();
+    initializeNotificationListener();
   }
 
   @override
   void dispose() {
-    // Cancel stream subscription to prevent memory leaks
-    _notificationSubscription?.cancel();
+    disposeNotificationListener();
     // Note: Don't dispose controller as it's managed by service locator
     super.dispose();
   }
@@ -63,24 +86,6 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
     setState(() {
       _isInitialized = success;
     });
-  }
-
-  void _listenToNotifications() {
-    _notificationSubscription = _controller.notificationStream.listen((notification) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${notification.title}: ${notification.message}'),
-            backgroundColor: _getNotificationColor(notification.type),
-            duration: notification.duration ?? const Duration(seconds: 3),
-          ),
-        );
-      }
-    });
-  }
-
-  Color _getNotificationColor(NotificationType type) {
-    return FormattingUtils.getNotificationColor(type);
   }
 
   @override
@@ -262,78 +267,11 @@ class _SimpleScannerViewState extends State<SimpleScannerView> {
 
 
   void _showDeviceDetails(BleDeviceModel device) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(device.displayName),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildInfoRow('Device ID', device.id),
-              _buildInfoRow('Name', device.name.isNotEmpty ? device.name : 'Unknown'),
-              _buildInfoRow('RSSI', '${device.rssi} dBm (${device.rssiDescription})'),
-              _buildInfoRow('Connection', device.connectionState.displayName),
-              if (device.lastSeen != null)
-                _buildInfoRow('Last Seen', _formatDateTime(device.lastSeen!)),
-              if (device.connectedAt != null)
-                _buildInfoRow('Connected At', _formatDateTime(device.connectedAt!)),
-              if (device.connectionDuration != null)
-                _buildInfoRow('Duration', _formatDuration(device.connectionDuration!)),
-              _buildInfoRow('Services', '${device.services.length}'),
-              if (device.services.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                const Text('Services:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...device.services.map((service) => 
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, top: 4),
-                    child: Text('• ${service.displayName}'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
+    DeviceDetailsDialog.show(context, device);
   }
 
   void _showConnectedDeviceInfo(BleDeviceModel device) {
-    _showDeviceDetails(device);
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    return FormattingUtils.formatDateTime(dateTime);
-  }
-
-  String _formatDuration(Duration duration) {
-    return FormattingUtils.formatDuration(duration);
+    DeviceDetailsDialog.show(context, device);
   }
 
   // Mobile Layout (Portrait and small screens)

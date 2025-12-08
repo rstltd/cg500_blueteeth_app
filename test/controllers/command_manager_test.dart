@@ -653,6 +653,322 @@ void main() {
     });
   });
 
+  group('CommandManager with connected device', () {
+    late MockBleController controller;
+    late CommandManager manager;
+    late List<Map<String, dynamic>> messages;
+    late int commandSentCount;
+
+    setUp(() {
+      controller = MockBleController();
+      messages = [];
+      commandSentCount = 0;
+
+      manager = CommandManager(
+        controller: controller,
+        onCommandSent: () => commandSentCount++,
+        onMessageAdded: (msg) => messages.add(msg),
+      );
+
+      // Simulate connected device
+      controller.simulateConnected(createTestDevice(
+        id: 'test-device',
+        name: 'Test BLE Device',
+      ));
+    });
+
+    tearDown(() {
+      manager.dispose();
+      controller.reset();
+    });
+
+    test('isConnected returns true when device is connected', () {
+      expect(manager.isConnected, isTrue);
+    });
+
+    test('sendCommand succeeds when connected', () async {
+      manager.textController.text = 'test command';
+      await manager.sendCommand();
+
+      expect(messages.length, 1);
+      expect(messages[0]['text'], 'test command');
+      expect(messages[0]['isCommand'], isTrue);
+      expect(commandSentCount, 1);
+    });
+
+    test('sendCommand adds to history', () async {
+      manager.textController.text = 'first command';
+      await manager.sendCommand();
+
+      manager.textController.text = 'second command';
+      await manager.sendCommand();
+
+      expect(manager.commandHistory.length, 2);
+      expect(manager.commandHistory[0], 'first command');
+      expect(manager.commandHistory[1], 'second command');
+    });
+
+    test('sendCommand clears text controller after send', () async {
+      manager.textController.text = 'test command';
+      await manager.sendCommand();
+
+      expect(manager.textController.text, isEmpty);
+    });
+
+    test('sendCommand with parameter does not clear text controller', () async {
+      manager.textController.text = 'original text';
+      await manager.sendCommand('direct command');
+
+      expect(manager.textController.text, 'original text');
+      expect(messages[0]['text'], 'direct command');
+    });
+
+    test('sendCommand does not add duplicate consecutive commands to history', () async {
+      await manager.sendCommand('same command');
+      await manager.sendCommand('same command');
+      await manager.sendCommand('same command');
+
+      expect(manager.commandHistory.length, 1);
+      expect(manager.commandHistory[0], 'same command');
+    });
+
+    test('sendCommand limits history to 20 commands', () async {
+      for (int i = 0; i < 25; i++) {
+        await manager.sendCommand('command $i');
+      }
+
+      expect(manager.commandHistory.length, 20);
+      expect(manager.commandHistory.first, 'command 5');
+      expect(manager.commandHistory.last, 'command 24');
+    });
+
+    test('historyUp navigates to previous commands', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+      await manager.sendCommand('cmd3');
+
+      manager.historyUp();
+      expect(manager.textController.text, 'cmd3');
+      expect(manager.historyIndex, 0);
+
+      manager.historyUp();
+      expect(manager.textController.text, 'cmd2');
+      expect(manager.historyIndex, 1);
+
+      manager.historyUp();
+      expect(manager.textController.text, 'cmd1');
+      expect(manager.historyIndex, 2);
+    });
+
+    test('historyUp stops at oldest command', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+
+      manager.historyUp();
+      manager.historyUp();
+      manager.historyUp(); // Should not go beyond
+      manager.historyUp();
+
+      expect(manager.textController.text, 'cmd1');
+      expect(manager.historyIndex, 1);
+    });
+
+    test('historyDown navigates to newer commands', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+      await manager.sendCommand('cmd3');
+
+      // Go to oldest
+      manager.historyUp();
+      manager.historyUp();
+      manager.historyUp();
+
+      // Navigate back
+      manager.historyDown();
+      expect(manager.textController.text, 'cmd2');
+
+      manager.historyDown();
+      expect(manager.textController.text, 'cmd3');
+    });
+
+    test('historyDown clears text when reaching newest', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+
+      manager.historyUp();
+      manager.historyUp();
+      manager.historyDown();
+      manager.historyDown();
+
+      expect(manager.textController.text, isEmpty);
+      expect(manager.historyIndex, -1);
+    });
+
+    test('getCommandSuggestions returns matching commands', () async {
+      await manager.sendCommand('hello world');
+      await manager.sendCommand('hello there');
+      await manager.sendCommand('goodbye');
+
+      final suggestions = manager.getCommandSuggestions('hello');
+      expect(suggestions.length, 2);
+      expect(suggestions, contains('hello world'));
+      expect(suggestions, contains('hello there'));
+    });
+
+    test('getCommandSuggestions returns recent commands for empty input', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+      await manager.sendCommand('cmd3');
+
+      final suggestions = manager.getCommandSuggestions('');
+      expect(suggestions.length, 3);
+      expect(suggestions[0], 'cmd3'); // Most recent first
+    });
+
+    test('getCommandSuggestions is case insensitive', () async {
+      await manager.sendCommand('Hello World');
+      await manager.sendCommand('HELLO');
+
+      final suggestionsLower = manager.getCommandSuggestions('hello');
+      final suggestionsUpper = manager.getCommandSuggestions('HELLO');
+
+      expect(suggestionsLower.length, 2);
+      expect(suggestionsUpper.length, 2);
+    });
+
+    test('sendCommand resets history index', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+
+      manager.historyUp();
+      expect(manager.historyIndex, 0);
+
+      await manager.sendCommand('cmd3');
+      expect(manager.historyIndex, -1);
+    });
+
+    test('sendCommand adds error message on failure', () async {
+      controller.configureSendCommand(succeed: false);
+
+      manager.textController.text = 'failing command';
+      await manager.sendCommand();
+
+      expect(messages.length, 2);
+      expect(messages[0]['isCommand'], isTrue);
+      expect(messages[1]['isError'], isTrue);
+      expect(messages[1]['text'], 'Failed to send command');
+    });
+
+    test('sendCommand tracks sent commands in controller', () async {
+      await manager.sendCommand('cmd1');
+      await manager.sendCommand('cmd2');
+
+      expect(controller.sentCommands, ['cmd1', 'cmd2']);
+      expect(controller.sendCommandCallCount, 2);
+    });
+
+    test('sendCommand handles delayed responses', () async {
+      controller.configureSendCommand(
+        succeed: true,
+        delay: const Duration(milliseconds: 50),
+      );
+
+      manager.textController.text = 'delayed command';
+      await manager.sendCommand();
+
+      expect(messages.length, 1);
+      expect(controller.sentCommands, ['delayed command']);
+    });
+  });
+
+  group('CommandManager connection state changes', () {
+    test('isConnected updates when device disconnects', () {
+      final controller = MockBleController();
+      final manager = CommandManager(controller: controller);
+
+      controller.simulateConnected(createTestDevice());
+      expect(manager.isConnected, isTrue);
+
+      controller.simulateDisconnected();
+      expect(manager.isConnected, isFalse);
+
+      manager.dispose();
+    });
+
+    test('sendCommand fails after disconnection', () async {
+      final controller = MockBleController();
+      final messages = <Map<String, dynamic>>[];
+      final manager = CommandManager(
+        controller: controller,
+        onMessageAdded: (msg) => messages.add(msg),
+      );
+
+      controller.simulateConnected(createTestDevice());
+      await manager.sendCommand('should succeed');
+      expect(messages.length, 1);
+
+      controller.simulateDisconnected();
+      await manager.sendCommand('should fail');
+      expect(messages.length, 1); // No new message because disconnected
+
+      manager.dispose();
+    });
+  });
+
+  group('MockBleController configurable behavior', () {
+    test('configureSendCommand affects behavior', () async {
+      final controller = MockBleController();
+      final manager = CommandManager(controller: controller);
+
+      controller.simulateConnected(createTestDevice());
+      controller.configureSendCommand(succeed: false);
+
+      final result = await controller.sendCommand('test');
+      expect(result, isFalse);
+
+      controller.configureSendCommand(succeed: true);
+      final result2 = await controller.sendCommand('test2');
+      expect(result2, isTrue);
+
+      manager.dispose();
+    });
+
+    test('configureConnect affects behavior', () async {
+      final controller = MockBleController();
+
+      controller.configureConnect(succeed: false);
+      final result = await controller.connectToDevice('device-1');
+      expect(result, isFalse);
+      expect(controller.connectedDevice, isNull);
+
+      controller.configureConnect(succeed: true);
+      final result2 = await controller.connectToDevice('device-2');
+      expect(result2, isTrue);
+      expect(controller.connectedDevice, isNotNull);
+    });
+
+    test('reset clears all state', () async {
+      final controller = MockBleController();
+
+      controller.simulateConnected(createTestDevice());
+      await controller.sendCommand('test');
+      controller.configureSendCommand(succeed: false);
+
+      expect(controller.connectedDevice, isNotNull);
+      expect(controller.sentCommands.length, 1);
+
+      controller.reset();
+
+      expect(controller.connectedDevice, isNull);
+      expect(controller.sentCommands, isEmpty);
+      expect(controller.sendCommandCallCount, 0);
+
+      // Behavior should be reset to defaults
+      final result = await controller.sendCommand('after reset');
+      expect(result, isTrue);
+    });
+  });
+
   group('CommandManager history limit', () {
     // Note: We can't actually add to history without BLE connection,
     // but we can test the getCommandSuggestions behavior

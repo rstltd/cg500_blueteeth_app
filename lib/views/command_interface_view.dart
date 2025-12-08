@@ -6,36 +6,59 @@ import '../models/ble_device.dart';
 import '../services/notification_service.dart'; // For NotificationModel and NotificationType
 import '../services/theme_service.dart';
 import '../core/service_locator.dart' show getIt;
-import '../utils/formatting_utils.dart';
+import '../core/mixins/notification_listener_mixin.dart';
 import '../utils/logger.dart';
 import '../utils/responsive_utils.dart';
+import '../utils/formatting_utils.dart';
 import '../widgets/responsive_layout.dart';
 import '../widgets/message_bubble_widget.dart';
 import '../widgets/connection_status_widget.dart';
+import '../widgets/device_status_panel_widget.dart';
+import '../widgets/command_input_panel_widget.dart';
+import '../widgets/command_history_panel_widget.dart';
 
 /// Command Interface View for sending text commands to BLE devices
-/// and receiving responses in real-time
+/// and receiving responses in real-time.
+///
+/// Supports dependency injection for testability:
+/// - Use default constructor for production (uses service locator)
+/// - Use [CommandInterfaceView.withDependencies] for testing
 class CommandInterfaceView extends StatefulWidget {
-  const CommandInterfaceView({super.key});
+  /// Creates a CommandInterfaceView using the service locator for dependencies.
+  const CommandInterfaceView({super.key}) : _controller = null;
+
+  /// Creates a CommandInterfaceView with explicit dependencies for testing.
+  const CommandInterfaceView.withDependencies({
+    super.key,
+    required BleControllerInterface controller,
+  }) : _controller = controller;
+
+  final BleControllerInterface? _controller;
 
   @override
   State<CommandInterfaceView> createState() => _CommandInterfaceViewState();
 }
 
-class _CommandInterfaceViewState extends State<CommandInterfaceView> {
+class _CommandInterfaceViewState extends State<CommandInterfaceView>
+    with NotificationListenerMixin<CommandInterfaceView> {
   late final BleControllerInterface _controller;
   final ScrollController _responseScrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   late CommandManager _commandManager;
   bool _isInitialized = false;
 
-  // StreamSubscription management
-  final List<StreamSubscription> _subscriptions = [];
+  // StreamSubscription for command responses
+  StreamSubscription<String>? _responseSubscription;
+
+  @override
+  Stream<NotificationModel> get notificationStream =>
+      _controller.notificationStream;
 
   @override
   void initState() {
     super.initState();
-    _controller = getIt<BleControllerInterface>();
+    // Use injected dependency or fall back to service locator
+    _controller = widget._controller ?? getIt<BleControllerInterface>();
     _commandManager = CommandManager(
       controller: _controller,
       onCommandSent: _scrollToBottom,
@@ -43,7 +66,7 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
     );
     _initializeController();
     _listenToResponses();
-    _listenToNotifications();
+    initializeNotificationListener();
   }
 
   Future<void> _initializeController() async {
@@ -61,41 +84,37 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
       });
       Logger.ui('Controller already initialized');
     }
-    
+
     // Check connection status for UI initialization
     final connectedDevice = _controller.connectedDevice;
     if (connectedDevice != null) {
       Logger.ui('Connected to: ${connectedDevice.displayName}');
     }
-    
+
     // Wait a moment to ensure all state updates are processed
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override
   void dispose() {
-    // Cancel all stream subscriptions to prevent memory leaks
-    for (final subscription in _subscriptions) {
-      subscription.cancel();
-    }
-    _subscriptions.clear();
+    // Cancel response subscription
+    _responseSubscription?.cancel();
+    disposeNotificationListener();
     _commandManager.dispose();
     _responseScrollController.dispose();
     super.dispose();
   }
 
   void _listenToResponses() {
-    _subscriptions.add(
-      _controller.commandResponseStream.listen((response) {
-        if (mounted) {
-          _addMessage({
-            'text': response,
-            'isCommand': false,
-            'timestamp': DateTime.now(),
-          });
-        }
-      }),
-    );
+    _responseSubscription = _controller.commandResponseStream.listen((response) {
+      if (mounted) {
+        _addMessage({
+          'text': response,
+          'isCommand': false,
+          'timestamp': DateTime.now(),
+        });
+      }
+    });
   }
 
   void _addMessage(Map<String, dynamic> message) {
@@ -115,26 +134,6 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
         );
       }
     });
-  }
-
-  void _listenToNotifications() {
-    _subscriptions.add(
-      _controller.notificationStream.listen((notification) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${notification.title}: ${notification.message}'),
-              backgroundColor: _getNotificationColor(notification.type),
-              duration: notification.duration ?? const Duration(seconds: 3),
-            ),
-          );
-        }
-      }),
-    );
-  }
-
-  Color _getNotificationColor(NotificationType type) {
-    return FormattingUtils.getNotificationColor(type);
   }
 
   Future<void> _sendCommand() async {
@@ -196,222 +195,7 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
   }
 
   Widget _buildStatusPanel() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      child: StreamBuilder<BleDeviceModel?>(
-        stream: _controller.connectedDeviceStream,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            final currentDevice = _controller.connectedDevice;
-            
-            if (currentDevice != null) {
-              return _buildDeviceStatusPanel(currentDevice);
-            }
-            
-            return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.warning_rounded,
-                      color: Colors.orange.shade700,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'No Device Connected',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange.shade800,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Please connect a BLE device first',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return _buildDeviceStatusPanel(snapshot.data!);
-        },
-      ),
-    );
-  }
-
-  Widget _buildDeviceStatusPanel(BleDeviceModel device) {
-    Map<String, dynamic> commandInfo = _controller.getCommandInfo();
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.backgroundGradientStart(context),
-            AppColors.backgroundGradientEnd(context),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.blue.shade800.withValues(alpha: 0.3)
-                      : Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.device_hub,
-                  color: AppColors.infoColor(context),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      device.displayName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      device.id,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildStatusChip(
-                'TX',
-                commandInfo['hasCommandChannel'] ?? false,
-                Icons.upload,
-              ),
-              const SizedBox(width: 6),
-              _buildStatusChip(
-                'RX',
-                commandInfo['hasResponseChannel'] ?? false,
-                Icons.download,
-              ),
-              const SizedBox(width: 6),
-              _buildInfoChip(
-                'MTU',
-                '${commandInfo['mtu']}',
-                Icons.data_usage,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(String label, bool isAvailable, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isAvailable ? Colors.green.shade100 : Colors.red.shade100,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isAvailable ? Colors.green.shade300 : Colors.red.shade300,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 12,
-            color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade100,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.blue.shade300),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 12,
-            color: Colors.blue.shade700,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '$label:$value',
-            style: TextStyle(
-              color: Colors.blue.shade700,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
+    return DeviceStatusPanelWidget(controller: _controller);
   }
 
   Widget _buildResponseArea() {
@@ -460,186 +244,11 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
 
 
   Widget _buildCommandInput() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: StreamBuilder<BleDeviceModel?>(
-        stream: _controller.connectedDeviceStream,
-        builder: (context, snapshot) {
-          bool isConnected = snapshot.hasData || _controller.connectedDevice != null;
-          Map<String, dynamic> commandInfo = _controller.getCommandInfo();
-          bool canSendCommands = isConnected && (commandInfo['hasCommandChannel'] ?? false);
-
-          return Column(
-            children: [
-              // Command Input Row
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                          color: canSendCommands 
-                              ? Colors.blue.shade200 
-                              : Colors.grey.shade300,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: TextField(
-                        controller: _commandManager.textController,
-                        enabled: canSendCommands,
-                        decoration: InputDecoration(
-                          hintText: canSendCommands 
-                              ? 'Type your command...'
-                              : 'Connect device to send commands',
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.keyboard,
-                            color: canSendCommands 
-                                ? Colors.blue.shade600 
-                                : Colors.grey.shade400,
-                          ),
-                        ),
-                        onSubmitted: canSendCommands ? (_) => _sendCommand() : null,
-                        onChanged: (value) {
-                          // Reset history navigation when user types
-                        },
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Send Button
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    decoration: BoxDecoration(
-                      color: canSendCommands 
-                          ? Colors.blue.shade500 
-                          : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: canSendCommands ? [
-                        BoxShadow(
-                          color: Colors.blue.shade200,
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ] : null,
-                    ),
-                    child: IconButton(
-                      onPressed: canSendCommands ? _sendCommand : null,
-                      icon: Icon(
-                        Icons.send_rounded,
-                        color: canSendCommands ? Colors.white : Colors.grey.shade500,
-                      ),
-                      iconSize: 24,
-                    ),
-                  ),
-                ],
-              ),
-              
-              // History Navigation
-              if (_commandManager.commandHistory.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.keyboard_arrow_up),
-                            onPressed: canSendCommands ? () => _navigateHistory(true) : null,
-                            tooltip: 'Previous command',
-                            iconSize: 20,
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                            onPressed: canSendCommands ? () => _navigateHistory(false) : null,
-                            tooltip: 'Next command',
-                            iconSize: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.history,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${_commandManager.commandHistory.length} commands',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (canSendCommands)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.radio_button_checked,
-                              size: 12,
-                              color: Colors.green.shade700,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Ready',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ],
-          );
-        },
-      ),
+    return CommandInputPanelWidget(
+      controller: _controller,
+      commandManager: _commandManager,
+      onSendCommand: _sendCommand,
+      onNavigateHistory: _navigateHistory,
     );
   }
 
@@ -808,83 +417,7 @@ class _CommandInterfaceViewState extends State<CommandInterfaceView> {
 
   // Command History Panel for larger screens
   Widget _buildCommandHistoryPanel() {
-    return ResponsiveCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ResponsiveIcon(
-                Icons.history,
-                size: 20,
-                color: AppColors.infoColor(context),
-              ),
-              const SizedBox(width: 8),
-              ResponsiveText(
-                'Command History',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 200,
-            child: _commandManager.commandHistory.isEmpty
-                ? Center(
-                    child: ResponsiveText(
-                      'No commands yet',
-                      fontSize: 14,
-                      color: AppColors.textSecondary(context),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: _commandManager.commandHistory.length,
-                    reverse: true,
-                    itemBuilder: (context, index) {
-                      final reversedIndex = _commandManager.commandHistory.length - 1 - index;
-                      final command = _commandManager.commandHistory[reversedIndex];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 2),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.backgroundGradientStart(context),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: ResponsiveText(
-                                command,
-                                fontSize: 12,
-                                color: AppColors.textSecondary(context),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                _commandManager.textController.text = command;
-                              },
-                              icon: Icon(
-                                Icons.replay,
-                                size: 16,
-                                color: AppColors.infoColor(context),
-                              ),
-                              tooltip: 'Use this command',
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
+    return CommandHistoryPanelWidget(commandManager: _commandManager);
   }
 
   // Connection Stats Panel for desktop

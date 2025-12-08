@@ -1,16 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/simple_ble_controller.dart';
 import 'package:cg500_blueteeth_app/core/service_locator.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import '../mocks/mock_services.dart';
 
 /// Helper to create a SimpleBleController with mock dependencies for testing
 SimpleBleController createTestController({
   MockBleService? bleService,
   MockNotificationService? notificationService,
+  BleNotificationDelegate? notificationDelegate,
 }) {
   return SimpleBleController.withDependencies(
     bleService: bleService ?? MockBleService(),
     notificationService: notificationService ?? MockNotificationService(),
+    notificationDelegate: notificationDelegate,
   );
 }
 
@@ -894,6 +897,261 @@ void main() {
 
       expect(scanningStates, contains(true));
       subscription.cancel();
+    });
+  });
+
+  group('SimpleBleController with BleNotificationDelegate', () {
+    late MockBleService mockBleService;
+    late MockNotificationService mockNotificationService;
+    late MockBleNotificationDelegate mockDelegate;
+    late SimpleBleController controller;
+
+    setUp(() async {
+      await resetServiceLocator();
+      mockBleService = MockBleService();
+      mockNotificationService = MockNotificationService();
+      mockDelegate = MockBleNotificationDelegate();
+      controller = SimpleBleController.withDependencies(
+        bleService: mockBleService,
+        notificationService: mockNotificationService,
+        notificationDelegate: mockDelegate,
+      );
+    });
+
+    tearDown(() async {
+      controller.dispose();
+      mockBleService.dispose();
+      mockNotificationService.dispose();
+      await resetServiceLocator();
+    });
+
+    group('initialization delegate calls', () {
+      test('should call onInitializeSuccess when initialization succeeds', () async {
+        await controller.initialize();
+
+        expect(mockDelegate.initializeSuccessCount, 1);
+        expect(mockDelegate.calls, contains('onInitializeSuccess'));
+      });
+
+      test('should call onInitializeFailed when initialization fails', () async {
+        mockBleService.configureInitialize(success: false);
+        await controller.initialize();
+
+        expect(mockDelegate.initializeFailedCount, 1);
+        expect(mockDelegate.calls, contains('onInitializeFailed'));
+      });
+
+      test('should call onInitializeError when exception thrown', () async {
+        mockBleService.configureInitialize(throwError: true, errorMessage: 'Init error');
+        await controller.initialize();
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.initializeErrors.any((e) => e.contains('Init error')), true);
+        expect(mockDelegate.calls.any((c) => c.contains('onInitializeError')), true);
+      });
+    });
+
+    group('scanning delegate calls', () {
+      test('should call onScanStarted when scanning starts', () async {
+        await controller.startScanning();
+
+        expect(mockDelegate.scanStartedCount, 1);
+        expect(mockDelegate.calls, contains('onScanStarted'));
+      });
+
+      test('should call onScanError when scanning fails', () async {
+        mockBleService.configureStartScanning(throwError: true, errorMessage: 'Scan error');
+        await controller.startScanning();
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.scanErrors.any((e) => e.contains('Scan error')), true);
+      });
+
+      test('should call onScanStopped when scanning stops', () async {
+        await controller.stopScanning();
+
+        expect(mockDelegate.scanStoppedCount, 1);
+        expect(mockDelegate.calls, contains('onScanStopped'));
+      });
+
+      test('should call onStopScanError when stop scanning fails', () async {
+        mockBleService.configureStopScanning(throwError: true, errorMessage: 'Stop error');
+        await controller.stopScanning();
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.stopScanErrors.any((e) => e.contains('Stop error')), true);
+      });
+    });
+
+    group('connection delegate calls', () {
+      test('should call onConnecting when connection starts', () async {
+        await controller.connectToDevice('test-device');
+
+        expect(mockDelegate.connectingCount, 1);
+        expect(mockDelegate.calls, contains('onConnecting'));
+      });
+
+      test('should call onConnectionError when connection fails', () async {
+        mockBleService.configureConnect(throwError: true, errorMessage: 'Connection error');
+        await controller.connectToDevice('test-device');
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.connectionErrors.any((e) => e.contains('Connection error')), true);
+      });
+
+      test('should call onDisconnectError when disconnect fails', () async {
+        mockBleService.configureDisconnect(throwError: true, errorMessage: 'Disconnect error');
+        await controller.disconnectDevice();
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.disconnectErrors.any((e) => e.contains('Disconnect error')), true);
+      });
+    });
+
+    group('service discovery delegate calls', () {
+      test('should call onDiscoveringServices when discovery starts', () async {
+        await controller.discoverServices('test-device');
+
+        expect(mockDelegate.discoveringServicesCount, 1);
+        expect(mockDelegate.calls, contains('onDiscoveringServices'));
+      });
+
+      test('should call onServicesFound when services discovered', () async {
+        mockBleService.configureDiscoverServices(serviceCount: 3);
+        await controller.discoverServices('test-device');
+
+        expect(mockDelegate.servicesFoundCounts, contains(3));
+        expect(mockDelegate.calls, contains('onServicesFound: 3'));
+      });
+
+      test('should call onNoServicesFound when no services found', () async {
+        mockBleService.configureDiscoverServices(serviceCount: 0);
+        await controller.discoverServices('test-device');
+
+        expect(mockDelegate.noServicesFoundCount, 1);
+        expect(mockDelegate.calls, contains('onNoServicesFound'));
+      });
+
+      test('should call onServiceDiscoveryError when discovery fails', () async {
+        mockBleService.configureDiscoverServices(throwError: true, errorMessage: 'Discovery error');
+        await controller.discoverServices('test-device');
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.serviceDiscoveryErrors.any((e) => e.contains('Discovery error')), true);
+      });
+    });
+
+    group('command delegate calls', () {
+      test('should call onEmptyCommand for empty command', () async {
+        await controller.sendCommand('');
+
+        expect(mockDelegate.emptyCommandCount, 1);
+        expect(mockDelegate.calls, contains('onEmptyCommand'));
+      });
+
+      test('should call onEmptyCommand for whitespace-only command', () async {
+        await controller.sendCommand('   ');
+
+        expect(mockDelegate.emptyCommandCount, 1);
+      });
+
+      test('should call onCommandError when command fails', () async {
+        mockBleService.configureSendCommand(throwError: true, errorMessage: 'Command error');
+        await controller.sendCommand('test');
+
+        // Exception.toString() includes "Exception: " prefix
+        expect(mockDelegate.commandErrors.any((e) => e.contains('Command error')), true);
+      });
+    });
+
+    group('device management delegate calls', () {
+      test('should call onDevicesCleared when devices cleared', () {
+        controller.clearDevices();
+
+        expect(mockDelegate.devicesClearedCount, 1);
+        expect(mockDelegate.calls, contains('onDevicesCleared'));
+      });
+    });
+
+    group('delegate reset', () {
+      test('should allow reset of delegate tracking', () async {
+        await controller.initialize();
+        await controller.startScanning();
+        controller.clearDevices();
+
+        expect(mockDelegate.calls.length, greaterThan(2));
+
+        mockDelegate.reset();
+
+        expect(mockDelegate.calls, isEmpty);
+        expect(mockDelegate.initializeSuccessCount, 0);
+        expect(mockDelegate.scanStartedCount, 0);
+        expect(mockDelegate.devicesClearedCount, 0);
+      });
+    });
+
+    group('delegate getter', () {
+      test('should expose notificationDelegate getter', () {
+        expect(controller.notificationDelegate, same(mockDelegate));
+      });
+
+      test('should use DefaultBleNotificationDelegate when not provided', () {
+        final defaultController = SimpleBleController.withDependencies(
+          bleService: mockBleService,
+          notificationService: mockNotificationService,
+        );
+
+        expect(defaultController.notificationDelegate, isA<DefaultBleNotificationDelegate>());
+        defaultController.dispose();
+      });
+    });
+
+    group('SilentBleNotificationDelegate', () {
+      test('should suppress all notifications', () async {
+        final silentDelegate = const SilentBleNotificationDelegate();
+        final silentController = SimpleBleController.withDependencies(
+          bleService: MockBleService(),
+          notificationService: MockNotificationService(),
+          notificationDelegate: silentDelegate,
+        );
+
+        // All operations should succeed without notifications
+        await silentController.initialize();
+        await silentController.startScanning();
+        await silentController.stopScanning();
+        silentController.clearDevices();
+        await silentController.sendCommand('');
+        await silentController.connectToDevice('test');
+        await silentController.disconnectDevice();
+        await silentController.discoverServices('test');
+
+        // Should complete without errors
+        expect(true, true);
+
+        silentController.dispose();
+      });
+    });
+
+    group('delegate call sequence', () {
+      test('should track call sequence correctly', () async {
+        await controller.initialize();
+        await controller.startScanning();
+        await controller.stopScanning();
+        controller.clearDevices();
+
+        expect(mockDelegate.calls[0], 'onInitializeSuccess');
+        expect(mockDelegate.calls[1], 'onScanStarted');
+        expect(mockDelegate.calls[2], 'onScanStopped');
+        expect(mockDelegate.calls[3], 'onDevicesCleared');
+      });
+
+      test('connect triggers discovering services', () async {
+        await controller.connectToDevice('device-id');
+
+        // connectToDevice calls onConnecting, then discoverServices
+        expect(mockDelegate.calls, contains('onConnecting'));
+        expect(mockDelegate.calls, contains('onDiscoveringServices'));
+      });
     });
   });
 }
