@@ -4,12 +4,22 @@ import '../design/design_system.dart';
 import '../models/ble_device.dart';
 import 'animated_widgets.dart';
 
-/// A reusable widget for displaying BLE device list
-class DeviceListWidget extends StatelessWidget {
+/// A reusable widget for displaying BLE device list with animations.
+///
+/// Features:
+/// - Animated entrance for list items
+/// - Pulse animation for newly discovered devices
+/// - Animated signal strength indicators
+/// - Search filtering support
+class DeviceListWidget extends StatefulWidget {
   final BleControllerInterface controller;
   final Function(BleDeviceModel)? onDeviceConnect;
   final Function(BleDeviceModel)? onDeviceDisconnect;
   final Function(BleDeviceModel)? onDeviceFavorite;
+  final String searchQuery;
+
+  /// Duration to consider a device as "new" (for pulse animation)
+  final Duration newDeviceThreshold;
 
   const DeviceListWidget({
     super.key,
@@ -17,28 +27,128 @@ class DeviceListWidget extends StatelessWidget {
     this.onDeviceConnect,
     this.onDeviceDisconnect,
     this.onDeviceFavorite,
+    this.searchQuery = '',
+    this.newDeviceThreshold = const Duration(seconds: 3),
   });
+
+  @override
+  State<DeviceListWidget> createState() => _DeviceListWidgetState();
+}
+
+class _DeviceListWidgetState extends State<DeviceListWidget> {
+  /// Set of device IDs that have been seen before (to track "new" devices)
+  final Set<String> _seenDeviceIds = {};
+
+  /// Map of device IDs to their first seen time
+  final Map<String, DateTime> _deviceFirstSeenTime = {};
+
+  /// Check if a device is considered "new" for animation purposes
+  bool _isNewDevice(BleDeviceModel device) {
+    final firstSeen = _deviceFirstSeenTime[device.id];
+    if (firstSeen == null) return false;
+
+    final now = DateTime.now();
+    return now.difference(firstSeen) < widget.newDeviceThreshold;
+  }
+
+  /// Track a device as seen
+  void _trackDevice(BleDeviceModel device) {
+    if (!_seenDeviceIds.contains(device.id)) {
+      _seenDeviceIds.add(device.id);
+      _deviceFirstSeenTime[device.id] = DateTime.now();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<BleDeviceModel>>(
-      stream: controller.devicesStream,
+      stream: widget.controller.devicesStream,
       initialData: const [],
       builder: (context, snapshot) {
-        List<BleDeviceModel> devices = snapshot.data ?? [];
-        
-        if (devices.isEmpty) {
+        List<BleDeviceModel> allDevices = snapshot.data ?? [];
+
+        // Track all devices for "new" detection
+        for (final device in allDevices) {
+          _trackDevice(device);
+        }
+
+        // Apply search filter
+        List<BleDeviceModel> devices = _filterDevices(allDevices);
+
+        if (allDevices.isEmpty) {
           return _buildEmptyState(context);
+        }
+
+        if (devices.isEmpty && widget.searchQuery.isNotEmpty) {
+          return _buildNoSearchResultsState(context, allDevices.length);
         }
 
         return ListView.builder(
           itemCount: devices.length,
-          itemBuilder: (context, index) => AnimatedListItem(
-            index: index,
-            child: _buildDeviceCard(context, devices[index]),
-          ),
+          itemBuilder: (context, index) {
+            final device = devices[index];
+            final isNew = _isNewDevice(device);
+
+            return AnimatedListItem(
+              index: index,
+              child: NewDevicePulseAnimation(
+                isNew: isNew,
+                child: _buildDeviceCard(context, device),
+              ),
+            );
+          },
         );
       },
+    );
+  }
+
+  /// Filter devices based on search query.
+  List<BleDeviceModel> _filterDevices(List<BleDeviceModel> devices) {
+    if (widget.searchQuery.isEmpty) return devices;
+
+    final lowerQuery = widget.searchQuery.toLowerCase();
+    return devices.where((device) {
+      final name = device.displayName.toLowerCase();
+      final id = device.id.toLowerCase();
+      return name.contains(lowerQuery) || id.contains(lowerQuery);
+    }).toList();
+  }
+
+  /// Build state when search has no results.
+  Widget _buildNoSearchResultsState(BuildContext context, int totalDevices) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: DesignTokens.paddingL,
+            decoration: BoxDecoration(
+              color: AppColors.neutralContainer(context),
+              borderRadius: DesignTokens.borderRadiusXL,
+            ),
+            child: Icon(
+              Icons.search_off,
+              size: DesignTokens.iconHero,
+              color: AppColors.textTertiary(context),
+            ),
+          ),
+          SizedBox(height: DesignTokens.spacingL),
+          Text(
+            'No devices match "${widget.searchQuery}"',
+            style: AppTextStyles.titleMedium(context).copyWith(
+              color: AppColors.textPrimary(context),
+            ),
+          ),
+          SizedBox(height: DesignTokens.spacingS),
+          Text(
+            '$totalDevices device${totalDevices == 1 ? '' : 's'} available, try a different search',
+            style: AppTextStyles.bodyMedium(context).copyWith(
+              color: AppColors.textSecondary(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -51,44 +161,44 @@ class DeviceListWidget extends StatelessWidget {
           Container(
             padding: DesignTokens.paddingL,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: AppColors.neutralContainer(context),
               borderRadius: DesignTokens.borderRadiusXL,
             ),
             child: Icon(
               Icons.bluetooth_searching,
               size: DesignTokens.iconHero,
-              color: Colors.grey.shade400,
+              color: AppColors.textTertiary(context),
             ),
           ),
           SizedBox(height: DesignTokens.spacingL),
           Text(
             'No BLE devices found',
             style: AppTextStyles.titleMedium(context).copyWith(
-              color: Colors.grey.shade700,
+              color: AppColors.textPrimary(context),
             ),
           ),
           SizedBox(height: DesignTokens.spacingS),
           Text(
             'Start scanning to discover nearby devices',
             style: AppTextStyles.bodyMedium(context).copyWith(
-              color: Colors.grey.shade600,
+              color: AppColors.textSecondary(context),
             ),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: DesignTokens.spacingL),
           StreamBuilder<bool>(
-            stream: controller.scanningStream,
+            stream: widget.controller.scanningStream,
             initialData: false,
             builder: (context, snapshot) {
               bool isScanning = snapshot.data ?? false;
               if (isScanning) {
                 return Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingL - 4, // 20dp
-                    vertical: DesignTokens.spacingM - 4, // 12dp
+                    horizontal: DesignTokens.spacingML,
+                    vertical: DesignTokens.spacingSM,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
+                    color: AppColors.infoContainer(context),
                     borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
                   ),
                   child: Row(
@@ -99,14 +209,14 @@ class DeviceListWidget extends StatelessWidget {
                         height: DesignTokens.iconXS,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.infoColor(context)),
                         ),
                       ),
                       SizedBox(width: DesignTokens.spacingS),
                       Text(
                         'Scanning...',
                         style: AppTextStyles.labelLarge(context).copyWith(
-                          color: Colors.blue.shade800,
+                          color: AppColors.onInfoContainer(context),
                         ),
                       ),
                     ],
@@ -124,7 +234,7 @@ class DeviceListWidget extends StatelessWidget {
   /// Build individual device card
   Widget _buildDeviceCard(BuildContext context, BleDeviceModel device) {
     return StreamBuilder<BleDeviceModel?>(
-      stream: controller.connectedDeviceStream,
+      stream: widget.controller.connectedDeviceStream,
       builder: (context, connectedSnapshot) {
         bool isConnected = connectedSnapshot.data?.id == device.id;
 
@@ -137,7 +247,10 @@ class DeviceListWidget extends StatelessWidget {
             borderRadius: DesignTokens.borderRadiusL,
             gradient: isConnected
                 ? LinearGradient(
-                    colors: [Colors.blue.shade50, Colors.green.shade50],
+                    colors: [
+                      AppColors.infoContainer(context),
+                      AppColors.successContainer(context),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
@@ -149,7 +262,7 @@ class DeviceListWidget extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: DesignTokens.borderRadiusL,
               side: isConnected
-                  ? BorderSide(color: Colors.green.shade300, width: 2)
+                  ? BorderSide(color: AppColors.successBorder(context), width: 2)
                   : BorderSide.none,
             ),
             child: Container(
@@ -163,7 +276,7 @@ class DeviceListWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDeviceHeader(context, device, isConnected),
-                    SizedBox(height: DesignTokens.spacingM - 4), // 12dp
+                    SizedBox(height: DesignTokens.spacingSM),
                     _buildDeviceInfo(context, device),
                     SizedBox(height: DesignTokens.spacingM),
                     _buildDeviceActions(context, device, isConnected),
@@ -184,16 +297,20 @@ class DeviceListWidget extends StatelessWidget {
         Container(
           padding: DesignTokens.paddingS,
           decoration: BoxDecoration(
-            color: isConnected ? Colors.green.shade100 : Colors.blue.shade100,
+            color: isConnected
+                ? AppColors.successContainer(context)
+                : AppColors.infoContainer(context),
             borderRadius: DesignTokens.borderRadiusS,
           ),
           child: Icon(
             isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-            color: isConnected ? Colors.green.shade600 : Colors.blue.shade600,
+            color: isConnected
+                ? AppColors.successColor(context)
+                : AppColors.infoColor(context),
             size: DesignTokens.iconS,
           ),
         ),
-        SizedBox(width: DesignTokens.spacingM - 4), // 12dp
+        SizedBox(width: DesignTokens.spacingSM),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,14 +370,14 @@ class DeviceListWidget extends StatelessWidget {
 
   /// Build signal strength indicator
   Widget _buildSignalStrengthIndicator(BuildContext context, BleDeviceModel device) {
-    Color getSignalColor(int rssi) {
-      if (rssi >= -40) return Colors.green;
-      if (rssi >= -55) return Colors.lightGreen;
-      if (rssi >= -70) return Colors.orange;
-      if (rssi >= -85) return Colors.red;
-      return Colors.red.shade700;
+    Color getSignalColor(BuildContext context, int rssi) {
+      if (rssi >= -40) return AppColors.successColor(context);
+      if (rssi >= -55) return AppColors.successColor(context).withValues(alpha: 0.7);
+      if (rssi >= -70) return AppColors.warningColor(context);
+      if (rssi >= -85) return AppColors.errorColor(context);
+      return AppColors.errorColor(context);
     }
-    
+
     int getSignalBars(int rssi) {
       if (rssi >= -40) return 4;
       if (rssi >= -55) return 3;
@@ -269,9 +386,9 @@ class DeviceListWidget extends StatelessWidget {
       return 0;
     }
 
-    final color = getSignalColor(device.rssi);
+    final color = getSignalColor(context, device.rssi);
     final bars = getSignalBars(device.rssi);
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(4, (index) {
@@ -280,7 +397,7 @@ class DeviceListWidget extends StatelessWidget {
           height: 8 + (index * 3),
           margin: const EdgeInsets.symmetric(horizontal: 1),
           decoration: BoxDecoration(
-            color: index < bars ? color : Colors.grey.shade300,
+            color: index < bars ? color : AppColors.neutralBorder(context),
             borderRadius: BorderRadius.circular(1),
           ),
         );
@@ -294,10 +411,12 @@ class DeviceListWidget extends StatelessWidget {
       children: [
         // Favorite button
         IconButton(
-          onPressed: () => onDeviceFavorite?.call(device),
+          onPressed: () => widget.onDeviceFavorite?.call(device),
           icon: Icon(
             device.isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: device.isFavorite ? Colors.red : Colors.grey,
+            color: device.isFavorite
+                ? AppColors.errorColor(context)
+                : AppColors.neutralColor(context),
             size: DesignTokens.iconS,
           ),
           tooltip: device.isFavorite ? 'Remove from favorites' : 'Add to favorites',
@@ -309,9 +428,9 @@ class DeviceListWidget extends StatelessWidget {
         ElevatedButton.icon(
           onPressed: () {
             if (isConnected) {
-              onDeviceDisconnect?.call(device);
+              widget.onDeviceDisconnect?.call(device);
             } else {
-              onDeviceConnect?.call(device);
+              widget.onDeviceConnect?.call(device);
             }
           },
           icon: Icon(
@@ -323,10 +442,12 @@ class DeviceListWidget extends StatelessWidget {
             style: AppTextStyles.buttonSmall(context).copyWith(color: Colors.white),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: isConnected ? Colors.red.shade600 : Colors.blue.shade600,
+            backgroundColor: isConnected
+                ? AppColors.errorColor(context)
+                : AppColors.infoColor(context),
             foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingM - 4, // 12dp
+              horizontal: DesignTokens.spacingSM,
               vertical: DesignTokens.spacingS,
             ),
             shape: RoundedRectangleBorder(

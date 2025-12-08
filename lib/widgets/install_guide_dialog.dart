@@ -29,13 +29,13 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   int _currentStep = 0;
   bool _hasTriggeredInstall = false;
   
-  final List<InstallStep> _steps = [
+  List<InstallStep> _getSteps(BuildContext context) => [
     InstallStep(
       title: 'Starting Installation',
       description: 'The update is being prepared for installation.',
       icon: Icons.download_done,
-      color: Colors.green,
-      instructions: [
+      color: AppColors.successColor(context),
+      instructions: const [
         'The APK installation has been triggered',
         'Android system installer should open shortly',
         'If nothing happens, tap "Install Manually" below',
@@ -45,8 +45,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       title: 'Enable Unknown Sources',
       description: 'Allow installation of apps from unknown sources.',
       icon: Icons.security,
-      color: Colors.orange,
-      instructions: [
+      color: AppColors.warningColor(context),
+      instructions: const [
         'If prompted, tap "Settings" in the security dialog',
         'Toggle "Allow from this source" or "Unknown sources"',
         'Return to the installation screen',
@@ -56,8 +56,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       title: 'Install Update',
       description: 'Proceed with the installation process.',
       icon: Icons.system_update_alt,
-      color: Colors.blue,
-      instructions: [
+      color: AppColors.infoColor(context),
+      instructions: const [
         'Review the app permissions if shown',
         'Tap "Install" to proceed',
         'Wait for installation to complete',
@@ -67,8 +67,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       title: 'Installation Complete',
       description: 'The update has been installed successfully.',
       icon: Icons.check_circle,
-      color: Colors.green,
-      instructions: [
+      color: AppColors.successColor(context),
+      instructions: const [
         'The app will restart automatically',
         'You\'ll see the new version in the app',
         'All your data and settings are preserved',
@@ -133,9 +133,9 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
         Logger.error('Failed to trigger APK installation');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to start installation. Please install manually.'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content: const Text('Failed to start installation. Please install manually.'),
+              backgroundColor: AppColors.errorColor(context),
             ),
           );
         }
@@ -146,7 +146,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Installation error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorColor(context),
           ),
         );
       }
@@ -163,7 +163,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Dialog(
-            backgroundColor: Colors.transparent,
+            backgroundColor: AppColors.surfaceColor(context).withValues(alpha: 0),
             child: Container(
               constraints: BoxConstraints(
                 maxWidth: isDesktop ? 600 : MediaQuery.of(context).size.width * 0.95,
@@ -195,8 +195,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.shade600,
-            Colors.blue.shade500,
+            AppColors.updateHeaderGradientStart(context),
+            AppColors.updateHeaderGradientEnd(context),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -209,14 +209,14 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(DesignTokens.spacingM - 4), // 12dp
+            padding: DesignTokens.paddingSM,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: AppColors.whiteOverlay20(context),
               borderRadius: DesignTokens.borderRadiusM,
             ),
             child: Icon(
               Icons.help_outline,
-              color: Colors.white,
+              color: AppColors.textOnPrimary(context),
               size: DesignTokens.iconL - 4, // 28dp
             ),
           ),
@@ -228,14 +228,14 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                 Text(
                   'Installation Guide',
                   style: AppTextStyles.titleLarge(context).copyWith(
-                    color: Colors.white,
+                    color: AppColors.textOnPrimary(context),
                   ),
                 ),
                 SizedBox(height: DesignTokens.spacingXS),
                 Text(
-                  'Step ${_currentStep + 1} of ${_steps.length}',
+                  'Step ${_currentStep + 1} of ${_getSteps(context).length}',
                   style: AppTextStyles.bodyLarge(context).copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: AppColors.whiteOverlay90(context),
                   ),
                 ),
               ],
@@ -262,11 +262,12 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   }
 
   Widget _buildProgressIndicator() {
+    final steps = _getSteps(context);
     return Row(
-      children: List.generate(_steps.length, (index) {
+      children: List.generate(steps.length, (index) {
         final isActive = index == _currentStep;
         final isCompleted = index < _currentStep;
-        
+
         return Expanded(
           child: Row(
             children: [
@@ -275,13 +276,13 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                   height: 4,
                   decoration: BoxDecoration(
                     color: isCompleted || isActive
-                        ? _steps[index].color
-                        : Colors.grey.shade300,
+                        ? steps[index].color
+                        : AppColors.progressInactive(context),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              if (index < _steps.length - 1) const SizedBox(width: 8),
+              if (index < steps.length - 1) const SizedBox(width: 8),
             ],
           ),
         );
@@ -290,7 +291,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   }
 
   Widget _buildCurrentStep() {
-    final step = _steps[_currentStep];
+    final step = _getSteps(context)[_currentStep];
     
     return Column(
       children: [
@@ -382,8 +383,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                         child: Center(
                           child: Text(
                             '${index + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: AppColors.textOnPrimary(context),
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -412,7 +413,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   }
 
   Widget _buildActions() {
-    final isLastStep = _currentStep == _steps.length - 1;
+    final steps = _getSteps(context);
+    final isLastStep = _currentStep == steps.length - 1;
     
     return Container(
       padding: const EdgeInsets.all(24),
@@ -468,8 +470,8 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
               icon: Icon(isLastStep ? Icons.check : (_currentStep == 0 ? Icons.install_mobile : Icons.arrow_forward)),
               label: Text(isLastStep ? 'Got It!' : (_currentStep == 0 ? 'Install Now' : 'Next')),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _steps[_currentStep].color,
-                foregroundColor: Colors.white,
+                backgroundColor: steps[_currentStep].color,
+                foregroundColor: AppColors.textOnPrimary(context),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

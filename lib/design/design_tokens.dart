@@ -29,8 +29,14 @@ class DesignTokens {
   /// Small spacing: 8dp
   static const double spacingS = 8.0;
 
+  /// Small-Medium spacing: 12dp (between S and M)
+  static const double spacingSM = 12.0;
+
   /// Medium spacing: 16dp (default)
   static const double spacingM = 16.0;
+
+  /// Medium-Large spacing: 20dp (between M and L)
+  static const double spacingML = 20.0;
 
   /// Large spacing: 24dp
   static const double spacingL = 24.0;
@@ -256,11 +262,14 @@ class DesignTokens {
   static BorderRadius get borderRadiusM => BorderRadius.circular(radiusM);
   static BorderRadius get borderRadiusL => BorderRadius.circular(radiusL);
   static BorderRadius get borderRadiusXL => BorderRadius.circular(radiusXL);
+  static BorderRadius get borderRadiusFull => BorderRadius.circular(radiusFull);
 
   /// Get standard edge insets
   static EdgeInsets get paddingXS => EdgeInsets.all(spacingXS);
   static EdgeInsets get paddingS => EdgeInsets.all(spacingS);
+  static EdgeInsets get paddingSM => EdgeInsets.all(spacingSM);
   static EdgeInsets get paddingM => EdgeInsets.all(spacingM);
+  static EdgeInsets get paddingML => EdgeInsets.all(spacingML);
   static EdgeInsets get paddingL => EdgeInsets.all(spacingL);
   static EdgeInsets get paddingXL => EdgeInsets.all(spacingXL);
 

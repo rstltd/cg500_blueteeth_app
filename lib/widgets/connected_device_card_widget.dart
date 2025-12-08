@@ -25,7 +25,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
                 size: 24,
                 color: AppColors.successColor(context),
               ),
-              SizedBox(width: DesignTokens.spacingM - 4),
+              SizedBox(width: DesignTokens.spacingSM),
               Expanded(
                 child: ResponsiveText(
                   'Connected',
@@ -36,7 +36,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: DesignTokens.spacingM - 4),
+          SizedBox(height: DesignTokens.spacingSM),
           ResponsiveText(
             device.displayName,
             fontSize: 18,

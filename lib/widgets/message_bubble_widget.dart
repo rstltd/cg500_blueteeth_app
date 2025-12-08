@@ -23,7 +23,7 @@ class MessageBubbleWidget extends StatelessWidget {
     return Container(
       margin: EdgeInsets.symmetric(
         vertical: DesignTokens.spacingXS,
-        horizontal: DesignTokens.spacingM - 4, // 12dp
+        horizontal: DesignTokens.spacingSM,
       ),
       child: Column(
         crossAxisAlignment: isCommand ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -43,12 +43,17 @@ class MessageBubbleWidget extends StatelessWidget {
       onLongPress: () => _copyToClipboard(context, text),
       child: Container(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        padding: EdgeInsets.all(isDesktop ? DesignTokens.spacingM : DesignTokens.spacingM - 4),
+        padding: EdgeInsets.all(isDesktop ? DesignTokens.spacingM : DesignTokens.spacingSM),
         decoration: _getBubbleDecoration(context, isCommand, isError),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isCommand) _buildCommandHeader(context),
+            if (isCommand)
+              _buildCommandHeader(context)
+            else if (isError)
+              _buildErrorHeader(context)
+            else
+              _buildResponseHeader(context),
             _buildMessageText(context, text, isCommand, isError),
           ],
         ),
@@ -73,6 +78,54 @@ class MessageBubbleWidget extends StatelessWidget {
             style: AppTextStyles.captionSmall(context).copyWith(
               fontWeight: FontWeight.w500,
               color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorHeader(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: DesignTokens.spacingXS),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: DesignTokens.fontM,
+            color: AppColors.errorColor(context),
+          ),
+          SizedBox(width: DesignTokens.spacingXS),
+          Text(
+            'Error',
+            style: AppTextStyles.captionSmall(context).copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.errorColor(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResponseHeader(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: DesignTokens.spacingXS),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.arrow_back,
+            size: DesignTokens.fontM,
+            color: AppColors.successColor(context),
+          ),
+          SizedBox(width: DesignTokens.spacingXS),
+          Text(
+            'Response',
+            style: AppTextStyles.captionSmall(context).copyWith(
+              fontWeight: FontWeight.w500,
+              color: AppColors.successColor(context),
             ),
           ),
         ],
@@ -109,9 +162,9 @@ class MessageBubbleWidget extends StatelessWidget {
   BoxDecoration _getBubbleDecoration(BuildContext context, bool isCommand, bool isError) {
     if (isError) {
       return BoxDecoration(
-        color: Colors.red.shade50,
+        color: AppColors.errorContainer(context),
         borderRadius: DesignTokens.borderRadiusL,
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: AppColors.errorBorder(context)),
       );
     }
 
@@ -119,8 +172,8 @@ class MessageBubbleWidget extends StatelessWidget {
       return BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.shade600,
-            Colors.blue.shade500,
+            AppColors.commandGradientStart(context),
+            AppColors.commandGradientEnd(context),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -139,7 +192,7 @@ class MessageBubbleWidget extends StatelessWidget {
   }
 
   Color _getTextColor(BuildContext context, bool isCommand, bool isError) {
-    if (isError) return Colors.red.shade700;
+    if (isError) return AppColors.onErrorContainer(context);
     if (isCommand) return Colors.white;
     return AppColors.textPrimary(context);
   }

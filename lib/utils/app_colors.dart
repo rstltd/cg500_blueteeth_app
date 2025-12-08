@@ -140,6 +140,251 @@ class AppColors {
         : Colors.white; // White on blue
   }
 
+  // --- Status Color Variants (Light/Container colors) ---
+
+  /// Success container/background color
+  static Color successContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1B5E20).withValues(alpha: 0.3) // Green 900 with alpha
+        : const Color(0xFFE8F5E9); // Green 50
+  }
+
+  /// Success border color
+  static Color successBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF4CAF50).withValues(alpha: 0.5) // Green 500
+        : const Color(0xFFA5D6A7); // Green 200
+  }
+
+  /// Success text on container
+  static Color onSuccessContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF81C784) // Green 300
+        : const Color(0xFF1B5E20); // Green 900
+  }
+
+  /// Warning container/background color
+  static Color warningContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFE65100).withValues(alpha: 0.3) // Orange 900 with alpha
+        : const Color(0xFFFFF3E0); // Orange 50
+  }
+
+  /// Warning border color
+  static Color warningBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFFB74D).withValues(alpha: 0.5) // Orange 300
+        : const Color(0xFFFFCC80); // Orange 200
+  }
+
+  /// Warning text on container
+  static Color onWarningContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFFB74D) // Orange 300
+        : const Color(0xFFE65100); // Orange 900
+  }
+
+  /// Error container/background color
+  static Color errorContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFB71C1C).withValues(alpha: 0.3) // Red 900 with alpha
+        : const Color(0xFFFFEBEE); // Red 50
+  }
+
+  /// Error border color
+  static Color errorBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFEF5350).withValues(alpha: 0.5) // Red 400
+        : const Color(0xFFEF9A9A); // Red 200
+  }
+
+  /// Error text on container
+  static Color onErrorContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFEF9A9A) // Red 200
+        : const Color(0xFFB71C1C); // Red 900
+  }
+
+  /// Info container/background color
+  static Color infoContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF0D47A1).withValues(alpha: 0.3) // Blue 900 with alpha
+        : const Color(0xFFE3F2FD); // Blue 50
+  }
+
+  /// Info border color
+  static Color infoBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF42A5F5).withValues(alpha: 0.5) // Blue 400
+        : const Color(0xFF90CAF9); // Blue 200
+  }
+
+  /// Info text on container
+  static Color onInfoContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF90CAF9) // Blue 200
+        : const Color(0xFF0D47A1); // Blue 900
+  }
+
+  // --- Neutral Colors ---
+
+  /// Neutral/disabled background
+  static Color neutralContainer(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF424242) // Grey 800
+        : const Color(0xFFF5F5F5); // Grey 100
+  }
+
+  /// Neutral border
+  static Color neutralBorder(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF616161) // Grey 700
+        : const Color(0xFFE0E0E0); // Grey 300
+  }
+
+  /// Neutral text/icon color
+  static Color neutralColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF9E9E9E) // Grey 500
+        : const Color(0xFF757575); // Grey 600
+  }
+
+  // --- Overlay Colors ---
+
+  /// Light overlay for containers on colored backgrounds
+  static Color lightOverlay(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.white.withValues(alpha: 0.7);
+  }
+
+  /// Dark overlay for dimming
+  static Color darkOverlay(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.black.withValues(alpha: 0.5)
+        : Colors.black.withValues(alpha: 0.3);
+  }
+
+  // --- Gradient Colors ---
+
+  /// Scanning indicator gradient start
+  static Color scanningGradientStart(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1565C0).withValues(alpha: 0.3) // Blue 800
+        : const Color(0xFFBBDEFB); // Blue 100
+  }
+
+  /// Scanning indicator gradient end
+  static Color scanningGradientEnd(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF0D47A1).withValues(alpha: 0.2) // Blue 900
+        : const Color(0xFFE3F2FD); // Blue 50
+  }
+
+  /// Command bubble gradient start (user sent commands)
+  static Color commandGradientStart(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1565C0) // Blue 800
+        : const Color(0xFF1E88E5); // Blue 600
+  }
+
+  /// Command bubble gradient end
+  static Color commandGradientEnd(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF0D47A1) // Blue 900
+        : const Color(0xFF1976D2); // Blue 700
+  }
+
+  /// Response bubble background
+  static Color responseBubbleColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF2C2C2C) // Dark card color
+        : const Color(0xFFF5F5F5); // Grey 100
+  }
+
+  // --- Update Dialog Colors ---
+
+  /// Update header gradient start color
+  static Color updateHeaderGradientStart(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1565C0) // Blue 800
+        : const Color(0xFF1E88E5); // Blue 600
+  }
+
+  /// Update header gradient end color
+  static Color updateHeaderGradientEnd(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF0D47A1) // Blue 900
+        : const Color(0xFF1565C0); // Blue 800
+  }
+
+  /// Update type colors - Optional update (green)
+  static Color updateOptionalColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF4CAF50) // Green 500
+        : const Color(0xFF43A047); // Green 600
+  }
+
+  /// Update type colors - Recommended update (orange)
+  static Color updateRecommendedColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFFF9800) // Orange 500
+        : const Color(0xFFEF6C00); // Orange 800
+  }
+
+  /// Update type colors - Required update (blue)
+  static Color updateRequiredColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF42A5F5) // Blue 400
+        : const Color(0xFF1976D2); // Blue 700
+  }
+
+  /// Update type colors - Forced/Critical update (red)
+  static Color updateForcedColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFFEF5350) // Red 400
+        : const Color(0xFFE53935); // Red 600
+  }
+
+  /// Text color on primary/colored buttons
+  static Color textOnPrimary(BuildContext context) {
+    // Always white for good contrast on colored buttons
+    return Colors.white;
+  }
+
+  /// Semi-transparent white overlay (for icons/decorations on colored backgrounds)
+  static Color whiteOverlay20(BuildContext context) {
+    return Colors.white.withValues(alpha: 0.2);
+  }
+
+  /// Semi-transparent white (90% opacity)
+  static Color whiteOverlay90(BuildContext context) {
+    return Colors.white.withValues(alpha: 0.9);
+  }
+
+  /// Inactive progress indicator color
+  static Color progressInactive(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF424242) // Grey 800
+        : const Color(0xFFE0E0E0); // Grey 300
+  }
+
+  // --- Shimmer/Skeleton Colors ---
+
+  /// Shimmer base color for skeleton loading states
+  static Color shimmerBase(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF3A3A3A) // Darker grey for dark mode
+        : const Color(0xFFE0E0E0); // Grey 300 for light mode
+  }
+
+  /// Shimmer highlight color for skeleton loading states
+  static Color shimmerHighlight(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF4A4A4A) // Lighter grey for dark mode highlight
+        : const Color(0xFFF5F5F5); // Grey 100 for light mode highlight
+  }
+
   // --- Utility Methods ---
 
   /// Get a contrasting text color for any background.

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../design/design_system.dart';
 
 /// Smart update banner that only shows for truly outdated versions
 /// This bypasses the complex update system and provides direct download
@@ -88,13 +89,13 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
 
     return Container(
       width: double.infinity,
-      color: Colors.blue.shade50,
+      color: AppColors.infoContainer(context),
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Icon(
             Icons.system_update_alt,
-            color: Colors.blue.shade700,
+            color: AppColors.onInfoContainer(context),
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -107,13 +108,13 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
                   'New Version Available: $_targetVersion',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
+                    color: AppColors.onInfoContainer(context),
                   ),
                 ),
                 Text(
                   'Tap to download manually from GitHub',
                   style: TextStyle(
-                    color: Colors.blue.shade700,
+                    color: AppColors.onInfoContainer(context).withValues(alpha: 0.8),
                     fontSize: 13,
                   ),
                 ),
@@ -123,8 +124,8 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
           TextButton(
             onPressed: _openDownload,
             style: TextButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.infoColor(context),
+              foregroundColor: AppColors.textOnPrimary(context),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             child: const Text('Download'),
@@ -137,7 +138,7 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.setBool(_dismissedKey, true);
             },
-            icon: Icon(Icons.close, color: Colors.blue.shade700),
+            icon: Icon(Icons.close, color: AppColors.onInfoContainer(context)),
             iconSize: 20,
           ),
         ],
@@ -157,7 +158,7 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Download the APK file and install manually'),
-              backgroundColor: Colors.blue.shade600,
+              backgroundColor: AppColors.infoColor(context),
               duration: const Duration(seconds: 4),
             ),
           );
@@ -168,7 +169,7 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Visit: $url'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warningColor(context),
             duration: const Duration(seconds: 5),
           ),
         );

@@ -63,7 +63,7 @@ class DeviceGridWidget extends StatelessWidget {
                       ? AppColors.successColor(context)
                       : AppColors.infoColor(context),
                 ),
-                SizedBox(height: DesignTokens.spacingM - 4),
+                SizedBox(height: DesignTokens.spacingSM),
                 ResponsiveText(
                   device.displayName,
                   fontSize: 16,
@@ -79,7 +79,7 @@ class DeviceGridWidget extends StatelessWidget {
                   fontSize: 12,
                   color: AppColors.textSecondary(context),
                 ),
-                SizedBox(height: DesignTokens.spacingM - 4),
+                SizedBox(height: DesignTokens.spacingSM),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -87,10 +87,10 @@ class DeviceGridWidget extends StatelessWidget {
                         ? controller.disconnectDevice
                         : () => controller.connectToDevice(device.id),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isConnected 
+                      backgroundColor: isConnected
                           ? AppColors.errorColor(context)
                           : AppColors.infoColor(context),
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.onPrimaryColor(context),
                     ),
                     child: Text(isConnected ? 'Disconnect' : 'Connect'),
                   ),

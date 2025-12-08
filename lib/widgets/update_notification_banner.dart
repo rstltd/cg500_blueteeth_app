@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/app_update_manager.dart';
+import '../design/design_system.dart';
 import '../services/update_service.dart';
 import '../utils/logger.dart';
 
@@ -108,14 +109,14 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: AppColors.shadowColor(context),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Material(
-              color: Colors.transparent,
+              color: AppColors.surfaceColor(context).withValues(alpha: 0),
               child: InkWell(
                 onTap: _showUpdateDialog,
                 borderRadius: BorderRadius.circular(12),
@@ -127,12 +128,12 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: AppColors.whiteOverlay20(context),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           _getUpdateIcon(),
-                          color: Colors.white,
+                          color: AppColors.textOnPrimary(context),
                           size: 24,
                         ),
                       ),
@@ -145,8 +146,8 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                           children: [
                             Text(
                               _getUpdateTitle(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: AppColors.textOnPrimary(context),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -155,7 +156,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                             Text(
                               _getUpdateMessage(),
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: AppColors.whiteOverlay90(context),
                                 fontSize: 14,
                               ),
                             ),
@@ -167,9 +168,9 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                       if (!_updateInfo!.isForced) ...[
                         IconButton(
                           onPressed: _dismissBanner,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.close,
-                            color: Colors.white,
+                            color: AppColors.textOnPrimary(context),
                             size: 20,
                           ),
                           tooltip: 'Dismiss',
@@ -179,7 +180,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                       // Update button
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.textOnPrimary(context),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: TextButton(
@@ -213,13 +214,13 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
   List<Color> _getGradientColors() {
     switch (_updateInfo!.updateType) {
       case UpdateType.critical:
-        return [Colors.red.shade600, Colors.red.shade800];
+        return [AppColors.updateForcedColor(context), AppColors.errorColor(context)];
       case UpdateType.forced:
-        return [Colors.orange.shade600, Colors.orange.shade800];
+        return [AppColors.updateRecommendedColor(context), AppColors.warningColor(context)];
       case UpdateType.recommended:
-        return [Colors.blue.shade600, Colors.blue.shade800];
+        return [AppColors.updateRequiredColor(context), AppColors.infoColor(context)];
       default:
-        return [Colors.green.shade600, Colors.green.shade800];
+        return [AppColors.updateOptionalColor(context), AppColors.successColor(context)];
     }
   }
 
@@ -256,11 +257,11 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
   Color _getPrimaryColor() {
     switch (_updateInfo!.updateType) {
       case UpdateType.critical:
-        return Colors.red.shade600;
+        return AppColors.updateForcedColor(context);
       case UpdateType.forced:
-        return Colors.orange.shade600;
+        return AppColors.updateRecommendedColor(context);
       default:
-        return Colors.blue.shade600;
+        return AppColors.updateRequiredColor(context);
     }
   }
 }

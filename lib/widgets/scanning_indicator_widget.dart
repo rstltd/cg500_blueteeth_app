@@ -29,12 +29,15 @@ class ScanningIndicatorWidget extends StatelessWidget {
           padding: DesignTokens.paddingM,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.blue.shade100, Colors.blue.shade50],
+              colors: [
+                AppColors.scanningGradientStart(context),
+                AppColors.scanningGradientEnd(context),
+              ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             borderRadius: DesignTokens.borderRadiusM,
-            border: Border.all(color: Colors.blue.shade200),
+            border: Border.all(color: AppColors.infoBorder(context)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -44,14 +47,14 @@ class ScanningIndicatorWidget extends StatelessWidget {
                 height: DesignTokens.iconS,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.infoColor(context)),
                 ),
               ),
-              SizedBox(width: DesignTokens.spacingM - 4),
+              SizedBox(width: DesignTokens.spacingSM),
               Text(
                 'Scanning for BLE devices...',
                 style: AppTextStyles.labelLarge(context).copyWith(
-                  color: Colors.blue.shade800,
+                  color: AppColors.onInfoContainer(context),
                 ),
               ),
             ],

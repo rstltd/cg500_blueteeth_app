@@ -53,6 +53,7 @@ class SimpleScannerViewModel extends BaseViewModel {
   bool _isScanning = false;
   BleDeviceModel? _connectedDevice;
   AppThemeMode _themeMode = AppThemeMode.system;
+  String _searchQuery = '';
 
   // --- Getters ---
 
@@ -65,8 +66,26 @@ class SimpleScannerViewModel extends BaseViewModel {
   /// The update manager instance.
   AppUpdateManager get updateManager => _updateManager;
 
-  /// List of scanned BLE devices.
+  /// List of scanned BLE devices (unfiltered).
   List<BleDeviceModel> get devices => _devices;
+
+  /// Current search query.
+  String get searchQuery => _searchQuery;
+
+  /// Whether search is active.
+  bool get isSearching => _searchQuery.isNotEmpty;
+
+  /// Filtered list of devices based on search query.
+  List<BleDeviceModel> get filteredDevices {
+    if (_searchQuery.isEmpty) return _devices;
+
+    final lowerQuery = _searchQuery.toLowerCase();
+    return _devices.where((device) {
+      final name = device.displayName.toLowerCase();
+      final id = device.id.toLowerCase();
+      return name.contains(lowerQuery) || id.contains(lowerQuery);
+    }).toList();
+  }
 
   /// Whether scanning is in progress.
   bool get isScanning => _isScanning;
@@ -188,6 +207,19 @@ class SimpleScannerViewModel extends BaseViewModel {
   /// Toggle favorite status of a device.
   BleDeviceModel toggleDeviceFavorite(BleDeviceModel device) {
     return device.toggleFavorite();
+  }
+
+  /// Set the search query for filtering devices.
+  void setSearchQuery(String query) {
+    if (_searchQuery != query) {
+      _searchQuery = query;
+      safeNotifyListeners();
+    }
+  }
+
+  /// Clear the search query.
+  void clearSearch() {
+    setSearchQuery('');
   }
 
   // --- Theme Actions ---

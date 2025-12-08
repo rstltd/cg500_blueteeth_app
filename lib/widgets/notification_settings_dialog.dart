@@ -50,7 +50,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
+      padding: DesignTokens.paddingML,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -68,7 +68,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(DesignTokens.spacingM - 4), // 12dp
+            padding: DesignTokens.paddingSM,
             decoration: BoxDecoration(
               color: AppColors.infoColor(context).withValues(alpha: 0.2),
               borderRadius: DesignTokens.borderRadiusM,
@@ -105,7 +105,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildContent() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
+      padding: DesignTokens.paddingML,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -126,7 +126,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
-      padding: EdgeInsets.only(bottom: DesignTokens.spacingM - 4), // 12dp
+      padding: EdgeInsets.only(bottom: DesignTokens.spacingSM),
       child: Row(
         children: [
           Icon(
@@ -171,18 +171,18 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
               contentPadding: EdgeInsets.zero,
             ),
             if (_enableSmartFiltering) ...[
-              SizedBox(height: DesignTokens.spacingM - 4), // 12dp
+              SizedBox(height: DesignTokens.spacingSM),
               Container(
-                padding: EdgeInsets.all(DesignTokens.spacingM - 4), // 12dp
+                padding: DesignTokens.paddingSM,
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: AppColors.infoContainer(context),
                   borderRadius: DesignTokens.borderRadiusS,
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.lightbulb_outline,
-                      color: Colors.blue.shade700,
+                      color: AppColors.onInfoContainer(context),
                       size: DesignTokens.iconS,
                     ),
                     SizedBox(width: DesignTokens.spacingS),
@@ -190,7 +190,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
                       child: Text(
                         'Smart filtering prevents duplicate notifications, reduces connection status spam, and silences internal operations.',
                         style: AppTextStyles.bodySmall(context).copyWith(
-                          color: Colors.blue.shade700,
+                          color: AppColors.onInfoContainer(context),
                         ),
                       ),
                     ),
@@ -276,7 +276,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             color: AppColors.infoColor(context),
           ),
         ),
-        SizedBox(width: DesignTokens.spacingM - 4), // 12dp
+        SizedBox(width: DesignTokens.spacingSM),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,7 +324,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             _buildStatRow('Filtered Notifications', '${stats['filtered_notifications']}'),
             SizedBox(height: DesignTokens.spacingS),
             _buildStatRow('Pending Notifications', '${stats['pending_notifications']}'),
-            SizedBox(height: DesignTokens.spacingM - 4), // 12dp
+            SizedBox(height: DesignTokens.spacingSM),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -367,7 +367,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
 
   Widget _buildActions() {
     return Container(
-      padding: EdgeInsets.all(DesignTokens.spacingL - 4), // 20dp
+      padding: DesignTokens.paddingML,
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -383,7 +383,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          SizedBox(width: DesignTokens.spacingM - 4), // 12dp
+          SizedBox(width: DesignTokens.spacingSM),
           ElevatedButton(
             onPressed: _applySettings,
             style: ElevatedButton.styleFrom(
@@ -391,7 +391,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(
                 horizontal: DesignTokens.spacingL,
-                vertical: DesignTokens.spacingM - 4, // 12dp
+                vertical: DesignTokens.spacingSM,
               ),
             ),
             child: const Text('Apply Settings'),

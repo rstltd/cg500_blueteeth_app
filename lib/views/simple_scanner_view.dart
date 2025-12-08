@@ -18,6 +18,7 @@ import '../widgets/connected_device_card_widget.dart';
 import '../widgets/quick_stats_widget.dart';
 import '../widgets/device_grid_widget.dart';
 import '../widgets/device_details_dialog.dart';
+import '../widgets/device_search_widget.dart';
 import 'command_interface_view.dart';
 import 'update_settings_view.dart';
 
@@ -111,7 +112,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const CircularProgressIndicator(),
-              SizedBox(height: DesignTokens.spacingL - 4),
+              SizedBox(height: DesignTokens.spacingML),
               const Text('Initializing BLE Controller...'),
             ],
           ),
@@ -146,6 +147,12 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
       title: const Text('CG500 BLE Scanner'),
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       actions: [
+        // Search Button
+        DeviceSearchWidget(
+          onSearchChanged: viewModel.setSearchQuery,
+          onSearchClosed: viewModel.clearSearch,
+        ),
+
         // Notification Settings Button
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
@@ -193,7 +200,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
           child: Row(
             children: [
               const Icon(Icons.refresh),
-              SizedBox(width: DesignTokens.spacingM - 4),
+              SizedBox(width: DesignTokens.spacingSM),
               const Text('Check for Updates'),
             ],
           ),
@@ -203,7 +210,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
           child: Row(
             children: [
               const Icon(Icons.system_update_alt),
-              SizedBox(width: DesignTokens.spacingM - 4),
+              SizedBox(width: DesignTokens.spacingSM),
               const Text('Update Settings'),
             ],
           ),
@@ -217,7 +224,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
               return Row(
                 children: [
                   Icon(viewModel.themeModeIcon),
-                  SizedBox(width: DesignTokens.spacingM - 4),
+                  SizedBox(width: DesignTokens.spacingSM),
                   Text(viewModel.themeModeDescription),
                 ],
               );
@@ -275,6 +282,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
       onDeviceConnect: (device) => viewModel.connectToDevice(device.id),
       onDeviceDisconnect: (device) => viewModel.disconnectDevice(),
       onDeviceFavorite: (device) => _toggleDeviceFavorite(device),
+      searchQuery: viewModel.searchQuery,
     );
   }
 
@@ -385,7 +393,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
               children: [
                 _buildControlPanel(),
                 _buildScanningIndicator(),
-                SizedBox(height: DesignTokens.spacingL - 4),
+                SizedBox(height: DesignTokens.spacingML),
                 StreamBuilder<BleDeviceModel?>(
                   stream: viewModel.connectedDeviceStream,
                   builder: (context, snapshot) {

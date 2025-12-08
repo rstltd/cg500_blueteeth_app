@@ -60,7 +60,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         children: [
           _buildStatusHeader(context, true),
           if (showDeviceInfo) ...[
-            SizedBox(height: DesignTokens.spacingM - 4),
+            SizedBox(height: DesignTokens.spacingSM),
             _buildDeviceInfo(context, device),
           ],
         ],
@@ -160,7 +160,7 @@ class ConnectionStatusWidget extends StatelessWidget {
             size: ResponsiveUtils.getIconSize(context, base: 20),
           ),
         ),
-        SizedBox(width: DesignTokens.spacingM - 4),
+        SizedBox(width: DesignTokens.spacingSM),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,7 +186,7 @@ class ConnectionStatusWidget extends StatelessWidget {
 
   Widget _buildDeviceInfo(BuildContext context, BleDeviceModel device) {
     return Container(
-      padding: EdgeInsets.all(DesignTokens.spacingM - 4),
+      padding: DesignTokens.paddingSM,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.7),
         borderRadius: DesignTokens.borderRadiusS,

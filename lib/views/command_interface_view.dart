@@ -6,6 +6,7 @@ import '../services/notification_service.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../view_models/command_interface_view_model.dart';
 import '../widgets/message_bubble_widget.dart';
+import '../widgets/message_filter_widget.dart';
 import '../widgets/connection_status_widget.dart';
 import '../widgets/device_status_panel_widget.dart';
 import '../widgets/command_input_panel_widget.dart';
@@ -117,7 +118,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const CircularProgressIndicator(),
-            SizedBox(height: DesignTokens.spacingL - 4),
+            SizedBox(height: DesignTokens.spacingML),
             const Text('Initializing command interface...'),
           ],
         ),
@@ -153,29 +154,39 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     return DeviceStatusPanelWidget(controller: viewModel.controller);
   }
 
-  Widget _buildResponseArea() {
-    // Convert MessageData to Map for existing widget compatibility
+  Widget _buildResponseArea({bool compact = false}) {
+    // Convert filtered MessageData to Map for existing widget compatibility
     final messageMaps =
-        viewModel.messages.map((m) => m.toMap()).toList();
+        viewModel.filteredMessages.map((m) => m.toMap()).toList();
 
     return Container(
-      padding: DesignTokens.paddingM,
+      padding: compact ? DesignTokens.paddingS : DesignTokens.paddingM,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'Communication',
-                style: AppTextStyles.titleSmall(context),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: viewModel.clearMessages,
-                icon: const Icon(Icons.clear_all),
-                tooltip: 'Clear Messages',
-              ),
-            ],
+          if (!compact) ...[
+            Row(
+              children: [
+                Text(
+                  'Communication',
+                  style: AppTextStyles.titleSmall(context),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: viewModel.clearMessages,
+                  icon: const Icon(Icons.clear_all),
+                  tooltip: 'Clear Messages',
+                ),
+              ],
+            ),
+            SizedBox(height: DesignTokens.spacingS),
+          ],
+          // Message filter tabs
+          MessageFilterWidget(
+            selectedFilter: viewModel.currentFilter,
+            onFilterChanged: viewModel.setFilter,
+            messageCounts: viewModel.messageCounts,
+            compact: compact,
           ),
           SizedBox(height: DesignTokens.spacingS),
           Expanded(
@@ -189,7 +200,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
               child: MessageListWidget(
                 messages: messageMaps,
                 scrollController: viewModel.scrollController,
-                autoScroll: true,
+                autoScroll: viewModel.currentFilter == MessageFilter.all,
               ),
             ),
           ),
@@ -211,7 +222,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     return Column(
       children: [
         _buildStatusPanel(),
-        Expanded(child: _buildResponseArea()),
+        Expanded(child: _buildResponseArea(compact: true)),
         _buildCommandInput(),
       ],
     );

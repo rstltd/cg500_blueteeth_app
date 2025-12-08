@@ -4,6 +4,7 @@ import '../controllers/command_manager.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../utils/logger.dart';
+import '../widgets/message_filter_widget.dart';
 
 /// ViewModel for the Command Interface View.
 ///
@@ -36,6 +37,7 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   late final CommandManager _commandManager;
   final ScrollController _scrollController = ScrollController();
   final List<MessageData> _messages = [];
+  MessageFilter _currentFilter = MessageFilter.all;
 
   /// The BLE controller instance.
   BleControllerInterface get controller => _controller;
@@ -54,6 +56,44 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
 
   /// Number of messages.
   int get messageCount => _messages.length;
+
+  /// Current message filter.
+  MessageFilter get currentFilter => _currentFilter;
+
+  /// Filtered messages based on current filter.
+  List<MessageData> get filteredMessages {
+    switch (_currentFilter) {
+      case MessageFilter.all:
+        return List.unmodifiable(_messages);
+      case MessageFilter.commands:
+        return List.unmodifiable(
+            _messages.where((m) => m.isCommand).toList());
+      case MessageFilter.responses:
+        return List.unmodifiable(
+            _messages.where((m) => !m.isCommand && !m.isError).toList());
+      case MessageFilter.errors:
+        return List.unmodifiable(_messages.where((m) => m.isError).toList());
+    }
+  }
+
+  /// Get counts for each filter type.
+  Map<MessageFilter, int> get messageCounts {
+    return {
+      MessageFilter.all: _messages.length,
+      MessageFilter.commands: _messages.where((m) => m.isCommand).length,
+      MessageFilter.responses:
+          _messages.where((m) => !m.isCommand && !m.isError).length,
+      MessageFilter.errors: _messages.where((m) => m.isError).length,
+    };
+  }
+
+  /// Set the current filter.
+  void setFilter(MessageFilter filter) {
+    if (_currentFilter != filter) {
+      _currentFilter = filter;
+      safeNotifyListeners();
+    }
+  }
 
   @override
   Future<void> onInit() async {
