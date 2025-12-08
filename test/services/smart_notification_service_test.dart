@@ -347,7 +347,6 @@ void main() {
       });
 
       test('withDependencies instance should be different from singleton', () {
-        final singleton = SmartNotificationService();
         final diInstance = SmartNotificationService.withDependencies();
         // Note: They use the same underlying base service, but are different instances
         expect(diInstance, isA<SmartNotificationService>());

@@ -12,7 +12,6 @@ import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 class MockUpdateService implements UpdateServiceInterface {
   final _updateController = StreamController<UpdateInfo>.broadcast();
   final _downloadController = StreamController<DownloadProgress>.broadcast();
-  bool _isInitialized = false;
   UpdateInfo? _mockUpdateInfo;
   UpdatePreferences? _preferences;
 
@@ -24,7 +23,6 @@ class MockUpdateService implements UpdateServiceInterface {
 
   @override
   Future<bool> initialize() async {
-    _isInitialized = true;
     _preferences = UpdatePreferences();
     return true;
   }
