@@ -2,6 +2,7 @@ import 'dart:async';
 import '../models/ble_device.dart';
 import '../models/ble_service.dart';
 import '../services/notification_service.dart';
+import '../core/interfaces/ble_notification_delegate.dart';
 
 /// Abstract interface for BLE controller
 /// Allows dependency injection for testing widgets
@@ -19,6 +20,9 @@ abstract class BleControllerInterface {
   List<BleDeviceModel> get scannedDevices;
   bool get isInitialized;
 
+  // Notification verbosity (optional - may return null if not configurable)
+  BleNotificationVerbosity? get notificationVerbosity;
+
   // Methods
   Future<bool> initialize();
   Future<bool> startScanning({Duration? timeout});
@@ -30,4 +34,7 @@ abstract class BleControllerInterface {
   Map<String, dynamic> getCommandInfo();
   void clearDevices();
   void dispose();
+
+  // Notification configuration
+  void setNotificationVerbosity(BleNotificationVerbosity verbosity);
 }

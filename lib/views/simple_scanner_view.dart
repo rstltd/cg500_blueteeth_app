@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/app_update_manager.dart';
+import '../core/mixins/notification_listener_mixin.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
 import '../models/ble_device.dart';
 import '../services/animation_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
-import '../utils/formatting_utils.dart';
 import '../view_models/simple_scanner_view_model.dart';
 import '../widgets/device_list_widget.dart';
 import '../widgets/notification_settings_dialog.dart';
@@ -76,26 +76,28 @@ class _SimpleScannerContent extends StatefulWidget {
   State<_SimpleScannerContent> createState() => _SimpleScannerContentState();
 }
 
-class _SimpleScannerContentState extends State<_SimpleScannerContent> {
+class _SimpleScannerContentState extends State<_SimpleScannerContent>
+    with NotificationListenerMixin<_SimpleScannerContent> {
   SimpleScannerViewModel get viewModel => widget.viewModel;
+
+  @override
+  Stream<NotificationModel> get notificationStream => viewModel.notificationStream;
 
   @override
   void initState() {
     super.initState();
-    // Subscribe to notifications for SnackBar display
-    viewModel.notificationStream.listen(_handleNotification);
+    initializeNotificationListener();
   }
 
-  void _handleNotification(NotificationModel notification) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${notification.title}: ${notification.message}'),
-          backgroundColor: FormattingUtils.getNotificationColor(notification.type),
-          duration: notification.duration ?? const Duration(seconds: 3),
-        ),
-      );
-    }
+  @override
+  void dispose() {
+    disposeNotificationListener();
+    super.dispose();
+  }
+
+  /// Open notification settings dialog.
+  Future<void> _openNotificationSettings() async {
+    await showNotificationSettingsDialog(context);
   }
 
   @override
@@ -156,10 +158,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent> {
         // Notification Settings Button
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
-          onPressed: () => showDialog(
-            context: context,
-            builder: (context) => const NotificationSettingsDialog(),
-          ),
+          onPressed: _openNotificationSettings,
           tooltip: 'Notification Settings',
         ),
 

@@ -32,26 +32,27 @@ class SmartNotificationService implements NotificationServiceInterface {
   static const Duration _connectionDebounce = Duration(milliseconds: 500);
   static const Duration _scanningDebounce = Duration(milliseconds: 1000);
   
-  // Notification categories
-  static const Set<String> _silentOperations = {
+  // Notification categories (mutable to allow configuration)
+  // Using Set.from() to ensure mutable sets
+  static final Set<String> _silentOperations = Set<String>.from([
     'MTU Configured',
     'Command Sent',
     'Communication Ready',
-  };
-  
-  static const Set<String> _criticalNotifications = {
+  ]);
+
+  static final Set<String> _criticalNotifications = Set<String>.from([
     'Connection Failed',
-    'Bluetooth Not Supported', 
+    'Bluetooth Not Supported',
     'Permissions Required',
     'Send Failed',
-  };
-  
-  static const Set<String> _debouncedNotifications = {
+  ]);
+
+  static final Set<String> _debouncedNotifications = Set<String>.from([
     'Connected',
     'Disconnected',
     'Scan Failed',
     'Bluetooth Disabled',
-  };
+  ]);
 
   @override
   Stream<NotificationModel> get notifications => _baseNotificationService.notifications;

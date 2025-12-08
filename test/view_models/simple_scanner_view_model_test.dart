@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
 import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
@@ -560,6 +561,16 @@ class _MockBleController implements BleControllerInterface {
     _connectedDeviceController.close();
     _commandResponseController.close();
     _notificationController.close();
+  }
+
+  BleNotificationVerbosity _notificationVerbosity = BleNotificationVerbosity.minimal;
+
+  @override
+  BleNotificationVerbosity? get notificationVerbosity => _notificationVerbosity;
+
+  @override
+  void setNotificationVerbosity(BleNotificationVerbosity verbosity) {
+    _notificationVerbosity = verbosity;
   }
 }
 

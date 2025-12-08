@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
+import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
@@ -244,6 +245,18 @@ class MockBleController implements BleControllerInterface {
     _connectedDeviceController.close();
     _commandResponseController.close();
     _notificationController.close();
+  }
+
+  // ============== Notification Verbosity Methods ==============
+
+  BleNotificationVerbosity _notificationVerbosity = BleNotificationVerbosity.minimal;
+
+  @override
+  BleNotificationVerbosity? get notificationVerbosity => _notificationVerbosity;
+
+  @override
+  void setNotificationVerbosity(BleNotificationVerbosity verbosity) {
+    _notificationVerbosity = verbosity;
   }
 }
 

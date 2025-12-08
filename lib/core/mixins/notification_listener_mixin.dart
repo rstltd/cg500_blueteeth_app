@@ -9,7 +9,12 @@ import '../../utils/formatting_utils.dart';
 /// by providing a standardized way to:
 /// - Subscribe to notification streams
 /// - Display SnackBar notifications with proper colors
+/// - Clear outdated notifications when new ones arrive
 /// - Properly cancel subscriptions on dispose
+///
+/// Note: Notification filtering is handled at the source level by
+/// ConfigurableBleNotificationDelegate. This mixin simply displays
+/// whatever notifications pass through the stream.
 ///
 /// Usage:
 /// ```dart
@@ -51,17 +56,44 @@ mixin NotificationListenerMixin<T extends StatefulWidget> on State<T> {
     _notificationSubscription = null;
   }
 
+  /// Get appropriate duration based on notification type.
+  /// Important notifications get slightly longer display time.
+  Duration _getNotificationDuration(NotificationModel notification) {
+    if (notification.duration != null) {
+      return notification.duration!;
+    }
+    switch (notification.type) {
+      case NotificationType.error:
+        return const Duration(seconds: 4);
+      case NotificationType.warning:
+        return const Duration(seconds: 3);
+      case NotificationType.success:
+        return const Duration(seconds: 2);
+      case NotificationType.info:
+        return const Duration(milliseconds: 1500);
+    }
+  }
+
   /// Handle incoming notifications by showing a SnackBar.
   void _handleNotification(NotificationModel notification) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${notification.title}: ${notification.message}'),
-          backgroundColor: getNotificationColor(notification.type),
-          duration: notification.duration ?? const Duration(seconds: 3),
+    if (!mounted) return;
+
+    // Clear any existing SnackBars to prevent queue buildup
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    // Show the new notification
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${notification.title}: ${notification.message}'),
+        backgroundColor: getNotificationColor(notification.type),
+        duration: _getNotificationDuration(notification),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
-      );
-    }
+      ),
+    );
   }
 
   /// Get the color for a notification type.

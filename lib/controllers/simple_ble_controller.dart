@@ -25,14 +25,35 @@ class SimpleBleController implements BleControllerInterface {
   })  : _bleService = bleService,
         _notificationService = notificationService,
         _notificationDelegate = notificationDelegate ??
-            DefaultBleNotificationDelegate(notificationService);
+            ConfigurableBleNotificationDelegate(notificationService);
 
   final BleServiceInterface _bleService;
   final NotificationServiceInterface _notificationService;
   final BleNotificationDelegate _notificationDelegate;
 
-  /// Getter for notification delegate (for testing)
+  /// Getter for notification delegate (for testing and configuration)
   BleNotificationDelegate get notificationDelegate => _notificationDelegate;
+
+  /// Update notification verbosity at runtime.
+  /// Only works if using ConfigurableBleNotificationDelegate.
+  @override
+  void setNotificationVerbosity(BleNotificationVerbosity verbosity) {
+    final delegate = _notificationDelegate;
+    if (delegate is ConfigurableBleNotificationDelegate) {
+      delegate.setVerbosity(verbosity);
+    }
+  }
+
+  /// Get current notification verbosity.
+  /// Returns null if not using ConfigurableBleNotificationDelegate.
+  @override
+  BleNotificationVerbosity? get notificationVerbosity {
+    final delegate = _notificationDelegate;
+    if (delegate is ConfigurableBleNotificationDelegate) {
+      return delegate.verbosity;
+    }
+    return null;
+  }
 
   // Expose service streams for UI consumption
   @override

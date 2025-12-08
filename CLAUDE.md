@@ -56,7 +56,7 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - **Nordic UART Service Communication**: Text command communication via standardized BLE UART protocol
 - **Modern Responsive UI**: Material Design 3 with dark/light themes and responsive layouts for mobile/tablet/desktop
 - **Advanced Update Management**: User-controlled update preferences with network awareness and retry mechanisms
-- **Smart Notification System**: Intelligent filtering to prevent notification spam with user-configurable settings
+- **Smart Notification System**: Unified notification control with ConfigurableBleNotificationDelegate for source-level filtering
 - **BLE Device Scanning**: Automatic discovery with animated scanning indicators and signal strength visualization
 - **Chat-Style Command Interface**: Real-time bidirectional communication with command history and message bubbles
 - **Connection Management**: Visual connection states with duration tracking and automatic reconnection
@@ -129,7 +129,8 @@ The application follows an MVC (Model-View-Controller) architecture enhanced wit
 #### 4. **Core Layer** (`lib/core/`)
 - **`service_locator.dart`** - GetIt-based dependency injection container
 - **`view_model/`** - ViewModelProvider pattern implementation (see ViewModelProvider Guide below)
-- **`mixins/`** - Reusable mixins for common functionality
+- **`mixins/notification_listener_mixin.dart`** - Simplified mixin for displaying SnackBar notifications
+- **`interfaces/ble_notification_delegate.dart`** - Notification delegate interface with `BleNotificationVerbosity` enum and `ConfigurableBleNotificationDelegate`
 
 #### 5. **ViewModels Layer** (`lib/view_models/`)
 - **`simple_scanner_view_model.dart`** - ViewModel for BLE scanner with device/theme/update management
@@ -340,7 +341,7 @@ ViewModelListener<MyViewModel>(
 
 #### **Enhanced Features:**
 - **Nordic UART Service**: Standard BLE UART communication protocol with proper UUID mapping
-- **Smart Notification Filtering**: Debounced notifications with duplicate prevention and user customization
+- **Smart Notification Filtering**: Debounced notifications with duplicate prevention and unified verbosity control
 - **Responsive Design System**: Adaptive layouts with mobile/tablet/desktop breakpoints
 - **Modern UI Components**: Material Design 3 with animated elements and smooth transitions
 - **Chat-Style Communication**: Message bubbles with timestamps and command history navigation
@@ -460,10 +461,17 @@ All views follow consistent patterns, making changes predictable and testable.
 - **Animation Framework**: Smooth transitions, scanning effects, and micro-interactions
 
 ### Smart Notification System
+- **Unified Notification Control**: Single "Notification Level" setting for simplified user experience
+- **ConfigurableBleNotificationDelegate**: Runtime-configurable notification filtering at source level
+- **Four Verbosity Levels**:
+  - `Errors Only` (minimal) - Only show error notifications (recommended)
+  - `Errors & Warnings` (normal) - Show errors and warnings
+  - `All Details` (verbose) - Show all notifications including info and success
+  - `Silent` - Don't generate any notifications
 - **Intelligent Filtering**: Prevents notification spam through debouncing and deduplication
-- **User Controls**: Configurable notification categories and preferences  
 - **Statistics**: Track filtered vs shown notifications for optimization
 - **Silent Operations**: Internal processes (MTU config, etc.) don't spam users
+- **NotificationListenerMixin**: Simplified mixin for Views to display SnackBar notifications
 
 ### Nordic UART Service Implementation
 ```dart
