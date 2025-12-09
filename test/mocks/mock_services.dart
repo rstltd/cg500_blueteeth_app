@@ -723,8 +723,9 @@ class MockErrorHandlingService implements ErrorHandlingService {
   }
 }
 
-/// Mock implementation of BleNotificationDelegate for testing
-class MockBleNotificationDelegate implements BleNotificationDelegate {
+/// Mock implementation of BleNotificationDelegate for testing.
+/// Extends the concrete BleNotificationDelegate class to track all calls.
+class MockBleNotificationDelegate extends BleNotificationDelegate {
   // Track all delegate calls for verification
   final List<String> calls = [];
 
@@ -748,10 +749,14 @@ class MockBleNotificationDelegate implements BleNotificationDelegate {
   final List<String> commandErrors = [];
   int devicesClearedCount = 0;
 
+  MockBleNotificationDelegate(NotificationService notificationService)
+      : super(notificationService, verbosity: BleNotificationVerbosity.verbose);
+
   @override
   void onInitializeSuccess() {
     calls.add('onInitializeSuccess');
     initializeSuccessCount++;
+    // Don't call super to avoid actual notification
   }
 
   @override

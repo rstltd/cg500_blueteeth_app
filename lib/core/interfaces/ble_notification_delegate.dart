@@ -1,300 +1,5 @@
 import '../../services/notification_service.dart';
 
-/// Delegate interface for BLE controller notifications.
-///
-/// This interface abstracts the notification logic from the BLE controller,
-/// allowing for easier testing and customization of notification behavior.
-abstract class BleNotificationDelegate {
-  // Initialization notifications
-  void onInitializeSuccess();
-  void onInitializeFailed();
-  void onInitializeError(String error);
-
-  // Scanning notifications
-  void onScanStarted();
-  void onScanStopped();
-  void onScanError(String error);
-  void onStopScanError(String error);
-
-  // Connection notifications
-  void onConnecting();
-  void onConnected();
-  void onConnectionError(String error);
-  void onDisconnectError(String error);
-
-  // Service discovery notifications
-  void onDiscoveringServices();
-  void onServicesFound(int count);
-  void onNoServicesFound();
-  void onServiceDiscoveryError(String error);
-
-  // Command notifications
-  void onEmptyCommand();
-  void onCommandError(String error);
-
-  // Device list notifications
-  void onDevicesCleared();
-}
-
-/// Default implementation of BleNotificationDelegate that uses NotificationService.
-class DefaultBleNotificationDelegate implements BleNotificationDelegate {
-  final NotificationService _notificationService;
-
-  const DefaultBleNotificationDelegate(this._notificationService);
-
-  @override
-  void onInitializeSuccess() {
-    _notificationService.showSuccess(
-      title: 'Controller Ready',
-      message: 'BLE Controller initialized successfully',
-    );
-  }
-
-  @override
-  void onInitializeFailed() {
-    _notificationService.showError(
-      title: 'Initialization Failed',
-      message: 'Failed to initialize BLE Controller',
-    );
-  }
-
-  @override
-  void onInitializeError(String error) {
-    _notificationService.showError(
-      title: 'Controller Error',
-      message: 'Unexpected error during initialization: $error',
-    );
-  }
-
-  @override
-  void onScanStarted() {
-    _notificationService.showInfo(
-      title: 'Scanning Started',
-      message: 'Looking for BLE devices nearby...',
-    );
-  }
-
-  @override
-  void onScanStopped() {
-    _notificationService.showInfo(
-      title: 'Scanning Stopped',
-      message: 'Device scanning has been stopped',
-    );
-  }
-
-  @override
-  void onScanError(String error) {
-    _notificationService.showError(
-      title: 'Scan Error',
-      message: 'Failed to start scanning: $error',
-    );
-  }
-
-  @override
-  void onStopScanError(String error) {
-    _notificationService.showError(
-      title: 'Stop Scan Error',
-      message: 'Failed to stop scanning: $error',
-    );
-  }
-
-  @override
-  void onConnecting() {
-    _notificationService.showInfo(
-      title: 'Connecting',
-      message: 'Attempting to connect to device...',
-    );
-  }
-
-  @override
-  void onConnected() {
-    _notificationService.showSuccess(
-      title: 'Connected',
-      message: 'Successfully connected to device',
-    );
-  }
-
-  @override
-  void onConnectionError(String error) {
-    _notificationService.showError(
-      title: 'Connection Error',
-      message: 'Failed to connect to device: $error',
-    );
-  }
-
-  @override
-  void onDisconnectError(String error) {
-    _notificationService.showError(
-      title: 'Disconnect Error',
-      message: 'Failed to disconnect device: $error',
-    );
-  }
-
-  @override
-  void onDiscoveringServices() {
-    _notificationService.showInfo(
-      title: 'Discovering Services',
-      message: 'Exploring device capabilities...',
-    );
-  }
-
-  @override
-  void onServicesFound(int count) {
-    _notificationService.showSuccess(
-      title: 'Services Found',
-      message: 'Discovered $count service(s)',
-    );
-  }
-
-  @override
-  void onNoServicesFound() {
-    _notificationService.showWarning(
-      title: 'No Services',
-      message: 'No GATT services found on device',
-    );
-  }
-
-  @override
-  void onServiceDiscoveryError(String error) {
-    _notificationService.showError(
-      title: 'Service Discovery Error',
-      message: 'Failed to discover services: $error',
-    );
-  }
-
-  @override
-  void onEmptyCommand() {
-    _notificationService.showWarning(
-      title: 'Empty Command',
-      message: 'Please enter a command to send',
-    );
-  }
-
-  @override
-  void onCommandError(String error) {
-    _notificationService.showError(
-      title: 'Command Error',
-      message: 'Failed to send command: $error',
-    );
-  }
-
-  @override
-  void onDevicesCleared() {
-    _notificationService.showInfo(
-      title: 'Devices Cleared',
-      message: 'Cleared device list',
-    );
-  }
-}
-
-/// Minimal implementation of BleNotificationDelegate that only shows errors.
-/// This is the recommended default for production use to avoid notification spam.
-///
-/// Only notifies users about:
-/// - Initialization failures
-/// - Scan errors
-/// - Connection errors
-/// - Service discovery errors
-/// - Command errors
-///
-/// Silently ignores:
-/// - Success messages (Controller Ready, Connected, Services Found)
-/// - Info messages (Scanning Started/Stopped, Connecting, Discovering Services)
-/// - Non-critical warnings (No Services Found, Empty Command)
-class MinimalBleNotificationDelegate implements BleNotificationDelegate {
-  final NotificationService _notificationService;
-
-  const MinimalBleNotificationDelegate(this._notificationService);
-
-  // Initialization - only show errors
-  @override
-  void onInitializeSuccess() {} // Silent - UI already shows connection state
-  @override
-  void onInitializeFailed() {
-    _notificationService.showError(
-      title: 'Initialization Failed',
-      message: 'Failed to initialize BLE Controller',
-    );
-  }
-  @override
-  void onInitializeError(String error) {
-    _notificationService.showError(
-      title: 'Controller Error',
-      message: 'Unexpected error during initialization: $error',
-    );
-  }
-
-  // Scanning - only show errors
-  @override
-  void onScanStarted() {} // Silent - UI shows scanning indicator
-  @override
-  void onScanStopped() {} // Silent - UI shows scanning indicator
-  @override
-  void onScanError(String error) {
-    _notificationService.showError(
-      title: 'Scan Error',
-      message: 'Failed to start scanning: $error',
-    );
-  }
-  @override
-  void onStopScanError(String error) {
-    _notificationService.showError(
-      title: 'Stop Scan Error',
-      message: 'Failed to stop scanning: $error',
-    );
-  }
-
-  // Connection - only show errors
-  @override
-  void onConnecting() {} // Silent - UI shows connecting state
-  @override
-  void onConnected() {} // Silent - UI shows connected state
-  @override
-  void onConnectionError(String error) {
-    _notificationService.showError(
-      title: 'Connection Failed',
-      message: error,
-    );
-  }
-  @override
-  void onDisconnectError(String error) {
-    _notificationService.showError(
-      title: 'Disconnect Error',
-      message: error,
-    );
-  }
-
-  // Service discovery - only show errors
-  @override
-  void onDiscoveringServices() {} // Silent - internal operation
-  @override
-  void onServicesFound(int count) {} // Silent - internal operation
-  @override
-  void onNoServicesFound() {} // Silent - not an error, just no services
-  @override
-  void onServiceDiscoveryError(String error) {
-    _notificationService.showError(
-      title: 'Service Discovery Error',
-      message: error,
-    );
-  }
-
-  // Command - only show errors
-  @override
-  void onEmptyCommand() {} // Silent - input validation, not important
-  @override
-  void onCommandError(String error) {
-    _notificationService.showError(
-      title: 'Command Failed',
-      message: error,
-    );
-  }
-
-  // Device list - silent
-  @override
-  void onDevicesCleared() {} // Silent - UI reflects the change
-}
-
 /// Verbosity level for BLE notifications.
 /// Controls how much detail is shown to the user.
 enum BleNotificationVerbosity {
@@ -311,16 +16,115 @@ enum BleNotificationVerbosity {
 /// SharedPreferences key for BLE notification verbosity
 const String bleNotificationVerbosityKey = 'ble_notification_verbosity';
 
-/// Configurable implementation of BleNotificationDelegate that can change
-/// behavior at runtime based on user preferences.
+/// BLE event types for notification handling.
+/// Each event has properties that determine when it should be shown.
+enum BleEvent {
+  // Initialization events
+  initializeSuccess(isError: false, isWarning: false, isImportant: true,
+      defaultTitle: 'Controller Ready',
+      defaultMessage: 'BLE Controller initialized successfully'),
+  initializeFailed(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Initialization Failed',
+      defaultMessage: 'Failed to initialize BLE Controller'),
+  initializeError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Controller Error',
+      defaultMessage: 'Unexpected error during initialization'),
+
+  // Scanning events
+  scanStarted(isError: false, isWarning: false, isImportant: false,
+      defaultTitle: 'Scanning Started',
+      defaultMessage: 'Looking for BLE devices nearby...'),
+  scanStopped(isError: false, isWarning: false, isImportant: false,
+      defaultTitle: 'Scanning Stopped',
+      defaultMessage: 'Device scanning has been stopped'),
+  scanError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Scan Error',
+      defaultMessage: 'Failed to start scanning'),
+  stopScanError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Stop Scan Error',
+      defaultMessage: 'Failed to stop scanning'),
+
+  // Connection events
+  connecting(isError: false, isWarning: false, isImportant: false,
+      defaultTitle: 'Connecting',
+      defaultMessage: 'Attempting to connect to device...'),
+  connected(isError: false, isWarning: false, isImportant: true,
+      defaultTitle: 'Connected',
+      defaultMessage: 'Successfully connected to device'),
+  connectionError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Connection Failed',
+      defaultMessage: 'Failed to connect to device'),
+  disconnectError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Disconnect Error',
+      defaultMessage: 'Failed to disconnect device'),
+
+  // Service discovery events
+  discoveringServices(isError: false, isWarning: false, isImportant: false,
+      defaultTitle: 'Discovering Services',
+      defaultMessage: 'Exploring device capabilities...'),
+  servicesFound(isError: false, isWarning: false, isImportant: true,
+      defaultTitle: 'Services Found',
+      defaultMessage: 'Discovered services'),
+  noServicesFound(isError: false, isWarning: true, isImportant: false,
+      defaultTitle: 'No Services',
+      defaultMessage: 'No GATT services found on device'),
+  serviceDiscoveryError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Service Discovery Error',
+      defaultMessage: 'Failed to discover services'),
+
+  // Command events
+  emptyCommand(isError: false, isWarning: true, isImportant: false,
+      defaultTitle: 'Empty Command',
+      defaultMessage: 'Please enter a command to send'),
+  commandError(isError: true, isWarning: false, isImportant: true,
+      defaultTitle: 'Command Failed',
+      defaultMessage: 'Failed to send command'),
+
+  // Device list events
+  devicesCleared(isError: false, isWarning: false, isImportant: false,
+      defaultTitle: 'Devices Cleared',
+      defaultMessage: 'Cleared device list'),
+  ;
+
+  final bool isError;
+  final bool isWarning;
+  final bool isImportant;
+  final String defaultTitle;
+  final String defaultMessage;
+
+  const BleEvent({
+    required this.isError,
+    required this.isWarning,
+    required this.isImportant,
+    required this.defaultTitle,
+    required this.defaultMessage,
+  });
+}
+
+/// Unified delegate for BLE controller notifications.
 ///
-/// This is the recommended delegate for production use as it allows users
-/// to control how many notifications they see without restarting the app.
-class ConfigurableBleNotificationDelegate implements BleNotificationDelegate {
+/// This class replaces the previous 4 implementations (Default, Minimal,
+/// Configurable, Silent) with a single configurable class that handles
+/// all notification behavior based on the verbosity level.
+///
+/// The delegate separates notification logic from the BLE controller,
+/// allowing for easier testing and customization of notification behavior.
+///
+/// Usage:
+/// ```dart
+/// final delegate = BleNotificationDelegate(
+///   notificationService: myNotificationService,
+///   verbosity: BleNotificationVerbosity.minimal,
+/// );
+///
+/// // Change verbosity at runtime
+/// delegate.setVerbosity(BleNotificationVerbosity.verbose);
+/// ```
+class BleNotificationDelegate {
   final NotificationService _notificationService;
   BleNotificationVerbosity _verbosity;
 
-  ConfigurableBleNotificationDelegate(
+  BleNotificationDelegate(
     this._notificationService, {
     BleNotificationVerbosity verbosity = BleNotificationVerbosity.minimal,
   }) : _verbosity = verbosity;
@@ -333,239 +137,115 @@ class ConfigurableBleNotificationDelegate implements BleNotificationDelegate {
     _verbosity = verbosity;
   }
 
-  // Helper methods to check what should be shown
-  bool get _showInfo => _verbosity == BleNotificationVerbosity.verbose;
-  bool get _showSuccess => _verbosity == BleNotificationVerbosity.verbose;
-  bool get _showWarning => _verbosity == BleNotificationVerbosity.verbose ||
-                           _verbosity == BleNotificationVerbosity.normal;
-  bool get _showError => _verbosity != BleNotificationVerbosity.silent;
+  /// Determine if an event should trigger a notification based on verbosity.
+  bool _shouldNotify(BleEvent event) {
+    switch (_verbosity) {
+      case BleNotificationVerbosity.silent:
+        return false;
+      case BleNotificationVerbosity.minimal:
+        return event.isError;
+      case BleNotificationVerbosity.normal:
+        return event.isError || event.isWarning;
+      case BleNotificationVerbosity.verbose:
+        return true;
+    }
+  }
 
+  /// Unified notification method using BleEvent.
+  void _notify(BleEvent event, {String? customMessage}) {
+    if (!_shouldNotify(event)) return;
+
+    final message = customMessage ?? event.defaultMessage;
+
+    if (event.isError) {
+      _notificationService.showError(
+        title: event.defaultTitle,
+        message: message,
+      );
+    } else if (event.isWarning) {
+      _notificationService.showWarning(
+        title: event.defaultTitle,
+        message: message,
+      );
+    } else if (event.isImportant) {
+      _notificationService.showSuccess(
+        title: event.defaultTitle,
+        message: message,
+      );
+    } else {
+      _notificationService.showInfo(
+        title: event.defaultTitle,
+        message: message,
+      );
+    }
+  }
+
+  // ============================================
   // Initialization notifications
-  @override
-  void onInitializeSuccess() {
-    if (_showSuccess) {
-      _notificationService.showSuccess(
-        title: 'Controller Ready',
-        message: 'BLE Controller initialized successfully',
-      );
-    }
-  }
+  // ============================================
 
-  @override
-  void onInitializeFailed() {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Initialization Failed',
-        message: 'Failed to initialize BLE Controller',
-      );
-    }
-  }
+  void onInitializeSuccess() => _notify(BleEvent.initializeSuccess);
 
-  @override
-  void onInitializeError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Controller Error',
-        message: 'Unexpected error during initialization: $error',
-      );
-    }
-  }
+  void onInitializeFailed() => _notify(BleEvent.initializeFailed);
 
+  void onInitializeError(String error) =>
+      _notify(BleEvent.initializeError,
+          customMessage: 'Unexpected error during initialization: $error');
+
+  // ============================================
   // Scanning notifications
-  @override
-  void onScanStarted() {
-    if (_showInfo) {
-      _notificationService.showInfo(
-        title: 'Scanning Started',
-        message: 'Looking for BLE devices nearby...',
-      );
-    }
-  }
+  // ============================================
 
-  @override
-  void onScanStopped() {
-    if (_showInfo) {
-      _notificationService.showInfo(
-        title: 'Scanning Stopped',
-        message: 'Device scanning has been stopped',
-      );
-    }
-  }
+  void onScanStarted() => _notify(BleEvent.scanStarted);
 
-  @override
-  void onScanError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Scan Error',
-        message: 'Failed to start scanning: $error',
-      );
-    }
-  }
+  void onScanStopped() => _notify(BleEvent.scanStopped);
 
-  @override
-  void onStopScanError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Stop Scan Error',
-        message: 'Failed to stop scanning: $error',
-      );
-    }
-  }
+  void onScanError(String error) =>
+      _notify(BleEvent.scanError, customMessage: 'Failed to start scanning: $error');
 
+  void onStopScanError(String error) =>
+      _notify(BleEvent.stopScanError, customMessage: 'Failed to stop scanning: $error');
+
+  // ============================================
   // Connection notifications
-  @override
-  void onConnecting() {
-    if (_showInfo) {
-      _notificationService.showInfo(
-        title: 'Connecting',
-        message: 'Attempting to connect to device...',
-      );
-    }
-  }
+  // ============================================
 
-  @override
-  void onConnected() {
-    if (_showSuccess) {
-      _notificationService.showSuccess(
-        title: 'Connected',
-        message: 'Successfully connected to device',
-      );
-    }
-  }
+  void onConnecting() => _notify(BleEvent.connecting);
 
-  @override
-  void onConnectionError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Connection Failed',
-        message: error,
-      );
-    }
-  }
+  void onConnected() => _notify(BleEvent.connected);
 
-  @override
-  void onDisconnectError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Disconnect Error',
-        message: error,
-      );
-    }
-  }
+  void onConnectionError(String error) =>
+      _notify(BleEvent.connectionError, customMessage: error);
 
+  void onDisconnectError(String error) =>
+      _notify(BleEvent.disconnectError, customMessage: error);
+
+  // ============================================
   // Service discovery notifications
-  @override
-  void onDiscoveringServices() {
-    if (_showInfo) {
-      _notificationService.showInfo(
-        title: 'Discovering Services',
-        message: 'Exploring device capabilities...',
-      );
-    }
-  }
+  // ============================================
 
-  @override
-  void onServicesFound(int count) {
-    if (_showSuccess) {
-      _notificationService.showSuccess(
-        title: 'Services Found',
-        message: 'Discovered $count service(s)',
-      );
-    }
-  }
+  void onDiscoveringServices() => _notify(BleEvent.discoveringServices);
 
-  @override
-  void onNoServicesFound() {
-    if (_showWarning) {
-      _notificationService.showWarning(
-        title: 'No Services',
-        message: 'No GATT services found on device',
-      );
-    }
-  }
+  void onServicesFound(int count) =>
+      _notify(BleEvent.servicesFound, customMessage: 'Discovered $count service(s)');
 
-  @override
-  void onServiceDiscoveryError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Service Discovery Error',
-        message: error,
-      );
-    }
-  }
+  void onNoServicesFound() => _notify(BleEvent.noServicesFound);
 
+  void onServiceDiscoveryError(String error) =>
+      _notify(BleEvent.serviceDiscoveryError, customMessage: error);
+
+  // ============================================
   // Command notifications
-  @override
-  void onEmptyCommand() {
-    if (_showWarning) {
-      _notificationService.showWarning(
-        title: 'Empty Command',
-        message: 'Please enter a command to send',
-      );
-    }
-  }
+  // ============================================
 
-  @override
-  void onCommandError(String error) {
-    if (_showError) {
-      _notificationService.showError(
-        title: 'Command Failed',
-        message: error,
-      );
-    }
-  }
+  void onEmptyCommand() => _notify(BleEvent.emptyCommand);
 
+  void onCommandError(String error) =>
+      _notify(BleEvent.commandError, customMessage: error);
+
+  // ============================================
   // Device list notifications
-  @override
-  void onDevicesCleared() {
-    if (_showInfo) {
-      _notificationService.showInfo(
-        title: 'Devices Cleared',
-        message: 'Cleared device list',
-      );
-    }
-  }
-}
+  // ============================================
 
-/// Silent implementation of BleNotificationDelegate that suppresses all notifications.
-/// Useful for testing or background operations.
-class SilentBleNotificationDelegate implements BleNotificationDelegate {
-  const SilentBleNotificationDelegate();
-
-  @override
-  void onInitializeSuccess() {}
-  @override
-  void onInitializeFailed() {}
-  @override
-  void onInitializeError(String error) {}
-  @override
-  void onScanStarted() {}
-  @override
-  void onScanStopped() {}
-  @override
-  void onScanError(String error) {}
-  @override
-  void onStopScanError(String error) {}
-  @override
-  void onConnecting() {}
-  @override
-  void onConnected() {}
-  @override
-  void onConnectionError(String error) {}
-  @override
-  void onDisconnectError(String error) {}
-  @override
-  void onDiscoveringServices() {}
-  @override
-  void onServicesFound(int count) {}
-  @override
-  void onNoServicesFound() {}
-  @override
-  void onServiceDiscoveryError(String error) {}
-  @override
-  void onEmptyCommand() {}
-  @override
-  void onCommandError(String error) {}
-  @override
-  void onDevicesCleared() {}
+  void onDevicesCleared() => _notify(BleEvent.devicesCleared);
 }

@@ -673,11 +673,14 @@ void main() {
       await resetServiceLocator();
       mockBleService = MockBleService();
       mockNotificationService = MockNotificationService();
-      // Use DefaultBleNotificationDelegate to ensure all notifications are shown for testing
+      // Use BleNotificationDelegate with verbose mode to ensure all notifications are shown for testing
       diController = SimpleBleController.withDependencies(
         bleService: mockBleService,
         notificationService: mockNotificationService,
-        notificationDelegate: DefaultBleNotificationDelegate(mockNotificationService),
+        notificationDelegate: BleNotificationDelegate(
+          mockNotificationService,
+          verbosity: BleNotificationVerbosity.verbose,
+        ),
       );
     });
 
@@ -912,7 +915,7 @@ void main() {
       await resetServiceLocator();
       mockBleService = MockBleService();
       mockNotificationService = MockNotificationService();
-      mockDelegate = MockBleNotificationDelegate();
+      mockDelegate = MockBleNotificationDelegate(mockNotificationService);
       controller = SimpleBleController.withDependencies(
         bleService: mockBleService,
         notificationService: mockNotificationService,
@@ -1097,23 +1100,27 @@ void main() {
         expect(controller.notificationDelegate, same(mockDelegate));
       });
 
-      test('should use ConfigurableBleNotificationDelegate when not provided', () {
+      test('should use BleNotificationDelegate when not provided', () {
         final defaultController = SimpleBleController.withDependencies(
           bleService: mockBleService,
           notificationService: mockNotificationService,
         );
 
-        expect(defaultController.notificationDelegate, isA<ConfigurableBleNotificationDelegate>());
+        expect(defaultController.notificationDelegate, isA<BleNotificationDelegate>());
         defaultController.dispose();
       });
     });
 
-    group('SilentBleNotificationDelegate', () {
-      test('should suppress all notifications', () async {
-        final silentDelegate = const SilentBleNotificationDelegate();
+    group('Silent verbosity mode', () {
+      test('should suppress all notifications in silent mode', () async {
+        final silentNotificationService = MockNotificationService();
+        final silentDelegate = BleNotificationDelegate(
+          silentNotificationService,
+          verbosity: BleNotificationVerbosity.silent,
+        );
         final silentController = SimpleBleController.withDependencies(
           bleService: MockBleService(),
-          notificationService: MockNotificationService(),
+          notificationService: silentNotificationService,
           notificationDelegate: silentDelegate,
         );
 
