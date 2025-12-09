@@ -11,6 +11,9 @@ import '../services/smart_notification_service.dart';
 import '../services/permission_service.dart';
 import '../services/ble_service.dart';
 import '../services/update_service.dart';
+import '../services/update_checker.dart';
+import '../services/download_manager.dart';
+import '../services/install_manager.dart';
 import '../services/theme_service.dart';
 import '../services/error_handling_service.dart';
 import '../services/command_parameter_storage_service.dart';
@@ -90,11 +93,38 @@ Future<void> setupServiceLocator() async {
     ),
   );
 
-  // UpdateService - app update management
+  // ============================================
+  // Update system services
+  // ============================================
+
+  // UpdateChecker - version checking and update detection
+  getIt.registerLazySingleton<UpdateChecker>(
+    () => UpdateChecker.withDependencies(),
+  );
+
+  // DownloadManager - APK download with progress tracking
+  getIt.registerLazySingleton<DownloadManager>(
+    () => DownloadManager.withDependencies(
+      notificationService: getIt<NotificationService>(),
+      networkService: getIt<NetworkService>(),
+    ),
+  );
+
+  // InstallManager - APK installation on Android
+  getIt.registerLazySingleton<InstallManager>(
+    () => InstallManager.withDependencies(
+      notificationService: getIt<NotificationService>(),
+    ),
+  );
+
+  // UpdateService - coordinated update operations (facade)
   getIt.registerLazySingleton<UpdateService>(
     () => UpdateService.withDependencies(
       networkService: getIt<NetworkService>(),
       notificationService: getIt<NotificationService>(),
+      updateChecker: getIt<UpdateChecker>(),
+      downloadManager: getIt<DownloadManager>(),
+      installManager: getIt<InstallManager>(),
     ),
   );
 
@@ -150,6 +180,9 @@ void setupTestServiceLocator({
   PermissionService? mockPermissionService,
   BleService? mockBleService,
   UpdateService? mockUpdateService,
+  UpdateChecker? mockUpdateChecker,
+  DownloadManager? mockDownloadManager,
+  InstallManager? mockInstallManager,
   BleControllerInterface? mockBleController,
   ErrorHandlingService? mockErrorHandlingService,
   AppUpdateManager? mockAppUpdateManager,
@@ -175,6 +208,18 @@ void setupTestServiceLocator({
 
   if (mockUpdateService != null) {
     getIt.registerSingleton<UpdateService>(mockUpdateService);
+  }
+
+  if (mockUpdateChecker != null) {
+    getIt.registerSingleton<UpdateChecker>(mockUpdateChecker);
+  }
+
+  if (mockDownloadManager != null) {
+    getIt.registerSingleton<DownloadManager>(mockDownloadManager);
+  }
+
+  if (mockInstallManager != null) {
+    getIt.registerSingleton<InstallManager>(mockInstallManager);
   }
 
   if (mockBleController != null) {
