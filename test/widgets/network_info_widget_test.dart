@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/widgets/network_info_widget.dart';
+import 'package:cg500_blueteeth_app/widgets/update/network_info_widget.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import '../mocks/mock_services.dart';
 

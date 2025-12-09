@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/widgets/device_list_widget.dart';
+import 'package:cg500_blueteeth_app/widgets/ble/device_list_widget.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import '../mocks/mock_ble_controller.dart';
 

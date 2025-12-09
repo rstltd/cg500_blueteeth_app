@@ -6,13 +6,13 @@ import '../models/command/command.dart';
 import '../services/notification_service.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../view_models/command_interface_view_model.dart';
-import '../widgets/message_bubble_widget.dart';
-import '../widgets/message_filter_widget.dart';
-import '../widgets/connection_status_widget.dart';
-import '../widgets/device_status_panel_widget.dart';
-import '../widgets/command_input_panel_widget.dart';
-import '../widgets/command_history_panel_widget.dart';
-import '../widgets/connection_stats_panel_widget.dart';
+import '../widgets/message/message_bubble_widget.dart';
+import '../widgets/message/message_filter_widget.dart';
+import '../widgets/ble/connection_status_widget.dart';
+import '../widgets/ble/device_status_panel_widget.dart';
+import '../widgets/message/command_input_panel_widget.dart';
+import '../widgets/message/command_history_panel_widget.dart';
+import '../widgets/ble/connection_stats_panel_widget.dart';
 import '../widgets/command/command_widgets.dart';
 
 /// Command Interface View using ViewModelProvider pattern.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/widgets/connection_stats_panel_widget.dart';
+import 'package:cg500_blueteeth_app/widgets/ble/connection_stats_panel_widget.dart';
 import 'package:cg500_blueteeth_app/controllers/command_manager.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';

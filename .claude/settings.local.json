@@ -36,7 +36,11 @@
       "Bash(for file in lib/services/*.dart)",
       "Bash(dart analyze:*)",
       "Bash(ls:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(for file in lib/widgets/ble/*.dart)",
+      "Bash(do sed -i \"s|import ''\\.\\./\\(models\\|controllers\\|utils\\|services\\|design\\|views\\)/|import ''../../\\1/|g\" \"$file\")",
+      "Bash(for dir in message update layout common)",
+      "Bash(do for file in lib/widgets/$dir/*.dart)"
     ],
     "deny": [],
     "ask": []

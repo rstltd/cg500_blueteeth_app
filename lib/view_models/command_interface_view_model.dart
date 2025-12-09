@@ -7,7 +7,7 @@ import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/command/command.dart';
 import '../utils/logger.dart';
-import '../widgets/message_filter_widget.dart';
+import '../widgets/message/message_filter_widget.dart';
 
 /// ViewModel for the Command Interface View.
 ///

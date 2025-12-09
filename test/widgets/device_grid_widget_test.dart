@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/widgets/device_grid_widget.dart';
+import 'package:cg500_blueteeth_app/widgets/ble/device_grid_widget.dart';
 import 'package:cg500_blueteeth_app/controllers/simple_ble_controller.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';

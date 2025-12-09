@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/widgets/message_bubble_widget.dart';
+import 'package:cg500_blueteeth_app/widgets/message/message_bubble_widget.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -5,7 +5,7 @@ import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../services/notification_service.dart';
 import '../utils/logger.dart';
-import '../widgets/update_dialog.dart';
+import '../widgets/update/update_dialog.dart';
 
 /// Global update manager that coordinates all update operations
 /// This is the single source of truth for update state across the app

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cg500_blueteeth_app/widgets/notification_settings_dialog.dart';
+import 'package:cg500_blueteeth_app/widgets/layout/notification_settings_dialog.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
 import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';

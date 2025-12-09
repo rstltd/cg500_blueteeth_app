@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/widgets/responsive_layout.dart';
+import 'package:cg500_blueteeth_app/widgets/layout/responsive_layout.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

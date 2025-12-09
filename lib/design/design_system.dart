@@ -33,4 +33,4 @@ export 'app_button_styles.dart';
 // Re-export existing utilities
 export '../utils/app_colors.dart';
 export '../utils/responsive_utils.dart';
-export '../widgets/responsive_layout.dart';
+export '../widgets/layout/responsive_layout.dart';
