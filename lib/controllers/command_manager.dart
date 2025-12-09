@@ -31,10 +31,13 @@ class CommandManager {
   /// Check if device is connected
   bool get isConnected => _controller.connectedDevice != null;
 
-  /// Send a command to the connected BLE device
-  Future<void> sendCommand([String? commandText]) async {
+  /// Send a command to the connected BLE device.
+  ///
+  /// Returns `true` if the command was sent successfully, `false` otherwise.
+  /// Returns `false` if the command is empty or the device is not connected.
+  Future<bool> sendCommand([String? commandText]) async {
     final command = commandText ?? _textController.text.trim();
-    if (command.isEmpty || !isConnected) return;
+    if (command.isEmpty || !isConnected) return false;
 
     Logger.ui('Sending command: $command');
 
@@ -60,7 +63,7 @@ class CommandManager {
     if (commandText == null) {
       _textController.clear();
     }
-    
+
     onCommandSent?.call();
 
     // Send to BLE device
@@ -76,6 +79,7 @@ class CommandManager {
       };
       onMessageAdded?.call(errorMessage);
     }
+    return success;
   }
 
   /// Navigate command history up (older commands)
@@ -126,9 +130,11 @@ class CommandManager {
     _historyIndex = -1;
   }
 
-  /// Add predefined command to history and send
-  Future<void> sendPredefinedCommand(String command) async {
-    await sendCommand(command);
+  /// Add predefined command to history and send.
+  ///
+  /// Returns `true` if the command was sent successfully, `false` otherwise.
+  Future<bool> sendPredefinedCommand(String command) async {
+    return sendCommand(command);
   }
 
   /// Dispose resources

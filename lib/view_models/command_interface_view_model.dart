@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/command_manager.dart';
+import '../core/interfaces/command_parameter_storage_interface.dart';
+import '../core/interfaces/command_repository_interface.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
+import '../models/command/command.dart';
 import '../utils/logger.dart';
 import '../widgets/message_filter_widget.dart';
 
@@ -26,24 +29,43 @@ import '../widgets/message_filter_widget.dart';
 class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   /// Creates a CommandInterfaceViewModel.
   ///
-  /// [controller] - Optional BLE controller for dependency injection (testing).
-  /// If null, the controller is retrieved from the service locator.
+  /// All parameters are optional for dependency injection (testing).
+  /// If null, dependencies are retrieved from the service locator.
   CommandInterfaceViewModel({
     BleControllerInterface? controller,
-  }) : _injectedController = controller;
+    CommandRepositoryInterface? commandRepository,
+    CommandParameterStorageInterface? parameterStorageService,
+  })  : _injectedController = controller,
+        _injectedCommandRepository = commandRepository,
+        _injectedParameterStorageService = parameterStorageService;
 
   final BleControllerInterface? _injectedController;
+  final CommandRepositoryInterface? _injectedCommandRepository;
+  final CommandParameterStorageInterface? _injectedParameterStorageService;
   late final BleControllerInterface _controller;
   late final CommandManager _commandManager;
+  late final CommandRepositoryInterface _commandRepository;
+  late final CommandParameterStorageInterface _parameterStorageService;
   final ScrollController _scrollController = ScrollController();
   final List<MessageData> _messages = [];
   MessageFilter _currentFilter = MessageFilter.all;
+  String? _executingCommand;
 
   /// The BLE controller instance.
   BleControllerInterface get controller => _controller;
 
   /// The command manager for sending commands.
   CommandManager get commandManager => _commandManager;
+
+  /// The command repository for available commands.
+  CommandRepositoryInterface get commandRepository => _commandRepository;
+
+  /// The parameter storage service for persisting command parameters.
+  CommandParameterStorageInterface get parameterStorageService =>
+      _parameterStorageService;
+
+  /// The currently executing command (for loading state).
+  String? get executingCommand => _executingCommand;
 
   /// Scroll controller for the message list.
   ScrollController get scrollController => _scrollController;
@@ -97,8 +119,15 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
 
   @override
   Future<void> onInit() async {
-    // Use injected controller or get from service locator
+    // Use injected dependencies or get from service locator
     _controller = _injectedController ?? getIt<BleControllerInterface>();
+    _commandRepository =
+        _injectedCommandRepository ?? getIt<CommandRepositoryInterface>();
+    _parameterStorageService = _injectedParameterStorageService ??
+        getIt<CommandParameterStorageInterface>();
+
+    // Initialize parameter storage
+    await _parameterStorageService.initialize();
 
     // Create command manager with callbacks
     _commandManager = CommandManager(
@@ -157,9 +186,42 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     safeNotifyListeners();
   }
 
-  /// Send the current command.
-  Future<void> sendCommand() async {
-    await _commandManager.sendCommand();
+  /// Send the current command or a specific command text.
+  ///
+  /// Returns `true` if the command was sent successfully, `false` otherwise.
+  Future<bool> sendCommand([String? commandText]) async {
+    return _commandManager.sendCommand(commandText);
+  }
+
+  /// Execute a quick command from the quick access bar.
+  ///
+  /// Sets the executing command state for loading indication,
+  /// sends the command, and clears the state after completion.
+  ///
+  /// Returns `true` if the command was sent successfully, `false` otherwise.
+  Future<bool> executeQuickCommand(DeviceCommand command) async {
+    if (_executingCommand != null) {
+      // Already executing a command
+      return false;
+    }
+
+    _executingCommand = command.command;
+    safeNotifyListeners();
+
+    try {
+      // Add command to message log
+      addMessage(MessageData(
+        text: command.command,
+        isCommand: true,
+        timestamp: DateTime.now(),
+      ));
+
+      // Send via controller
+      return await _controller.sendCommand(command.command);
+    } finally {
+      _executingCommand = null;
+      safeNotifyListeners();
+    }
   }
 
   /// Navigate command history up.

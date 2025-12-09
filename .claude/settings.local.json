@@ -33,7 +33,8 @@
       "Bash(flutter pub get:*)",
       "Bash(Select-String -Pattern \"passed|failed|error\")",
       "Bash(Select-String -Pattern \"passed|failed|error|All tests\")",
-      "Bash(for file in lib/services/*.dart)"
+      "Bash(for file in lib/services/*.dart)",
+      "Bash(dart analyze:*)"
     ],
     "deny": [],
     "ask": []

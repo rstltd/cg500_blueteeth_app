@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
+import '../models/command/command.dart';
 import '../services/notification_service.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../view_models/command_interface_view_model.dart';
@@ -12,6 +13,7 @@ import '../widgets/device_status_panel_widget.dart';
 import '../widgets/command_input_panel_widget.dart';
 import '../widgets/command_history_panel_widget.dart';
 import '../widgets/connection_stats_panel_widget.dart';
+import '../widgets/command/command_widgets.dart';
 
 /// Command Interface View using ViewModelProvider pattern.
 ///
@@ -154,6 +156,92 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     return DeviceStatusPanelWidget(controller: viewModel.controller);
   }
 
+  Widget _buildQuickAccessBar({bool compact = false}) {
+    final isConnected = viewModel.controller.connectedDevice != null;
+    return QuickAccessBarWidget(
+      repository: viewModel.commandRepository,
+      onCommandSelected: _onQuickCommandSelected,
+      onOpenCommandMenu: _onOpenCommandMenu,
+      executingCommand: viewModel.executingCommand,
+      isConnected: isConnected,
+      compact: compact,
+    );
+  }
+
+  Future<void> _onQuickCommandSelected(DeviceCommand command) async {
+    final success = await viewModel.executeQuickCommand(command);
+    _showCommandFeedback(success, command.command);
+  }
+
+  void _onOpenCommandMenu() async {
+    final isConnected = viewModel.controller.connectedDevice != null;
+
+    final selectedCommand = await CommandMenuSheet.show(
+      context: context,
+      repository: viewModel.commandRepository,
+      isConnected: isConnected,
+    );
+
+    if (selectedCommand != null && mounted) {
+      await _executeCommand(selectedCommand);
+    }
+  }
+
+  Future<void> _executeCommand(DeviceCommand command) async {
+    final isConnected = viewModel.controller.connectedDevice != null;
+
+    if (command.hasParameters) {
+      // Show parameter form for commands with parameters
+      final commandString = await CommandFormSheet.show(
+        context: context,
+        command: command,
+        storageService: viewModel.parameterStorageService,
+        isConnected: isConnected,
+      );
+
+      if (commandString != null && mounted) {
+        // Check if dangerous command requires confirmation
+        if (command.dangerLevel == DangerLevel.dangerous) {
+          final confirmed = await DangerConfirmDialog.show(
+            context: context,
+            command: command,
+            commandString: commandString,
+          );
+          if (!confirmed) return;
+        }
+
+        final success = await viewModel.sendCommand(commandString);
+        _showCommandFeedback(success, commandString);
+      }
+    } else {
+      // For commands without parameters, check danger level first
+      if (command.dangerLevel == DangerLevel.dangerous) {
+        final commandString = command.buildCommandString({});
+        final confirmed = await DangerConfirmDialog.show(
+          context: context,
+          command: command,
+          commandString: commandString,
+        );
+        if (!confirmed) return;
+      }
+
+      // Execute command directly
+      final success = await viewModel.executeQuickCommand(command);
+      _showCommandFeedback(success, command.command);
+    }
+  }
+
+  /// Show feedback SnackBar after command execution.
+  void _showCommandFeedback(bool success, String command) {
+    if (!mounted) return;
+
+    if (success) {
+      context.showCommandSuccess(command: command);
+    } else {
+      context.showCommandFailure(command: command);
+    }
+  }
+
   Widget _buildResponseArea({bool compact = false}) {
     // Convert filtered MessageData to Map for existing widget compatibility
     final messageMaps =
@@ -222,6 +310,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     return Column(
       children: [
         _buildStatusPanel(),
+        _buildQuickAccessBar(compact: true),
         Expanded(child: _buildResponseArea(compact: true)),
         _buildCommandInput(),
       ],
@@ -239,6 +328,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
       child: Column(
         children: [
           _buildStatusPanel(),
+          _buildQuickAccessBar(),
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -294,6 +384,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           Expanded(
             child: Column(
               children: [
+                _buildQuickAccessBar(),
                 Expanded(child: _buildResponseArea()),
                 _buildCommandInput(),
               ],
@@ -350,6 +441,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
                     ],
                   ),
                 ),
+                _buildQuickAccessBar(),
                 Expanded(child: _buildResponseArea()),
                 _buildCommandInput(),
               ],

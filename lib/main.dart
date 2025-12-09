@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'views/simple_scanner_view.dart';
 import 'services/theme_service.dart';
 import 'controllers/app_update_manager.dart';
+import 'core/interfaces/command_parameter_storage_interface.dart';
 import 'core/service_locator.dart';
 import 'utils/logger.dart';
 
@@ -50,7 +51,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       
       // Initialize theme service
       _themeService.initialize();
-      
+
+      // Initialize command parameter storage service
+      try {
+        final commandStorageService = getIt<CommandParameterStorageInterface>();
+        await commandStorageService.initialize();
+        Logger.info('Command parameter storage initialized');
+      } catch (e) {
+        Logger.warning('Failed to initialize command parameter storage: $e');
+      }
+
       // Listen to theme changes
       _themeSubscription = _themeService.isDarkModeStream.listen((isDark) {
         if (mounted) {

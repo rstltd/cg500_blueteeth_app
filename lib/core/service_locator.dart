@@ -6,6 +6,8 @@ import 'interfaces/notification_service_interface.dart';
 import 'interfaces/permission_service_interface.dart';
 import 'interfaces/ble_service_interface.dart';
 import 'interfaces/update_service_interface.dart';
+import 'interfaces/command_parameter_storage_interface.dart';
+import 'interfaces/command_repository_interface.dart';
 // Note: ErrorHandlingServiceInterface is imported via error_handling_service.dart's re-export
 import '../controllers/ble_controller_interface.dart';
 
@@ -17,6 +19,8 @@ import '../services/ble_service.dart';
 import '../services/update_service.dart';
 import '../services/theme_service.dart';
 import '../services/error_handling_service.dart';
+import '../services/command_parameter_storage_service.dart';
+import '../repositories/command_repository.dart';
 import '../controllers/simple_ble_controller.dart';
 import '../controllers/app_update_manager.dart';
 
@@ -61,6 +65,16 @@ Future<void> setupServiceLocator() async {
   // ThemeService - app theme management (light/dark mode)
   getIt.registerLazySingleton<ThemeService>(
     () => ThemeService(),
+  );
+
+  // CommandParameterStorageService - command parameter persistence
+  getIt.registerLazySingleton<CommandParameterStorageInterface>(
+    () => CommandParameterStorageService(),
+  );
+
+  // CommandRepository - device command definitions
+  getIt.registerLazySingleton<CommandRepositoryInterface>(
+    () => CommandRepository(),
   );
 
   // ============================================
@@ -145,6 +159,8 @@ void setupTestServiceLocator({
   BleControllerInterface? mockBleController,
   ErrorHandlingServiceInterface? mockErrorHandlingService,
   AppUpdateManager? mockAppUpdateManager,
+  CommandParameterStorageInterface? mockCommandParameterStorageService,
+  CommandRepositoryInterface? mockCommandRepository,
 }) {
   // Register mock services if provided, otherwise use defaults
   if (mockNetworkService != null) {
@@ -177,6 +193,16 @@ void setupTestServiceLocator({
 
   if (mockAppUpdateManager != null) {
     getIt.registerSingleton<AppUpdateManager>(mockAppUpdateManager);
+  }
+
+  if (mockCommandParameterStorageService != null) {
+    getIt.registerSingleton<CommandParameterStorageInterface>(
+      mockCommandParameterStorageService,
+    );
+  }
+
+  if (mockCommandRepository != null) {
+    getIt.registerSingleton<CommandRepositoryInterface>(mockCommandRepository);
   }
 
   _isInitialized = true;
