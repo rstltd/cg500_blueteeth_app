@@ -22,6 +22,7 @@ import os
 import sys
 import json
 import subprocess
+import hashlib
 from pathlib import Path
 from datetime import datetime
 import re
@@ -153,14 +154,24 @@ class SimpleReleaseManager:
         """Rename APK with version number"""
         new_name = f"cg500_ble_app_v{version}.apk"
         new_path = apk_path.parent / new_name
-        
+
         if new_path.exists():
             new_path.unlink()
-        
+
         apk_path.rename(new_path)
         print(f"[OK] APK renamed to: {new_name}")
-        
+
         return new_path
+
+    def calculate_sha256(self, file_path):
+        """Calculate SHA256 checksum of a file"""
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        checksum = sha256_hash.hexdigest()
+        print(f"[OK] SHA256 checksum calculated: {checksum[:16]}...")
+        return checksum
     
     def _find_gh_command(self):
         """Find GitHub CLI command path"""
@@ -180,25 +191,25 @@ class SimpleReleaseManager:
         
         return None
     
-    def generate_release_notes(self, version):
+    def generate_release_notes(self, version, sha256_checksum=None):
         """Generate release notes from git commits since last tag"""
         try:
             # Get last tag
             result = subprocess.run([
                 'git', 'describe', '--tags', '--abbrev=0'
             ], capture_output=True, text=True, cwd=self.project_root)
-            
+
             last_tag = result.stdout.strip() if result.returncode == 0 else None
-            
+
             # Get commits since last tag
             if last_tag:
                 cmd = ['git', 'log', f'{last_tag}..HEAD', '--oneline']
             else:
                 cmd = ['git', 'log', '--oneline', '-10']  # Last 10 commits
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.project_root)
             commits = result.stdout.strip().split('\n') if result.stdout.strip() else []
-            
+
             # Format release notes
             notes = [
                 f"## CG500 BLE App v{version}",
@@ -207,14 +218,14 @@ class SimpleReleaseManager:
                 "",
                 "### Changes in this version:",
             ]
-            
+
             if commits:
                 for commit in commits[:10]:  # Limit to 10 commits
                     if commit.strip():
                         notes.append(f"* {commit}")
             else:
                 notes.append("* Bug fixes and improvements")
-            
+
             notes.extend([
                 "",
                 "### Installation:",
@@ -233,9 +244,17 @@ class SimpleReleaseManager:
                 "---",
                 "**Minimum Android Version**: 6.0 (API 23)",
                 "**BLE Protocol**: Nordic UART Service (NUS)",
-                f"**APK Size**: ~15MB"
+                f"**APK Size**: ~15MB",
             ])
-            
+
+            # Add SHA256 checksum for APK verification (used by app auto-update)
+            if sha256_checksum:
+                notes.extend([
+                    "",
+                    "### Verification:",
+                    f"SHA256: {sha256_checksum}",
+                ])
+
             return '\n'.join(notes)
             
         except Exception as e:
@@ -245,7 +264,7 @@ class SimpleReleaseManager:
     def create_github_release(self, version, apk_path):
         """Create GitHub release using GitHub CLI"""
         print(f"[INFO] Creating GitHub release v{version}...")
-        
+
         # Check if gh CLI is available
         gh_cmd = self._find_gh_command()
         if not gh_cmd:
@@ -253,9 +272,12 @@ class SimpleReleaseManager:
                 "GitHub CLI not found. Please install from https://cli.github.com/ "
                 "and authenticate with 'gh auth login'"
             )
-        
-        # Generate release notes
-        release_notes = self.generate_release_notes(version)
+
+        # Calculate SHA256 checksum for APK verification
+        sha256_checksum = self.calculate_sha256(apk_path)
+
+        # Generate release notes with checksum
+        release_notes = self.generate_release_notes(version, sha256_checksum)
         
         # Create release
         tag = f"v{version}"

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -40,6 +41,18 @@ class UpdateService implements UpdateServiceInterface {
   
   UpdatePreferences? _preferences;
   static const int _maxRetries = 3;
+
+  // Download concurrency lock - prevents multiple simultaneous downloads
+  Completer<String?>? _downloadCompleter;
+  bool get isDownloading => _downloadCompleter != null && !_downloadCompleter!.isCompleted;
+
+  // Progress throttling - reduces UI rebuilds
+  DateTime? _lastProgressUpdate;
+  static const Duration _progressThrottleInterval = Duration(milliseconds: 100);
+
+  // Exponential backoff configuration
+  static const int _baseTimeoutSeconds = 10;
+  static const int _baseRetryDelaySeconds = 5;
   
   // GitHub repository configuration
   static const String _githubOwner = 'rstltd';
@@ -126,16 +139,24 @@ class UpdateService implements UpdateServiceInterface {
           Logger.warning('No APK file found in latest release');
           return null;
         }
-        
+
+        // Extract SHA256 checksum from release notes (optional, for backward compatibility)
+        final releaseNotes = data['body'] ?? 'No release notes available';
+        final sha256Checksum = _extractChecksumFromReleaseNotes(releaseNotes);
+        if (sha256Checksum != null) {
+          Logger.info('SHA256 checksum found in release notes');
+        }
+
         final updateInfo = UpdateInfo(
           latestVersion: latestVersion,
           currentVersion: currentVersion,
           downloadUrl: apkAsset['browser_download_url'] ?? '',
           downloadSize: apkAsset['size'] ?? 0,
-          releaseNotes: data['body'] ?? 'No release notes available',
-          isForced: _isForceUpdate(data['body'] ?? ''),
+          releaseNotes: releaseNotes,
+          isForced: _isForceUpdate(releaseNotes),
           updateType: _determineUpdateType(currentVersion, latestVersion),
           releaseDate: DateTime.tryParse(data['published_at'] ?? '') ?? DateTime.now(),
+          sha256Checksum: sha256Checksum,
         );
         
         // Log version comparison for debugging
@@ -188,9 +209,29 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Download APK update with real-time progress tracking
+  ///
+  /// Uses a Completer-based lock to prevent concurrent downloads.
+  /// If a download is already in progress, returns the existing download's future.
   @override
   Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
-    return _downloadWithRetry(updateInfo, 0);
+    // Check if download is already in progress
+    if (_downloadCompleter != null && !_downloadCompleter!.isCompleted) {
+      Logger.info('Download already in progress, returning existing future');
+      return _downloadCompleter!.future;
+    }
+
+    // Create new download lock
+    _downloadCompleter = Completer<String?>();
+    _lastProgressUpdate = null; // Reset progress throttle
+
+    try {
+      final result = await _downloadWithRetry(updateInfo, 0);
+      _downloadCompleter!.complete(result);
+      return result;
+    } catch (e) {
+      _downloadCompleter!.completeError(e);
+      rethrow;
+    }
   }
 
   /// Download with retry mechanism and real progress tracking
@@ -284,26 +325,36 @@ class UpdateService implements UpdateServiceInterface {
           (List<int> chunk) {
             sink.add(chunk);
             downloadedBytes += chunk.length;
-            
-            final progress = contentLength > 0 
-                ? downloadedBytes / contentLength 
-                : 0.0;
-            
-            final elapsed = DateTime.now().difference(startTime);
-            final speed = downloadedBytes / elapsed.inSeconds;
-            final remainingBytes = contentLength - downloadedBytes;
-            final estimatedRemaining = speed > 0 
-                ? Duration(seconds: (remainingBytes / speed).round())
-                : Duration.zero;
-            
-            _downloadController.add(DownloadProgress(
-              progress: progress.clamp(0.0, 1.0),
-              downloadedBytes: downloadedBytes,
-              totalBytes: contentLength,
-              status: 'Downloading... ${_formatBytes(downloadedBytes)}/${_formatBytes(contentLength)}',
-              speed: speed,
-              estimatedTimeRemaining: estimatedRemaining,
-            ));
+
+            // Throttle progress updates to reduce UI rebuilds (100ms interval)
+            final now = DateTime.now();
+            final shouldUpdate = _lastProgressUpdate == null ||
+                now.difference(_lastProgressUpdate!) >= _progressThrottleInterval;
+
+            if (shouldUpdate) {
+              _lastProgressUpdate = now;
+
+              final progress = contentLength > 0
+                  ? downloadedBytes / contentLength
+                  : 0.0;
+
+              final elapsed = now.difference(startTime);
+              final elapsedSeconds = elapsed.inMilliseconds / 1000.0;
+              final speed = elapsedSeconds > 0 ? downloadedBytes / elapsedSeconds : 0.0;
+              final remainingBytes = contentLength - downloadedBytes;
+              final estimatedRemaining = speed > 0
+                  ? Duration(seconds: (remainingBytes / speed).round())
+                  : Duration.zero;
+
+              _downloadController.add(DownloadProgress(
+                progress: progress.clamp(0.0, 1.0),
+                downloadedBytes: downloadedBytes,
+                totalBytes: contentLength,
+                status: 'Downloading... ${_formatBytes(downloadedBytes)}/${_formatBytes(contentLength)}',
+                speed: speed,
+                estimatedTimeRemaining: estimatedRemaining,
+              ));
+            }
           },
           onDone: () async {
             await sink.flush();
@@ -317,6 +368,30 @@ class UpdateService implements UpdateServiceInterface {
           },
         ).asFuture();
         
+        // Verify SHA256 checksum if provided (optional, for backward compatibility)
+        if (updateInfo.hasChecksum) {
+          _downloadController.add(DownloadProgress(
+            progress: 1.0,
+            downloadedBytes: downloadedBytes,
+            totalBytes: contentLength,
+            status: 'Verifying download...',
+          ));
+
+          final isValid = await _verifyFileChecksum(file, updateInfo.sha256Checksum!);
+          if (!isValid) {
+            Logger.error('SHA256 checksum verification failed');
+            await file.delete();
+            _notificationService.showError(
+              title: 'Verification Failed',
+              message: 'Downloaded file is corrupted. Please try again.',
+            );
+            return null;
+          }
+          Logger.info('SHA256 checksum verified successfully');
+        } else {
+          Logger.debug('No checksum provided, skipping verification (backward compatible)');
+        }
+
         // Final progress update
         _downloadController.add(DownloadProgress(
           progress: 1.0,
@@ -327,7 +402,7 @@ class UpdateService implements UpdateServiceInterface {
         ));
 
         Logger.info('APK downloaded successfully: $filePath (${_formatBytes(downloadedBytes)})');
-        
+
         _notificationService.showSuccess(
           title: 'Download Complete',
           message: 'Update ready to install (${_formatBytes(downloadedBytes)})',
@@ -348,16 +423,17 @@ class UpdateService implements UpdateServiceInterface {
         status: 'Download failed: $e',
       ));
       
-      // Retry if we haven't exceeded max retries
+      // Retry if we haven't exceeded max retries with exponential backoff
       if (attemptNumber < _maxRetries - 1) {
-        Logger.info('Retrying download in 5 seconds... (${attemptNumber + 2}/$_maxRetries)');
-        
+        final retryDelay = _getRetryDelayForAttempt(attemptNumber);
+        Logger.info('Retrying download in ${retryDelay.inSeconds} seconds... (${attemptNumber + 2}/$_maxRetries)');
+
         _notificationService.showInfo(
           title: 'Download Failed',
-          message: 'Retrying download (${attemptNumber + 2}/$_maxRetries)...',
+          message: 'Retrying in ${retryDelay.inSeconds}s (${attemptNumber + 2}/$_maxRetries)...',
         );
-        
-        await Future.delayed(const Duration(seconds: 5));
+
+        await Future.delayed(retryDelay);
         return _downloadWithRetry(updateInfo, attemptNumber + 1);
       } else {
         _notificationService.showError(
@@ -688,6 +764,61 @@ class UpdateService implements UpdateServiceInterface {
     return _networkService.isSuitableForDownload(
       wifiOnly: _preferences!.wifiOnlyDownload,
     );
+  }
+
+  /// Extract SHA256 checksum from release notes
+  ///
+  /// Looks for pattern "SHA256: <64-character-hex-string>" in the release notes.
+  /// Returns null if not found (backward compatible with releases without checksum).
+  String? _extractChecksumFromReleaseNotes(String releaseNotes) {
+    final regex = RegExp(r'SHA256:\s*([a-fA-F0-9]{64})', caseSensitive: false);
+    final match = regex.firstMatch(releaseNotes);
+    return match?.group(1)?.toLowerCase();
+  }
+
+  /// Verify file SHA256 checksum
+  ///
+  /// Returns true if the file's SHA256 hash matches the expected checksum.
+  Future<bool> _verifyFileChecksum(File file, String expectedChecksum) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final digest = sha256.convert(bytes);
+      final actualChecksum = digest.toString().toLowerCase();
+      final expected = expectedChecksum.toLowerCase();
+
+      Logger.debug('Expected checksum: $expected');
+      Logger.debug('Actual checksum: $actualChecksum');
+
+      return actualChecksum == expected;
+    } catch (e) {
+      Logger.error('Error verifying checksum', error: e);
+      return false;
+    }
+  }
+
+  /// Calculate timeout with exponential backoff
+  ///
+  /// Returns timeout duration based on attempt number:
+  /// - Attempt 0: 10 seconds
+  /// - Attempt 1: 20 seconds
+  /// - Attempt 2: 30 seconds
+  ///
+  /// Reserved for future use in API request retries.
+  // ignore: unused_element
+  Duration _getTimeoutForAttempt(int attemptNumber) {
+    final seconds = _baseTimeoutSeconds * (attemptNumber + 1);
+    return Duration(seconds: seconds);
+  }
+
+  /// Calculate retry delay with exponential backoff
+  ///
+  /// Returns delay duration based on attempt number:
+  /// - Attempt 0: 5 seconds
+  /// - Attempt 1: 10 seconds
+  /// - Attempt 2: 20 seconds
+  Duration _getRetryDelayForAttempt(int attemptNumber) {
+    final seconds = _baseRetryDelaySeconds * (1 << attemptNumber); // 5, 10, 20
+    return Duration(seconds: seconds);
   }
 
   /// Dispose resources

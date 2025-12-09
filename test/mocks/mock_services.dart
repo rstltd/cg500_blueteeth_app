@@ -26,11 +26,15 @@ class MockNetworkService implements NetworkServiceInterface {
       StreamController<NetworkStatus>.broadcast();
   NetworkStatus _currentStatus = NetworkStatus.wifi;
 
+  // Configurable mock behavior
+  NetworkStatus? mockStatus;
+  bool? mockIsSuitableForDownload;
+
   @override
   Stream<NetworkStatus> get networkStream => _networkController.stream;
 
   @override
-  NetworkStatus get currentStatus => _currentStatus;
+  NetworkStatus get currentStatus => mockStatus ?? _currentStatus;
 
   void setStatus(NetworkStatus status) {
     _currentStatus = status;
@@ -42,10 +46,14 @@ class MockNetworkService implements NetworkServiceInterface {
 
   @override
   bool isSuitableForDownload({required bool wifiOnly}) {
-    if (wifiOnly) {
-      return _currentStatus == NetworkStatus.wifi;
+    if (mockIsSuitableForDownload != null) {
+      return mockIsSuitableForDownload!;
     }
-    return _currentStatus != NetworkStatus.none;
+    final status = mockStatus ?? _currentStatus;
+    if (wifiOnly) {
+      return status == NetworkStatus.wifi;
+    }
+    return status != NetworkStatus.none;
   }
 
   @override

@@ -21,18 +21,18 @@ class NetworkInfoWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Only check WiFi requirement if preferences are loaded
-    // If preferences are not loaded, don't make assumptions about user's choice
     final preferences = updateService.preferences;
+    final bool preferencesLoaded = preferences != null;
     final bool isWifiRequired;
-    
-    if (preferences != null) {
+
+    if (preferencesLoaded) {
       isWifiRequired = preferences.wifiOnlyDownload;
     } else {
-      // If preferences not loaded, assume non-restrictive (allow mobile data)
-      // This prevents blocking downloads when settings are still loading
-      isWifiRequired = false;
+      // If preferences not loaded, default to WiFi-only (safer default)
+      // This prevents accidentally using mobile data before settings are loaded
+      isWifiRequired = true;
     }
-    
+
     final networkSuitable = networkService.isSuitableForDownload(wifiOnly: isWifiRequired);
     final estimatedTime = networkService.estimateDownloadTime(downloadSize);
     
@@ -70,7 +70,16 @@ class NetworkInfoWidget extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      if (!networkSuitable)
+                      if (!preferencesLoaded)
+                        Text(
+                          'Loading preferences...',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        )
+                      else if (!networkSuitable)
                         Text(
                           'WiFi recommended',
                           style: TextStyle(

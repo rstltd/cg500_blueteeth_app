@@ -11,6 +11,8 @@ class UpdateInfo {
   final bool isForced;
   final UpdateType updateType;
   final DateTime releaseDate;
+  /// SHA256 checksum for APK verification (optional, for backward compatibility)
+  final String? sha256Checksum;
 
   const UpdateInfo({
     required this.latestVersion,
@@ -21,6 +23,7 @@ class UpdateInfo {
     this.isForced = false,
     this.updateType = UpdateType.optional,
     required this.releaseDate,
+    this.sha256Checksum,
   });
 
   bool get hasUpdate => _compareVersions(latestVersion, currentVersion) > 0;
@@ -38,6 +41,7 @@ class UpdateInfo {
         orElse: () => UpdateType.optional,
       ),
       releaseDate: DateTime.tryParse(json['release_date'] ?? '') ?? DateTime.now(),
+      sha256Checksum: json['sha256_checksum'],
     );
   }
 
@@ -51,8 +55,12 @@ class UpdateInfo {
       'is_forced': isForced,
       'update_type': updateType.name,
       'release_date': releaseDate.toIso8601String(),
+      if (sha256Checksum != null) 'sha256_checksum': sha256Checksum,
     };
   }
+
+  /// Check if this update has a checksum for verification
+  bool get hasChecksum => sha256Checksum != null && sha256Checksum!.isNotEmpty;
 
   /// Compare version strings (e.g., "1.2.3" vs "1.2.4+5")
   static int _compareVersions(String version1, String version2) {

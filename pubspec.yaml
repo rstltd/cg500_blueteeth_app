@@ -53,6 +53,9 @@ dependencies:
   # Network connectivity detection
   connectivity_plus: ^6.0.5
 
+  # Cryptography for SHA256 verification
+  crypto: ^3.0.3
+
   # Dependency injection
   get_it: ^7.6.7
 
