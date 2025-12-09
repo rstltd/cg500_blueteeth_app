@@ -1,9 +1,8 @@
 import 'dart:async';
 import '../models/ble_device.dart';
 import '../models/ble_service.dart';
-import '../services/notification_service.dart' show NotificationModel;
-import '../core/interfaces/ble_service_interface.dart';
-import '../core/interfaces/notification_service_interface.dart';
+import '../services/notification_service.dart';
+import '../services/ble_service.dart';
 import '../core/interfaces/ble_notification_delegate.dart';
 import 'ble_controller_interface.dart';
 
@@ -19,16 +18,16 @@ class SimpleBleController implements BleControllerInterface {
   /// Named constructor for dependency injection.
   /// Use this when creating instances via the service locator.
   SimpleBleController.withDependencies({
-    required BleServiceInterface bleService,
-    required NotificationServiceInterface notificationService,
+    required BleService bleService,
+    required NotificationService notificationService,
     BleNotificationDelegate? notificationDelegate,
   })  : _bleService = bleService,
         _notificationService = notificationService,
         _notificationDelegate = notificationDelegate ??
             ConfigurableBleNotificationDelegate(notificationService);
 
-  final BleServiceInterface _bleService;
-  final NotificationServiceInterface _notificationService;
+  final BleService _bleService;
+  final NotificationService _notificationService;
   final BleNotificationDelegate _notificationDelegate;
 
   /// Getter for notification delegate (for testing and configuration)

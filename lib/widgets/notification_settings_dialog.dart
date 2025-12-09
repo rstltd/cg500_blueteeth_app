@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/interfaces/notification_service_interface.dart';
+import '../services/notification_service.dart';
 import '../core/interfaces/ble_notification_delegate.dart';
 import '../core/service_locator.dart' show getIt;
 import '../controllers/ble_controller_interface.dart';
@@ -39,7 +39,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
   void initState() {
     super.initState();
     // Get the singleton instances from service locator
-    _notificationService = getIt<NotificationServiceInterface>() as SmartNotificationService;
+    _notificationService = getIt<NotificationService>() as SmartNotificationService;
     _bleController = getIt<BleControllerInterface>();
     _loadSettings();
   }

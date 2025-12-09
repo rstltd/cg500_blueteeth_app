@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/core/service_locator.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/permission_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/ble_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart';
+import 'package:cg500_blueteeth_app/services/ble_service.dart';
+import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/permission_service.dart';
 import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
 
 // Mock implementations for testing
@@ -61,7 +61,7 @@ void main() {
         );
 
         expect(isServiceLocatorInitialized, isTrue);
-        expect(getIt<NetworkServiceInterface>(), equals(mockNetwork));
+        expect(getIt<NetworkService>(), equals(mockNetwork));
       });
 
       test('setupTestServiceLocator with mock notification service', () async {
@@ -73,7 +73,7 @@ void main() {
         );
 
         expect(isServiceLocatorInitialized, isTrue);
-        expect(getIt<NotificationServiceInterface>(), equals(mockNotification));
+        expect(getIt<NotificationService>(), equals(mockNotification));
       });
 
       test('setupTestServiceLocator with mock permission service', () async {
@@ -85,7 +85,7 @@ void main() {
         );
 
         expect(isServiceLocatorInitialized, isTrue);
-        expect(getIt<PermissionServiceInterface>(), equals(mockPermission));
+        expect(getIt<PermissionService>(), equals(mockPermission));
       });
 
       test('setupTestServiceLocator with mock BLE service', () async {
@@ -97,7 +97,7 @@ void main() {
         );
 
         expect(isServiceLocatorInitialized, isTrue);
-        expect(getIt<BleServiceInterface>(), equals(mockBle));
+        expect(getIt<BleService>(), equals(mockBle));
       });
 
       test('setupTestServiceLocator with mock update service', () async {
@@ -109,7 +109,7 @@ void main() {
         );
 
         expect(isServiceLocatorInitialized, isTrue);
-        expect(getIt<UpdateServiceInterface>(), equals(mockUpdate));
+        expect(getIt<UpdateService>(), equals(mockUpdate));
       });
 
       test('setupTestServiceLocator with mock BLE controller', () async {
@@ -143,11 +143,11 @@ void main() {
         );
 
         expect(isServiceLocatorInitialized, isTrue);
-        expect(getIt<NetworkServiceInterface>(), equals(mockNetwork));
-        expect(getIt<NotificationServiceInterface>(), equals(mockNotification));
-        expect(getIt<PermissionServiceInterface>(), equals(mockPermission));
-        expect(getIt<BleServiceInterface>(), equals(mockBle));
-        expect(getIt<UpdateServiceInterface>(), equals(mockUpdate));
+        expect(getIt<NetworkService>(), equals(mockNetwork));
+        expect(getIt<NotificationService>(), equals(mockNotification));
+        expect(getIt<PermissionService>(), equals(mockPermission));
+        expect(getIt<BleService>(), equals(mockBle));
+        expect(getIt<UpdateService>(), equals(mockUpdate));
         expect(getIt<BleControllerInterface>(), equals(mockController));
       });
     });

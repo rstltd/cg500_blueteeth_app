@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/permission_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/ble_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/error_handling_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart';
+import 'package:cg500_blueteeth_app/services/ble_service.dart';
+import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
-import 'package:cg500_blueteeth_app/services/notification_service.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/permission_service.dart';
 
 // Re-export MockBleController for convenience
 export 'mock_ble_controller.dart';
@@ -20,8 +18,8 @@ export 'mock_ble_controller.dart';
 // Re-export mock factories for convenient test data creation
 export 'mock_factories.dart';
 
-/// Mock implementation of NetworkServiceInterface for testing
-class MockNetworkService implements NetworkServiceInterface {
+/// Mock implementation of NetworkService for testing
+class MockNetworkService extends NetworkService {
   final StreamController<NetworkStatus> _networkController =
       StreamController<NetworkStatus>.broadcast();
   NetworkStatus _currentStatus = NetworkStatus.wifi;
@@ -95,8 +93,8 @@ class MockNetworkService implements NetworkServiceInterface {
   }
 }
 
-/// Mock implementation of NotificationServiceInterface for testing
-class MockNotificationService implements NotificationServiceInterface {
+/// Mock implementation of NotificationService for testing
+class MockNotificationService extends NotificationService {
   final StreamController<NotificationModel> _notificationController =
       StreamController<NotificationModel>.broadcast();
   final List<NotificationModel> _notifications = [];
@@ -104,26 +102,47 @@ class MockNotificationService implements NotificationServiceInterface {
   @override
   Stream<NotificationModel> get notifications => _notificationController.stream;
 
+  @override
   List<NotificationModel> get allNotifications =>
       List.unmodifiable(_notifications);
 
   @override
-  void showInfo({required String title, required String message}) {
+  void showInfo({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     _addNotification(title, message, NotificationType.info);
   }
 
   @override
-  void showSuccess({required String title, required String message}) {
+  void showSuccess({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     _addNotification(title, message, NotificationType.success);
   }
 
   @override
-  void showWarning({required String title, required String message}) {
+  void showWarning({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     _addNotification(title, message, NotificationType.warning);
   }
 
   @override
-  void showError({required String title, required String message}) {
+  void showError({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     _addNotification(title, message, NotificationType.error);
   }
 
@@ -171,8 +190,8 @@ class MockNotificationService implements NotificationServiceInterface {
   }
 }
 
-/// Mock implementation of PermissionServiceInterface for testing
-class MockPermissionService implements PermissionServiceInterface {
+/// Mock implementation of PermissionService for testing
+class MockPermissionService extends PermissionService {
   bool _hasPermissions = true;
   bool _locationEnabled = true;
 
@@ -197,8 +216,8 @@ class MockPermissionService implements PermissionServiceInterface {
   Future<void> openAppSettings() async {}
 }
 
-/// Mock implementation of BleServiceInterface for testing
-class MockBleService implements BleServiceInterface {
+/// Mock implementation of BleService for testing
+class MockBleService implements BleService {
   final StreamController<List<BleDeviceModel>> _devicesController =
       StreamController<List<BleDeviceModel>>.broadcast();
   final StreamController<bool> _scanningController =
@@ -476,8 +495,8 @@ class MockBleService implements BleServiceInterface {
   }
 }
 
-/// Mock implementation of UpdateServiceInterface for testing
-class MockUpdateService implements UpdateServiceInterface {
+/// Mock implementation of UpdateService for testing
+class MockUpdateService implements UpdateService {
   final StreamController<UpdateInfo> _updateController =
       StreamController<UpdateInfo>.broadcast();
   final StreamController<DownloadProgress> _downloadController =
@@ -496,6 +515,7 @@ class MockUpdateService implements UpdateServiceInterface {
   final List<String> _skippedVersions = [];
   int _downloadAttempts = 0;
   int _installAttempts = 0;
+  bool _isDownloading = false;
 
   @override
   Stream<UpdateInfo> get updateStream => _updateController.stream;
@@ -503,6 +523,8 @@ class MockUpdateService implements UpdateServiceInterface {
   Stream<DownloadProgress> get downloadStream => _downloadController.stream;
   @override
   UpdatePreferences? get preferences => _preferences;
+  @override
+  bool get isDownloading => _isDownloading;
 
   // Test inspection getters
   List<String> get skippedVersions => List.unmodifiable(_skippedVersions);
@@ -556,6 +578,7 @@ class MockUpdateService implements UpdateServiceInterface {
     _downloadAttempts = 0;
     _installAttempts = 0;
     _preferences = null;
+    _isDownloading = false;
   }
 
   @override
@@ -572,6 +595,7 @@ class MockUpdateService implements UpdateServiceInterface {
   @override
   Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
     _downloadAttempts++;
+    _isDownloading = true;
 
     if (_downloadDelay > Duration.zero) {
       await Future.delayed(_downloadDelay);
@@ -594,6 +618,7 @@ class MockUpdateService implements UpdateServiceInterface {
       ));
     }
 
+    _isDownloading = false;
     return _shouldDownloadSucceed ? _mockApkPath : null;
   }
 
@@ -647,8 +672,8 @@ class MockUpdateService implements UpdateServiceInterface {
   }
 }
 
-/// Mock implementation of ErrorHandlingServiceInterface for testing
-class MockErrorHandlingService implements ErrorHandlingServiceInterface {
+/// Mock implementation of ErrorHandlingService for testing
+class MockErrorHandlingService implements ErrorHandlingService {
   final StreamController<AppError> _errorController =
       StreamController<AppError>.broadcast();
   final List<AppError> _errorHistory = [];

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../core/interfaces/network_service_interface.dart';
-import '../core/interfaces/update_service_interface.dart';
+import '../services/network_service.dart';
+import '../services/update_service.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
 import '../models/update_preferences.dart';
@@ -24,13 +24,13 @@ class UpdateSettingsView extends StatelessWidget {
   /// Creates an UpdateSettingsView with explicit dependencies for testing.
   const UpdateSettingsView.withDependencies({
     super.key,
-    required UpdateServiceInterface updateService,
-    required NetworkServiceInterface networkService,
+    required UpdateService updateService,
+    required NetworkService networkService,
   })  : _updateService = updateService,
         _networkService = networkService;
 
-  final UpdateServiceInterface? _updateService;
-  final NetworkServiceInterface? _networkService;
+  final UpdateService? _updateService;
+  final NetworkService? _networkService;
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/interfaces/update_service_interface.dart';
+import '../services/update_service.dart';
 import '../core/service_locator.dart' show getIt;
 import '../design/design_system.dart';
 import '../utils/logger.dart';
@@ -25,7 +25,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  late final UpdateServiceInterface _updateService;
+  late final UpdateService _updateService;
   int _currentStep = 0;
   bool _hasTriggeredInstall = false;
   
@@ -79,7 +79,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   @override
   void initState() {
     super.initState();
-    _updateService = getIt<UpdateServiceInterface>();
+    _updateService = getIt<UpdateService>();
 
     _animationController = AnimationController(
       duration: DesignTokens.durationNormal,

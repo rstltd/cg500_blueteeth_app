@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/update_logic_manager.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
 import 'package:cg500_blueteeth_app/models/download_progress.dart';
 import '../mocks/mock_services.dart';
@@ -1505,13 +1505,13 @@ void main() {
         manager.dispose();
       });
 
-      test('should use DefaultUpdateUIDelegate when not provided', () {
+      test('should use UpdateUIDelegate when not provided', () {
         final manager = UpdateLogicManager.withDependencies(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
         );
 
-        expect(manager.uiDelegate, isA<DefaultUpdateUIDelegate>());
+        expect(manager.uiDelegate, isA<UpdateUIDelegate>());
         manager.dispose();
       });
 

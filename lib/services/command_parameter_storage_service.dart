@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/interfaces/command_parameter_storage_interface.dart';
 
 /// Service for storing and retrieving command parameter values.
 ///
@@ -18,7 +17,7 @@ import '../core/interfaces/command_parameter_storage_interface.dart';
 /// // Load parameters
 /// final params = service.getParameters('$ADDR');
 /// ```
-class CommandParameterStorageService implements CommandParameterStorageInterface {
+class CommandParameterStorageService {
   static const String _storageKeyPrefix = 'command_params_';
   static const String _historyKey = 'command_history';
   static const int _maxHistoryEntries = 50;
@@ -27,12 +26,10 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   bool _isInitialized = false;
 
   /// Whether the service has been initialized.
-  @override
   bool get isInitialized => _isInitialized;
 
   /// Initialize the service.
   /// Must be called before using any other methods.
-  @override
   Future<void> initialize() async {
     if (_isInitialized) return;
     _prefs = await SharedPreferences.getInstance();
@@ -62,7 +59,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   ///
   /// [command] - The command name (e.g., '$ADDR', 'ADDR')
   /// [parameters] - Map of parameter id to value
-  @override
   Future<void> saveParameters(
     String command,
     Map<String, String> parameters,
@@ -78,7 +74,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   ///
   /// Returns null if no parameters have been saved for this command.
   /// [command] - The command name (e.g., '$ADDR', 'ADDR')
-  @override
   Map<String, String>? getParameters(String command) {
     _ensureInitialized();
 
@@ -96,7 +91,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   }
 
   /// Clear saved parameters for a specific command.
-  @override
   Future<void> clearParameters(String command) async {
     _ensureInitialized();
 
@@ -105,7 +99,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   }
 
   /// Clear all saved parameters.
-  @override
   Future<void> clearAllParameters() async {
     _ensureInitialized();
 
@@ -121,7 +114,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   /// Add a command to the history.
   ///
   /// [commandString] - The full command string that was sent
-  @override
   Future<void> addToHistory(String commandString) async {
     _ensureInitialized();
 
@@ -144,14 +136,12 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   /// Get command history.
   ///
   /// Returns a list of previously sent command strings, most recent first.
-  @override
   List<String> getHistory() {
     _ensureInitialized();
     return _prefs!.getStringList(_historyKey)?.toList() ?? [];
   }
 
   /// Clear command history.
-  @override
   Future<void> clearHistory() async {
     _ensureInitialized();
     await _prefs!.remove(_historyKey);
@@ -161,14 +151,12 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   ///
   /// [command] - The command name
   /// [parameterId] - The parameter id
-  @override
   String? getParameterValue(String command, String parameterId) {
     final params = getParameters(command);
     return params?[parameterId];
   }
 
   /// Check if parameters exist for a command.
-  @override
   bool hasParameters(String command) {
     _ensureInitialized();
     final key = _getStorageKey(command);
@@ -176,7 +164,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   }
 
   /// Get all commands that have saved parameters.
-  @override
   List<String> getCommandsWithSavedParameters() {
     _ensureInitialized();
 
@@ -188,7 +175,6 @@ class CommandParameterStorageService implements CommandParameterStorageInterface
   }
 
   /// Get statistics about stored data.
-  @override
   Map<String, dynamic> getStorageStats() {
     _ensureInitialized();
 

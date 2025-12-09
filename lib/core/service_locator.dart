@@ -1,18 +1,12 @@
 import 'package:get_it/get_it.dart';
 
 // Interface imports
-import 'interfaces/network_service_interface.dart';
-import 'interfaces/notification_service_interface.dart';
-import 'interfaces/permission_service_interface.dart';
-import 'interfaces/ble_service_interface.dart';
-import 'interfaces/update_service_interface.dart';
-import 'interfaces/command_parameter_storage_interface.dart';
 import 'interfaces/command_repository_interface.dart';
-// Note: ErrorHandlingServiceInterface is imported via error_handling_service.dart's re-export
 import '../controllers/ble_controller_interface.dart';
 
 // Implementation imports
 import '../services/network_service.dart';
+import '../services/notification_service.dart';
 import '../services/smart_notification_service.dart';
 import '../services/permission_service.dart';
 import '../services/ble_service.dart';
@@ -48,17 +42,17 @@ Future<void> setupServiceLocator() async {
   // ============================================
 
   // NetworkService - network connectivity monitoring
-  getIt.registerLazySingleton<NetworkServiceInterface>(
+  getIt.registerLazySingleton<NetworkService>(
     () => NetworkService.withDependencies(),
   );
 
   // SmartNotificationService - notification filtering and management
-  getIt.registerLazySingleton<NotificationServiceInterface>(
+  getIt.registerLazySingleton<NotificationService>(
     () => SmartNotificationService.withDependencies(),
   );
 
   // PermissionService - Bluetooth and location permissions
-  getIt.registerLazySingleton<PermissionServiceInterface>(
+  getIt.registerLazySingleton<PermissionService>(
     () => PermissionService.withDependencies(),
   );
 
@@ -68,7 +62,7 @@ Future<void> setupServiceLocator() async {
   );
 
   // CommandParameterStorageService - command parameter persistence
-  getIt.registerLazySingleton<CommandParameterStorageInterface>(
+  getIt.registerLazySingleton<CommandParameterStorageService>(
     () => CommandParameterStorageService(),
   );
 
@@ -82,25 +76,25 @@ Future<void> setupServiceLocator() async {
   // ============================================
 
   // ErrorHandlingService - centralized error handling
-  getIt.registerLazySingleton<ErrorHandlingServiceInterface>(
+  getIt.registerLazySingleton<ErrorHandlingService>(
     () => ErrorHandlingService(
-      notificationService: getIt<NotificationServiceInterface>(),
+      notificationService: getIt<NotificationService>(),
     ),
   );
 
   // BleService - Bluetooth Low Energy operations
-  getIt.registerLazySingleton<BleServiceInterface>(
+  getIt.registerLazySingleton<BleService>(
     () => BleService.withDependencies(
-      permissionService: getIt<PermissionServiceInterface>(),
-      notificationService: getIt<NotificationServiceInterface>(),
+      permissionService: getIt<PermissionService>(),
+      notificationService: getIt<NotificationService>(),
     ),
   );
 
   // UpdateService - app update management
-  getIt.registerLazySingleton<UpdateServiceInterface>(
+  getIt.registerLazySingleton<UpdateService>(
     () => UpdateService.withDependencies(
-      networkService: getIt<NetworkServiceInterface>(),
-      notificationService: getIt<NotificationServiceInterface>(),
+      networkService: getIt<NetworkService>(),
+      notificationService: getIt<NotificationService>(),
     ),
   );
 
@@ -111,17 +105,17 @@ Future<void> setupServiceLocator() async {
   // SimpleBleController - BLE operations coordinator
   getIt.registerLazySingleton<BleControllerInterface>(
     () => SimpleBleController.withDependencies(
-      bleService: getIt<BleServiceInterface>(),
-      notificationService: getIt<NotificationServiceInterface>(),
+      bleService: getIt<BleService>(),
+      notificationService: getIt<NotificationService>(),
     ),
   );
 
   // AppUpdateManager - coordinated update operations
   getIt.registerLazySingleton<AppUpdateManager>(
     () => AppUpdateManager.withDependencies(
-      updateService: getIt<UpdateServiceInterface>(),
-      networkService: getIt<NetworkServiceInterface>(),
-      notificationService: getIt<NotificationServiceInterface>(),
+      updateService: getIt<UpdateService>(),
+      networkService: getIt<NetworkService>(),
+      notificationService: getIt<NotificationService>(),
     ),
   );
 
@@ -151,36 +145,36 @@ Future<void> resetServiceLocator() async {
 /// });
 /// ```
 void setupTestServiceLocator({
-  NetworkServiceInterface? mockNetworkService,
-  NotificationServiceInterface? mockNotificationService,
-  PermissionServiceInterface? mockPermissionService,
-  BleServiceInterface? mockBleService,
-  UpdateServiceInterface? mockUpdateService,
+  NetworkService? mockNetworkService,
+  NotificationService? mockNotificationService,
+  PermissionService? mockPermissionService,
+  BleService? mockBleService,
+  UpdateService? mockUpdateService,
   BleControllerInterface? mockBleController,
-  ErrorHandlingServiceInterface? mockErrorHandlingService,
+  ErrorHandlingService? mockErrorHandlingService,
   AppUpdateManager? mockAppUpdateManager,
-  CommandParameterStorageInterface? mockCommandParameterStorageService,
+  CommandParameterStorageService? mockCommandParameterStorageService,
   CommandRepositoryInterface? mockCommandRepository,
 }) {
   // Register mock services if provided, otherwise use defaults
   if (mockNetworkService != null) {
-    getIt.registerSingleton<NetworkServiceInterface>(mockNetworkService);
+    getIt.registerSingleton<NetworkService>(mockNetworkService);
   }
 
   if (mockNotificationService != null) {
-    getIt.registerSingleton<NotificationServiceInterface>(mockNotificationService);
+    getIt.registerSingleton<NotificationService>(mockNotificationService);
   }
 
   if (mockPermissionService != null) {
-    getIt.registerSingleton<PermissionServiceInterface>(mockPermissionService);
+    getIt.registerSingleton<PermissionService>(mockPermissionService);
   }
 
   if (mockBleService != null) {
-    getIt.registerSingleton<BleServiceInterface>(mockBleService);
+    getIt.registerSingleton<BleService>(mockBleService);
   }
 
   if (mockUpdateService != null) {
-    getIt.registerSingleton<UpdateServiceInterface>(mockUpdateService);
+    getIt.registerSingleton<UpdateService>(mockUpdateService);
   }
 
   if (mockBleController != null) {
@@ -188,7 +182,7 @@ void setupTestServiceLocator({
   }
 
   if (mockErrorHandlingService != null) {
-    getIt.registerSingleton<ErrorHandlingServiceInterface>(mockErrorHandlingService);
+    getIt.registerSingleton<ErrorHandlingService>(mockErrorHandlingService);
   }
 
   if (mockAppUpdateManager != null) {
@@ -196,7 +190,7 @@ void setupTestServiceLocator({
   }
 
   if (mockCommandParameterStorageService != null) {
-    getIt.registerSingleton<CommandParameterStorageInterface>(
+    getIt.registerSingleton<CommandParameterStorageService>(
       mockCommandParameterStorageService,
     );
   }

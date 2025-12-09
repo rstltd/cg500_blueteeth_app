@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/update_service.dart' show UpdateInfo;
-import '../core/interfaces/network_service_interface.dart';
+import '../services/network_service.dart';
 import '../controllers/update_logic_manager.dart';
 import 'responsive_layout.dart';
 import 'update_header_widget.dart';

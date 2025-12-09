@@ -11,9 +11,8 @@ import '../models/update_preferences.dart';
 import '../models/update_info.dart';
 import '../models/download_progress.dart';
 import '../models/update_type.dart';
-import '../core/interfaces/update_service_interface.dart';
-import '../core/interfaces/notification_service_interface.dart';
-import '../core/interfaces/network_service_interface.dart';
+import 'notification_service.dart';
+import 'network_service.dart';
 
 // Re-export models for backward compatibility
 export '../models/update_info.dart' show UpdateInfo;
@@ -22,22 +21,21 @@ export '../models/update_type.dart' show UpdateType;
 
 /// Service for handling app updates and version management.
 ///
-/// This service implements [UpdateServiceInterface] and can be used with
-/// dependency injection for improved testability.
+/// This service can be used with dependency injection for improved testability.
 ///
 /// Use [UpdateService.withDependencies()] constructor and register via
 /// service locator for production use.
-class UpdateService implements UpdateServiceInterface {
+class UpdateService {
   /// Named constructor for dependency injection.
   /// Use this when creating instances via the service locator.
   UpdateService.withDependencies({
-    required NotificationServiceInterface notificationService,
-    required NetworkServiceInterface networkService,
+    required NotificationService notificationService,
+    required NetworkService networkService,
   })  : _notificationService = notificationService,
         _networkService = networkService;
 
-  final NotificationServiceInterface _notificationService;
-  final NetworkServiceInterface _networkService;
+  final NotificationService _notificationService;
+  final NetworkService _networkService;
   
   UpdatePreferences? _preferences;
   static const int _maxRetries = 3;
@@ -67,16 +65,13 @@ class UpdateService implements UpdateServiceInterface {
   // Update state
   final StreamController<UpdateInfo> _updateController = 
       StreamController<UpdateInfo>.broadcast();
-  final StreamController<DownloadProgress> _downloadController = 
+  final StreamController<DownloadProgress> _downloadController =
       StreamController<DownloadProgress>.broadcast();
-      
-  @override
+
   Stream<UpdateInfo> get updateStream => _updateController.stream;
-  @override
   Stream<DownloadProgress> get downloadStream => _downloadController.stream;
 
   /// Initialize the update service
-  @override
   Future<bool> initialize() async {
     try {
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -99,7 +94,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Check for available updates via GitHub Releases
-  @override
   Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
     try {
       // Check if auto check is enabled
@@ -212,7 +206,6 @@ class UpdateService implements UpdateServiceInterface {
   ///
   /// Uses a Completer-based lock to prevent concurrent downloads.
   /// If a download is already in progress, returns the existing download's future.
-  @override
   Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
     // Check if download is already in progress
     if (_downloadCompleter != null && !_downloadCompleter!.isCompleted) {
@@ -446,7 +439,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Install APK update (Android only)
-  @override
   Future<bool> installUpdate(String apkPath) async {
     if (!Platform.isAndroid) {
       Logger.warning('APK installation only supported on Android');
@@ -582,7 +574,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Check if device can install APK files
-  @override
   Future<bool> canInstallApks() async {
     if (!Platform.isAndroid) {
       return false;
@@ -599,7 +590,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Request APK installation permission
-  @override
   Future<void> requestInstallPermission() async {
     if (!Platform.isAndroid) {
       return;
@@ -614,7 +604,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Diagnose APK installation permissions and configuration
-  @override
   Future<Map<String, dynamic>> diagnosePermissions() async {
     if (!Platform.isAndroid) {
       return {'platform': 'non-android', 'supported': false};
@@ -639,7 +628,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Get current app version info
-  @override
   Map<String, String> getCurrentVersionInfo() {
     return {
       'version': _currentVersion ?? 'Unknown',
@@ -648,7 +636,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Clean up downloaded update files (keeps only latest version)
-  @override
   Future<void> cleanupDownloads({String? keepVersion}) async {
     try {
       Directory directory;
@@ -733,7 +720,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Skip a specific version
-  @override
   Future<void> skipVersion(String version) async {
     if (_preferences != null) {
       _preferences!.skipVersion(version);
@@ -743,11 +729,9 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Get current update preferences
-  @override
   UpdatePreferences? get preferences => _preferences;
 
   /// Update preferences and save
-  @override
   Future<void> updatePreferences(UpdatePreferences newPreferences) async {
     _preferences = newPreferences;
     await _preferences!.save();
@@ -755,7 +739,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Check if auto download is enabled and suitable
-  @override
   bool shouldAutoDownload(UpdateInfo updateInfo) {
     if (_preferences == null || !_preferences!.autoDownloadEnabled) {
       return false;
@@ -822,7 +805,6 @@ class UpdateService implements UpdateServiceInterface {
   }
 
   /// Dispose resources
-  @override
   void dispose() {
     _updateController.close();
     _downloadController.close();

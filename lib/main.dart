@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'views/simple_scanner_view.dart';
 import 'services/theme_service.dart';
 import 'controllers/app_update_manager.dart';
-import 'core/interfaces/command_parameter_storage_interface.dart';
+import 'services/command_parameter_storage_service.dart';
 import 'core/service_locator.dart';
 import 'utils/logger.dart';
 
@@ -54,7 +54,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       // Initialize command parameter storage service
       try {
-        final commandStorageService = getIt<CommandParameterStorageInterface>();
+        final commandStorageService = getIt<CommandParameterStorageService>();
         await commandStorageService.initialize();
         Logger.info('Command parameter storage initialized');
       } catch (e) {

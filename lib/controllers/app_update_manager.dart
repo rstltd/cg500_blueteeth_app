@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/service_locator.dart';
-import '../core/interfaces/update_service_interface.dart';
-import '../core/interfaces/network_service_interface.dart';
-import '../core/interfaces/notification_service_interface.dart';
-import '../services/update_service.dart' show UpdateInfo;
+import '../services/update_service.dart';
+import '../services/network_service.dart';
+import '../services/notification_service.dart';
 import '../utils/logger.dart';
 import '../widgets/update_dialog.dart';
 
@@ -17,22 +16,22 @@ class AppUpdateManager {
   /// Default constructor that retrieves dependencies from service locator.
   /// Must be called after [setupServiceLocator] has been invoked.
   AppUpdateManager()
-      : _updateService = getIt<UpdateServiceInterface>(),
-        _networkService = getIt<NetworkServiceInterface>(),
-        _notificationService = getIt<NotificationServiceInterface>();
+      : _updateService = getIt<UpdateService>(),
+        _networkService = getIt<NetworkService>(),
+        _notificationService = getIt<NotificationService>();
 
   /// Named constructor for dependency injection (testing)
   AppUpdateManager.withDependencies({
-    required UpdateServiceInterface updateService,
-    required NetworkServiceInterface networkService,
-    required NotificationServiceInterface notificationService,
+    required UpdateService updateService,
+    required NetworkService networkService,
+    required NotificationService notificationService,
   })  : _updateService = updateService,
         _networkService = networkService,
         _notificationService = notificationService;
 
-  final UpdateServiceInterface _updateService;
-  final NetworkServiceInterface _networkService;
-  final NotificationServiceInterface _notificationService;
+  final UpdateService _updateService;
+  final NetworkService _networkService;
+  final NotificationService _notificationService;
 
   // StreamSubscription management
   final List<StreamSubscription> _subscriptions = [];
@@ -48,8 +47,8 @@ class AppUpdateManager {
   bool get isInitialized => _isInitialized;
   bool get isCheckingForUpdates => _isCheckingForUpdates;
   UpdateInfo? get latestUpdateInfo => _latestUpdateInfo;
-  UpdateServiceInterface get updateService => _updateService;
-  NetworkServiceInterface get networkService => _networkService;
+  UpdateService get updateService => _updateService;
+  NetworkService get networkService => _networkService;
 
   /// Initialize the update manager
   /// This should be called during app startup

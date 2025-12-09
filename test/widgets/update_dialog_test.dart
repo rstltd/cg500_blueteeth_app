@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/widgets/update_dialog.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -13,11 +12,11 @@ void main() {
   setUpAll(() {
     // Register mock services for testing
     final getIt = GetIt.instance;
-    if (!getIt.isRegistered<UpdateServiceInterface>()) {
-      getIt.registerSingleton<UpdateServiceInterface>(MockUpdateService());
+    if (!getIt.isRegistered<UpdateService>()) {
+      getIt.registerSingleton<UpdateService>(MockUpdateService());
     }
-    if (!getIt.isRegistered<NetworkServiceInterface>()) {
-      getIt.registerSingleton<NetworkServiceInterface>(MockNetworkService());
+    if (!getIt.isRegistered<NetworkService>()) {
+      getIt.registerSingleton<NetworkService>(MockNetworkService());
     }
   });
 

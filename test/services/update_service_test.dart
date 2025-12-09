@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
 import '../mocks/mock_services.dart';
 
 /// Helper to create a test UpdateService with mock dependencies

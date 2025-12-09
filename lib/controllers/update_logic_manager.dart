@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../core/interfaces/update_service_interface.dart';
-import '../core/interfaces/network_service_interface.dart';
+import '../services/update_service.dart';
+import '../services/network_service.dart';
 import '../core/interfaces/update_ui_delegate.dart';
-import '../services/update_service.dart' show UpdateInfo;
 import '../core/service_locator.dart' show getIt;
 import '../utils/logger.dart';
 
 /// Manager for handling update logic including download, install, and skip operations
 class UpdateLogicManager {
-  late final UpdateServiceInterface _updateService;
-  late final NetworkServiceInterface _networkService;
+  late final UpdateService _updateService;
+  late final NetworkService _networkService;
   late final UpdateUIDelegate _uiDelegate;
 
   // StreamSubscription management
@@ -27,8 +26,8 @@ class UpdateLogicManager {
   double get downloadProgress => _downloadProgress;
   String get downloadStatus => _downloadStatus;
   NetworkStatus get networkStatus => _networkStatus;
-  UpdateServiceInterface get updateService => _updateService;
-  NetworkServiceInterface get networkService => _networkService;
+  UpdateService get updateService => _updateService;
+  NetworkService get networkService => _networkService;
   UpdateUIDelegate get uiDelegate => _uiDelegate;
 
   // Callbacks
@@ -42,15 +41,15 @@ class UpdateLogicManager {
     this.onNetworkStatusChanged,
     UpdateUIDelegate? uiDelegate,
   }) {
-    _updateService = getIt<UpdateServiceInterface>();
-    _networkService = getIt<NetworkServiceInterface>();
-    _uiDelegate = uiDelegate ?? const DefaultUpdateUIDelegate();
+    _updateService = getIt<UpdateService>();
+    _networkService = getIt<NetworkService>();
+    _uiDelegate = uiDelegate ?? const UpdateUIDelegate();
   }
 
   /// Constructor for dependency injection (used in testing)
   UpdateLogicManager.withDependencies({
-    required UpdateServiceInterface updateService,
-    required NetworkServiceInterface networkService,
+    required UpdateService updateService,
+    required NetworkService networkService,
     UpdateUIDelegate? uiDelegate,
     this.onDownloadStateChanged,
     this.onProgressUpdated,
@@ -58,7 +57,7 @@ class UpdateLogicManager {
   }) {
     _updateService = updateService;
     _networkService = networkService;
-    _uiDelegate = uiDelegate ?? const DefaultUpdateUIDelegate();
+    _uiDelegate = uiDelegate ?? const UpdateUIDelegate();
   }
 
   /// Initialize the manager with listeners

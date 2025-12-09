@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/interfaces/command_parameter_storage_interface.dart';
+import '../../services/command_parameter_storage_service.dart';
 import '../../design/design_system.dart';
 import '../../models/command/command.dart';
 import 'command_preview_widget.dart';
@@ -26,7 +26,7 @@ class CommandFormSheet extends StatefulWidget {
   final bool loadSavedParameters;
 
   /// Optional storage service for testing.
-  final CommandParameterStorageInterface? storageService;
+  final CommandParameterStorageService? storageService;
 
   const CommandFormSheet({
     super.key,
@@ -46,7 +46,7 @@ class CommandFormSheet extends StatefulWidget {
   static Future<String?> show({
     required BuildContext context,
     required DeviceCommand command,
-    required CommandParameterStorageInterface storageService,
+    required CommandParameterStorageService storageService,
     bool isConnected = false,
     Map<String, String>? initialValues,
     bool loadSavedParameters = true,
@@ -76,7 +76,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
   bool _hasSavedParameters = false;
 
   /// Storage service from widget (required for production, optional for testing).
-  CommandParameterStorageInterface? get _storageService => widget.storageService;
+  CommandParameterStorageService? get _storageService => widget.storageService;
 
   @override
   void initState() {

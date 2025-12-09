@@ -208,6 +208,30 @@ class NotificationService {
 
   int get notificationCount => _notifications.length;
 
+  /// Show a connection status notification.
+  void showConnectionStatus({
+    required String title,
+    required String message,
+    required bool isConnected,
+  }) {
+    if (isConnected) {
+      showSuccess(title: title, message: message);
+    } else {
+      showInfo(title: title, message: message);
+    }
+  }
+
+  /// Show a scanning status notification.
+  void showScanningStatus({
+    required String title,
+    required String message,
+    required bool isScanning,
+  }) {
+    if (isScanning) {
+      showInfo(title: title, message: message);
+    }
+  }
+
   void dispose() {
     _notificationController.close();
   }

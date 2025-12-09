@@ -1,4 +1,4 @@
-import '../interfaces/notification_service_interface.dart';
+import '../../services/notification_service.dart';
 
 /// Delegate interface for BLE controller notifications.
 ///
@@ -36,9 +36,9 @@ abstract class BleNotificationDelegate {
   void onDevicesCleared();
 }
 
-/// Default implementation of BleNotificationDelegate that uses NotificationServiceInterface.
+/// Default implementation of BleNotificationDelegate that uses NotificationService.
 class DefaultBleNotificationDelegate implements BleNotificationDelegate {
-  final NotificationServiceInterface _notificationService;
+  final NotificationService _notificationService;
 
   const DefaultBleNotificationDelegate(this._notificationService);
 
@@ -202,7 +202,7 @@ class DefaultBleNotificationDelegate implements BleNotificationDelegate {
 /// - Info messages (Scanning Started/Stopped, Connecting, Discovering Services)
 /// - Non-critical warnings (No Services Found, Empty Command)
 class MinimalBleNotificationDelegate implements BleNotificationDelegate {
-  final NotificationServiceInterface _notificationService;
+  final NotificationService _notificationService;
 
   const MinimalBleNotificationDelegate(this._notificationService);
 
@@ -317,7 +317,7 @@ const String bleNotificationVerbosityKey = 'ble_notification_verbosity';
 /// This is the recommended delegate for production use as it allows users
 /// to control how many notifications they see without restarting the app.
 class ConfigurableBleNotificationDelegate implements BleNotificationDelegate {
-  final NotificationServiceInterface _notificationService;
+  final NotificationService _notificationService;
   BleNotificationVerbosity _verbosity;
 
   ConfigurableBleNotificationDelegate(

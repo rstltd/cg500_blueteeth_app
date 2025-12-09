@@ -5,29 +5,25 @@ import '../models/ble_device.dart';
 import '../models/ble_service.dart';
 import '../models/connection_state.dart';
 import '../utils/logger.dart';
-import '../core/interfaces/ble_service_interface.dart';
-import '../core/interfaces/permission_service_interface.dart';
-import '../core/interfaces/notification_service_interface.dart';
+import 'notification_service.dart';
+import 'permission_service.dart';
 // import 'error_handling_service.dart'; // Reserved for future use
 
 /// Bluetooth Low Energy service for device scanning, connection, and communication.
 ///
-/// This service implements [BleServiceInterface] and can be used with
-/// dependency injection for improved testability.
-///
 /// Use [BleService.withDependencies()] constructor and register via
 /// service locator for production use.
-class BleService implements BleServiceInterface {
+class BleService {
   /// Named constructor for dependency injection.
   /// Use this when creating instances via the service locator.
   BleService.withDependencies({
-    required PermissionServiceInterface permissionService,
-    required NotificationServiceInterface notificationService,
+    required PermissionService permissionService,
+    required NotificationService notificationService,
   })  : _permissionService = permissionService,
         _notificationService = notificationService;
 
-  final PermissionServiceInterface _permissionService;
-  final NotificationServiceInterface _notificationService;
+  final PermissionService _permissionService;
+  final NotificationService _notificationService;
   // final ErrorHandlingService _errorHandlingService = ErrorHandlingService(); // Reserved for future use
 
   final StreamController<List<BleDeviceModel>> _devicesController = 
@@ -39,13 +35,9 @@ class BleService implements BleServiceInterface {
   final StreamController<String> _commandResponseController = 
       StreamController<String>.broadcast();
 
-  @override
   Stream<List<BleDeviceModel>> get devicesStream => _devicesController.stream;
-  @override
   Stream<bool> get scanningStream => _scanningController.stream;
-  @override
   Stream<BleDeviceModel?> get connectedDeviceStream => _connectedDeviceController.stream;
-  @override
   Stream<String> get commandResponseStream => _commandResponseController.stream;
 
   final Map<String, BleDeviceModel> _scannedDevices = {};
@@ -63,7 +55,6 @@ class BleService implements BleServiceInterface {
   StreamSubscription<List<int>>? _responseSubscription;
   static const int targetMtu = 517;
 
-  @override
   Future<bool> initialize() async {
     if (_isInitialized) return true;
 
@@ -113,12 +104,10 @@ class BleService implements BleServiceInterface {
     }
   }
 
-  @override
   Future<bool> isBluetoothEnabled() async {
     return await FlutterBluePlus.adapterState.first == BluetoothAdapterState.on;
   }
 
-  @override
   Future<void> turnOnBluetooth() async {
     try {
       await FlutterBluePlus.turnOn();
@@ -131,7 +120,6 @@ class BleService implements BleServiceInterface {
     }
   }
 
-  @override
   Future<bool> startScanning({Duration timeout = const Duration(seconds: 15)}) async {
     if (!_isInitialized) {
       bool initialized = await initialize();
@@ -208,7 +196,6 @@ class BleService implements BleServiceInterface {
     _devicesController.add(_scannedDevices.values.toList());
   }
 
-  @override
   Future<void> stopScanning() async {
     await _stopScanningInternal();
   }
@@ -227,7 +214,6 @@ class BleService implements BleServiceInterface {
     }
   }
 
-  @override
   Future<bool> connectToDevice(String deviceId) async {
     BleDeviceModel? device = _scannedDevices[deviceId];
     if (device == null) {
@@ -378,7 +364,6 @@ class BleService implements BleServiceInterface {
     return null;
   }
 
-  @override
   Future<void> disconnectDevice() async {
     if (_connectedDevice == null) return;
 
@@ -423,7 +408,6 @@ class BleService implements BleServiceInterface {
     }
   }
 
-  @override
   Future<List<BleServiceModel>> discoverServices(String deviceId) async {
     BleDeviceModel? device = _scannedDevices[deviceId];
     if (device == null || !device.connectionState.isConnected) {
@@ -471,16 +455,11 @@ class BleService implements BleServiceInterface {
   }
 
   // Getters
-  @override
   List<BleDeviceModel> get scannedDevices => _scannedDevices.values.toList();
-  @override
   BleDeviceModel? get connectedDevice => _connectedDevice;
-  @override
   bool get isScanning => _isScanning;
-  @override
   bool get isInitialized => _isInitialized;
 
-  @override
   void clearScannedDevices() {
     _scannedDevices.clear();
     _bluetoothDevicesCache.clear();
@@ -611,7 +590,6 @@ class BleService implements BleServiceInterface {
   }
 
   // Send text command to device
-  @override
   Future<bool> sendCommand(String command) async {
     if (_commandCharacteristic == null) {
       _notificationService.showError(
@@ -640,7 +618,6 @@ class BleService implements BleServiceInterface {
   }
 
   // Get available command characteristics info
-  @override
   Map<String, dynamic> getCommandInfo() {
     return {
       'hasCommandChannel': _commandCharacteristic != null,
@@ -660,7 +637,6 @@ class BleService implements BleServiceInterface {
     Logger.debug('Command characteristics cleaned up');
   }
 
-  @override
   void dispose() {
     _adapterStateSubscription?.cancel();
     _scanResultsSubscription?.cancel();

@@ -1,16 +1,14 @@
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:permission_handler/permission_handler.dart';
 import '../utils/logger.dart';
-import '../core/interfaces/permission_service_interface.dart';
 
 /// Service for handling Bluetooth and location permissions.
 ///
-/// This service implements [PermissionServiceInterface] and can be used
-/// with dependency injection for improved testability.
+/// This class can be used directly or extended for testing purposes.
 ///
 /// Use [PermissionService.withDependencies()] or [PermissionService()]
 /// constructor and register via service locator for production use.
-class PermissionService implements PermissionServiceInterface {
+class PermissionService {
   /// Default constructor for dependency injection via service locator.
   PermissionService();
 
@@ -18,7 +16,6 @@ class PermissionService implements PermissionServiceInterface {
   /// Use this when creating instances via the service locator.
   PermissionService.withDependencies();
 
-  @override
   Future<bool> requestBluetoothPermissions() async {
     try {
       final List<Permission> permissions = [
@@ -42,7 +39,6 @@ class PermissionService implements PermissionServiceInterface {
     }
   }
 
-  @override
   Future<bool> hasBluetoothPermissions() async {
     try {
       final List<Permission> permissions = [
@@ -84,7 +80,6 @@ class PermissionService implements PermissionServiceInterface {
   }
 
   /// Check if location services are enabled on the device.
-  @override
   Future<bool> isLocationEnabled() async {
     try {
       final status = await Permission.locationWhenInUse.serviceStatus;
@@ -96,7 +91,6 @@ class PermissionService implements PermissionServiceInterface {
   }
 
   /// Open the device's app settings page.
-  @override
   Future<void> openAppSettings() async {
     await openAppSettingsPage();
   }

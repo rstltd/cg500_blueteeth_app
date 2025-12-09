@@ -6,12 +6,12 @@ import 'package:cg500_blueteeth_app/widgets/scanning_indicator_widget.dart';
 import 'package:cg500_blueteeth_app/controllers/simple_ble_controller.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/ble_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/ble_service.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
 
 /// Mock BLE Service for testing
-class MockBleService implements BleServiceInterface {
+class MockBleService implements BleService {
   final _devicesController = StreamController<List<BleDeviceModel>>.broadcast();
   final _scanningController = StreamController<bool>.broadcast();
   final _connectedDeviceController = StreamController<BleDeviceModel?>.broadcast();
@@ -102,23 +102,43 @@ class MockBleService implements BleServiceInterface {
 }
 
 /// Mock Notification Service for testing
-class MockNotificationService implements NotificationServiceInterface {
+class MockNotificationService extends NotificationService {
   final _notificationsController = StreamController<NotificationModel>.broadcast();
 
   @override
   Stream<NotificationModel> get notifications => _notificationsController.stream;
 
   @override
-  void showSuccess({required String title, required String message}) {}
+  void showSuccess({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
-  void showError({required String title, required String message}) {}
+  void showError({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
-  void showWarning({required String title, required String message}) {}
+  void showWarning({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
-  void showInfo({required String title, required String message}) {}
+  void showInfo({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
   void showConnectionStatus({

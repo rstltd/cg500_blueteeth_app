@@ -1,5 +1,5 @@
-import '../core/interfaces/update_service_interface.dart';
-import '../core/interfaces/network_service_interface.dart';
+import '../services/update_service.dart';
+import '../services/network_service.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/update_preferences.dart';
@@ -27,16 +27,16 @@ class UpdateSettingsViewModel extends BaseViewModel {
   /// [networkService] - Optional network service for dependency injection (testing).
   /// If null, services are retrieved from the service locator.
   UpdateSettingsViewModel({
-    UpdateServiceInterface? updateService,
-    NetworkServiceInterface? networkService,
+    UpdateService? updateService,
+    NetworkService? networkService,
   })  : _injectedUpdateService = updateService,
         _injectedNetworkService = networkService;
 
-  final UpdateServiceInterface? _injectedUpdateService;
-  final NetworkServiceInterface? _injectedNetworkService;
+  final UpdateService? _injectedUpdateService;
+  final NetworkService? _injectedNetworkService;
 
-  late final UpdateServiceInterface _updateService;
-  late final NetworkServiceInterface _networkService;
+  late final UpdateService _updateService;
+  late final NetworkService _networkService;
 
   UpdatePreferences? _preferences;
   NetworkStatus _networkStatus = NetworkStatus.unknown;
@@ -57,10 +57,10 @@ class UpdateSettingsViewModel extends BaseViewModel {
   bool get isCheckingUpdate => _isCheckingUpdate;
 
   /// The update service instance.
-  UpdateServiceInterface get updateService => _updateService;
+  UpdateService get updateService => _updateService;
 
   /// The network service instance.
-  NetworkServiceInterface get networkService => _networkService;
+  NetworkService get networkService => _networkService;
 
   /// Get current version info from the update service.
   Map<String, String> get currentVersionInfo =>
@@ -72,9 +72,9 @@ class UpdateSettingsViewModel extends BaseViewModel {
   @override
   Future<void> onInit() async {
     // Use injected services or get from service locator
-    _updateService = _injectedUpdateService ?? getIt<UpdateServiceInterface>();
+    _updateService = _injectedUpdateService ?? getIt<UpdateService>();
     _networkService =
-        _injectedNetworkService ?? getIt<NetworkServiceInterface>();
+        _injectedNetworkService ?? getIt<NetworkService>();
 
     // Subscribe to network status changes
     subscribe<NetworkStatus>(

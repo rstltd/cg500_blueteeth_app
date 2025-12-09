@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/command_manager.dart';
-import '../core/interfaces/command_parameter_storage_interface.dart';
+import '../services/command_parameter_storage_service.dart';
 import '../core/interfaces/command_repository_interface.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
@@ -34,18 +34,18 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   CommandInterfaceViewModel({
     BleControllerInterface? controller,
     CommandRepositoryInterface? commandRepository,
-    CommandParameterStorageInterface? parameterStorageService,
+    CommandParameterStorageService? parameterStorageService,
   })  : _injectedController = controller,
         _injectedCommandRepository = commandRepository,
         _injectedParameterStorageService = parameterStorageService;
 
   final BleControllerInterface? _injectedController;
   final CommandRepositoryInterface? _injectedCommandRepository;
-  final CommandParameterStorageInterface? _injectedParameterStorageService;
+  final CommandParameterStorageService? _injectedParameterStorageService;
   late final BleControllerInterface _controller;
   late final CommandManager _commandManager;
   late final CommandRepositoryInterface _commandRepository;
-  late final CommandParameterStorageInterface _parameterStorageService;
+  late final CommandParameterStorageService _parameterStorageService;
   final ScrollController _scrollController = ScrollController();
   final List<MessageData> _messages = [];
   MessageFilter _currentFilter = MessageFilter.all;
@@ -61,7 +61,7 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   CommandRepositoryInterface get commandRepository => _commandRepository;
 
   /// The parameter storage service for persisting command parameters.
-  CommandParameterStorageInterface get parameterStorageService =>
+  CommandParameterStorageService get parameterStorageService =>
       _parameterStorageService;
 
   /// The currently executing command (for loading state).
@@ -124,7 +124,7 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     _commandRepository =
         _injectedCommandRepository ?? getIt<CommandRepositoryInterface>();
     _parameterStorageService = _injectedParameterStorageService ??
-        getIt<CommandParameterStorageInterface>();
+        getIt<CommandParameterStorageService>();
 
     // Initialize parameter storage
     await _parameterStorageService.initialize();

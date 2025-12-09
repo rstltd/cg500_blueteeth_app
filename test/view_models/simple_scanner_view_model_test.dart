@@ -10,10 +10,8 @@ import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/theme_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/view_models/simple_scanner_view_model.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -637,7 +635,7 @@ class _MockAppUpdateManager extends AppUpdateManager {
   }
 }
 
-class _MockUpdateService implements UpdateServiceInterface {
+class _MockUpdateService implements UpdateService {
   final _updateController = StreamController<UpdateInfo>.broadcast();
   final _downloadController = StreamController<DownloadProgress>.broadcast();
 
@@ -646,6 +644,9 @@ class _MockUpdateService implements UpdateServiceInterface {
 
   @override
   Stream<DownloadProgress> get downloadStream => _downloadController.stream;
+
+  @override
+  bool get isDownloading => false;
 
   @override
   Future<bool> initialize() async => true;
@@ -693,7 +694,7 @@ class _MockUpdateService implements UpdateServiceInterface {
   bool shouldAutoDownload(UpdateInfo updateInfo) => false;
 }
 
-class _MockNetworkService implements NetworkServiceInterface {
+class _MockNetworkService extends NetworkService {
   final _networkController = StreamController<NetworkStatus>.broadcast();
 
   @override
@@ -723,23 +724,43 @@ class _MockNetworkService implements NetworkServiceInterface {
   String estimateDownloadTime(int fileSizeBytes) => '~5s';
 }
 
-class _MockNotificationService implements NotificationServiceInterface {
+class _MockNotificationService extends NotificationService {
   final _notificationController = StreamController<NotificationModel>.broadcast();
 
   @override
   Stream<NotificationModel> get notifications => _notificationController.stream;
 
   @override
-  void showInfo({required String title, required String message}) {}
+  void showInfo({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
-  void showSuccess({required String title, required String message}) {}
+  void showSuccess({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
-  void showWarning({required String title, required String message}) {}
+  void showWarning({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
-  void showError({required String title, required String message}) {}
+  void showError({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {}
 
   @override
   void showConnectionStatus({

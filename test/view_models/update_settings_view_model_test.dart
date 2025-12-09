@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/view_models/update_settings_view_model.dart';
@@ -404,7 +403,7 @@ void main() {
 
 // --- Mock Implementations ---
 
-class _MockUpdateService implements UpdateServiceInterface {
+class _MockUpdateService implements UpdateService {
   int checkForUpdatesCallCount = 0;
   final _updateController = StreamController<UpdateInfo>.broadcast();
   final _downloadController = StreamController<DownloadProgress>.broadcast();
@@ -414,6 +413,9 @@ class _MockUpdateService implements UpdateServiceInterface {
 
   @override
   Stream<DownloadProgress> get downloadStream => _downloadController.stream;
+
+  @override
+  bool get isDownloading => false;
 
   @override
   Future<bool> initialize() async => true;
@@ -476,7 +478,7 @@ class _MockUpdateService implements UpdateServiceInterface {
   bool shouldAutoDownload(UpdateInfo updateInfo) => false;
 }
 
-class _MockNetworkService implements NetworkServiceInterface {
+class _MockNetworkService extends NetworkService {
   final _networkController = StreamController<NetworkStatus>.broadcast();
   NetworkStatus _currentStatus = NetworkStatus.wifi;
 

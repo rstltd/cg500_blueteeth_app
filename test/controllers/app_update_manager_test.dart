@@ -2,14 +2,12 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
-import 'package:cg500_blueteeth_app/services/notification_service.dart' show NotificationModel;
-import 'package:cg500_blueteeth_app/core/interfaces/update_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/network_service_interface.dart';
-import 'package:cg500_blueteeth_app/core/interfaces/notification_service_interface.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart';
+import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 
 /// Mock UpdateService for testing
-class MockUpdateService implements UpdateServiceInterface {
+class MockUpdateService implements UpdateService {
   final _updateController = StreamController<UpdateInfo>.broadcast();
   final _downloadController = StreamController<DownloadProgress>.broadcast();
   UpdateInfo? _mockUpdateInfo;
@@ -20,6 +18,9 @@ class MockUpdateService implements UpdateServiceInterface {
 
   @override
   Stream<DownloadProgress> get downloadStream => _downloadController.stream;
+
+  @override
+  bool get isDownloading => false;
 
   @override
   Future<bool> initialize() async {
@@ -89,7 +90,7 @@ class MockUpdateService implements UpdateServiceInterface {
 }
 
 /// Mock NetworkService for testing
-class MockNetworkService implements NetworkServiceInterface {
+class MockNetworkService extends NetworkService {
   final _networkController = StreamController<NetworkStatus>.broadcast();
   NetworkStatus _currentStatus = NetworkStatus.wifi;
 
@@ -129,7 +130,7 @@ class MockNetworkService implements NetworkServiceInterface {
 }
 
 /// Mock NotificationService for testing
-class MockNotificationService implements NotificationServiceInterface {
+class MockNotificationService extends NotificationService {
   final _notificationsController = StreamController<NotificationModel>.broadcast();
   final List<String> shownNotifications = [];
 
@@ -137,22 +138,42 @@ class MockNotificationService implements NotificationServiceInterface {
   Stream<NotificationModel> get notifications => _notificationsController.stream;
 
   @override
-  void showSuccess({required String title, required String message}) {
+  void showSuccess({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     shownNotifications.add('success:$title');
   }
 
   @override
-  void showError({required String title, required String message}) {
+  void showError({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     shownNotifications.add('error:$title');
   }
 
   @override
-  void showWarning({required String title, required String message}) {
+  void showWarning({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     shownNotifications.add('warning:$title');
   }
 
   @override
-  void showInfo({required String title, required String message}) {
+  void showInfo({
+    required String title,
+    required String message,
+    Duration? duration,
+    Map<String, dynamic> metadata = const {},
+  }) {
     shownNotifications.add('info:$title');
   }
 

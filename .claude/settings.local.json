@@ -34,7 +34,9 @@
       "Bash(Select-String -Pattern \"passed|failed|error\")",
       "Bash(Select-String -Pattern \"passed|failed|error|All tests\")",
       "Bash(for file in lib/services/*.dart)",
-      "Bash(dart analyze:*)"
+      "Bash(dart analyze:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

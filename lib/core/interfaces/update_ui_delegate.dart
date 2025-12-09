@@ -7,43 +7,15 @@ enum InstallResult {
   error,
 }
 
-/// Delegate interface for update-related UI operations.
+/// Delegate for update-related UI operations.
 ///
-/// This interface separates UI concerns from business logic in UpdateLogicManager,
+/// This class separates UI concerns from business logic in UpdateLogicManager,
 /// making the manager easier to test and maintaining single responsibility.
-abstract class UpdateUIDelegate {
+/// Uses SnackBars and AlertDialogs for UI feedback.
+class UpdateUIDelegate {
+  const UpdateUIDelegate();
+
   /// Show a message indicating installation has started successfully
-  void showInstallationStarted(BuildContext context);
-
-  /// Show a message indicating installation failed
-  void showInstallationFailed(BuildContext context);
-
-  /// Show a message indicating an installation error with details
-  void showInstallationError(BuildContext context, String errorMessage);
-
-  /// Show skip version confirmation dialog
-  /// Returns true if user confirmed skip, false if cancelled
-  Future<bool> showSkipVersionConfirmation(
-    BuildContext context,
-    String version,
-  );
-
-  /// Show a message indicating version was skipped with undo option
-  void showVersionSkipped(
-    BuildContext context,
-    String version,
-    VoidCallback onUndo,
-  );
-
-  /// Close any open dialogs (e.g., update dialog)
-  void closeDialogs(BuildContext context, {int count = 1});
-}
-
-/// Default implementation of UpdateUIDelegate using SnackBars and AlertDialogs.
-class DefaultUpdateUIDelegate implements UpdateUIDelegate {
-  const DefaultUpdateUIDelegate();
-
-  @override
   void showInstallationStarted(BuildContext context) {
     if (!context.mounted) return;
 
@@ -67,7 +39,7 @@ class DefaultUpdateUIDelegate implements UpdateUIDelegate {
     );
   }
 
-  @override
+  /// Show a message indicating installation failed
   void showInstallationFailed(BuildContext context) {
     if (!context.mounted) return;
 
@@ -91,7 +63,7 @@ class DefaultUpdateUIDelegate implements UpdateUIDelegate {
     );
   }
 
-  @override
+  /// Show a message indicating an installation error with details
   void showInstallationError(BuildContext context, String errorMessage) {
     if (!context.mounted) return;
 
@@ -111,7 +83,8 @@ class DefaultUpdateUIDelegate implements UpdateUIDelegate {
     );
   }
 
-  @override
+  /// Show skip version confirmation dialog
+  /// Returns true if user confirmed skip, false if cancelled
   Future<bool> showSkipVersionConfirmation(
     BuildContext context,
     String version,
@@ -142,7 +115,7 @@ class DefaultUpdateUIDelegate implements UpdateUIDelegate {
     return result ?? false;
   }
 
-  @override
+  /// Show a message indicating version was skipped with undo option
   void showVersionSkipped(
     BuildContext context,
     String version,
@@ -161,7 +134,7 @@ class DefaultUpdateUIDelegate implements UpdateUIDelegate {
     );
   }
 
-  @override
+  /// Close any open dialogs (e.g., update dialog)
   void closeDialogs(BuildContext context, {int count = 1}) {
     if (!context.mounted) return;
 

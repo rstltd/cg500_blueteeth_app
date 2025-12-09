@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'notification_service.dart';
-import '../core/interfaces/notification_service_interface.dart';
 
 // Re-export NotificationModel for convenience
 export 'notification_service.dart' show NotificationModel, NotificationType;
@@ -8,12 +7,12 @@ export 'notification_service.dart' show NotificationModel, NotificationType;
 /// Smart notification service that filters and manages notifications
 /// to prevent notification spam and improve user experience.
 ///
-/// This service implements [NotificationServiceInterface] and can be used
+/// This service extends [NotificationService] and can be used
 /// with dependency injection for improved testability.
 ///
 /// Use [SmartNotificationService.withDependencies()] or [SmartNotificationService()]
 /// constructor and register via service locator for production use.
-class SmartNotificationService implements NotificationServiceInterface {
+class SmartNotificationService extends NotificationService {
   /// Default constructor for dependency injection via service locator.
   SmartNotificationService() : _baseNotificationService = NotificationService();
 
@@ -57,6 +56,7 @@ class SmartNotificationService implements NotificationServiceInterface {
   @override
   Stream<NotificationModel> get notifications => _baseNotificationService.notifications;
 
+  @override
   List<NotificationModel> get allNotifications => _baseNotificationService.allNotifications;
 
   /// Show info notification with smart filtering
@@ -265,23 +265,28 @@ class SmartNotificationService implements NotificationServiceInterface {
   }
 
   /// Pass-through methods to base service
+  @override
   void removeNotification(String id) {
     _baseNotificationService.removeNotification(id);
   }
 
+  @override
   void clearAll() {
     _baseNotificationService.clearAll();
     clearFilters();
   }
 
+  @override
   void clearByType(NotificationType type) {
     _baseNotificationService.clearByType(type);
   }
 
+  @override
   List<NotificationModel> getNotificationsByType(NotificationType type) {
     return _baseNotificationService.getNotificationsByType(type);
   }
 
+  @override
   int get notificationCount => _baseNotificationService.notificationCount;
 
   @override
