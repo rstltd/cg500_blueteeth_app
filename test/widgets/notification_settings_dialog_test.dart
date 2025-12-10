@@ -6,6 +6,7 @@ import 'package:cg500_blueteeth_app/widgets/layout/notification_settings_dialog.
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
 import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_ble_controller.dart';
 
 void main() {
@@ -59,7 +60,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Notification Settings'), findsOneWidget);
+      expect(find.text(AppStrings.notificationSettings), findsOneWidget);
     });
 
     testWidgets('should display description text', (WidgetTester tester) async {
@@ -71,7 +72,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Configure when and how notifications are shown'), findsOneWidget);
+      expect(find.text(AppStrings.notificationSettingsSubtitle), findsOneWidget);
     });
 
     testWidgets('should have notifications icon in header', (WidgetTester tester) async {
@@ -95,7 +96,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text(AppStrings.cancel), findsOneWidget);
     });
 
     testWidgets('should have Apply Settings button', (WidgetTester tester) async {
@@ -107,7 +108,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Apply Settings'), findsOneWidget);
+      expect(find.text(AppStrings.applySettings), findsOneWidget);
     });
 
     testWidgets('should have Dialog widget', (WidgetTester tester) async {
@@ -134,7 +135,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Smart Filtering'), findsOneWidget);
+      expect(find.text(AppStrings.smartFiltering), findsOneWidget);
       expect(find.byIcon(Icons.filter_alt), findsOneWidget);
     });
 
@@ -148,7 +149,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Notification Categories'), findsOneWidget);
+      expect(find.text(AppStrings.notificationCategories), findsOneWidget);
       expect(find.byIcon(Icons.category), findsOneWidget);
     });
 
@@ -162,7 +163,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Statistics'), findsOneWidget);
+      expect(find.text(AppStrings.statistics), findsOneWidget);
       expect(find.byIcon(Icons.analytics), findsOneWidget);
     });
   });
@@ -178,8 +179,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Enable Smart Filtering'), findsOneWidget);
-      expect(find.text('Automatically reduce notification spam and duplicates'), findsOneWidget);
+      expect(find.text(AppStrings.enableSmartFiltering), findsOneWidget);
+      expect(find.text(AppStrings.smartFilteringDesc), findsOneWidget);
     });
 
     testWidgets('should have SwitchListTile for smart filtering', (WidgetTester tester) async {
@@ -238,7 +239,7 @@ void main() {
 
       // Smart filtering is enabled by default
       expect(find.byIcon(Icons.lightbulb_outline), findsOneWidget);
-      expect(find.textContaining('Smart filtering prevents'), findsOneWidget);
+      expect(find.textContaining(AppStrings.smartFilteringExplanation), findsOneWidget);
     });
   });
 
@@ -253,8 +254,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Connection Events'), findsOneWidget);
-      expect(find.text('Show notifications when devices connect/disconnect'), findsOneWidget);
+      expect(find.text(AppStrings.connectionEvents), findsOneWidget);
+      expect(find.text(AppStrings.connectionEventsDesc), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
     });
 
@@ -268,8 +269,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Scanning Events'), findsOneWidget);
-      expect(find.text('Show notifications during device scanning'), findsOneWidget);
+      expect(find.text(AppStrings.scanningEvents), findsOneWidget);
+      expect(find.text(AppStrings.scanningEventsDesc), findsOneWidget);
       expect(find.byIcon(Icons.radar), findsOneWidget);
     });
 
@@ -283,8 +284,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('MTU Configuration'), findsOneWidget);
-      expect(find.text('Show notifications about MTU setup'), findsOneWidget);
+      expect(find.text(AppStrings.mtuConfigurationCategory), findsOneWidget);
+      expect(find.text(AppStrings.mtuConfiguration), findsOneWidget);
       expect(find.byIcon(Icons.settings_ethernet), findsOneWidget);
     });
 
@@ -298,8 +299,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Command Feedback'), findsOneWidget);
-      expect(find.text('Show notifications for sent commands'), findsOneWidget);
+      expect(find.text(AppStrings.commandFeedback), findsOneWidget);
+      expect(find.text(AppStrings.commandFeedbackDesc), findsOneWidget);
       expect(find.byIcon(Icons.send), findsOneWidget);
     });
 
@@ -329,7 +330,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Total Notifications'), findsOneWidget);
+      expect(find.text(AppStrings.totalNotifications), findsOneWidget);
     });
 
     testWidgets('should display Filtered Notifications stat', (WidgetTester tester) async {
@@ -342,7 +343,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Filtered Notifications'), findsOneWidget);
+      // Find text containing the filtered notifications string
+      expect(find.text(AppStrings.filteredNotifications), findsOneWidget);
     });
 
     testWidgets('should display Pending Notifications stat', (WidgetTester tester) async {
@@ -355,7 +357,8 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Pending Notifications'), findsOneWidget);
+      // Find text containing the pending notifications string
+      expect(find.text(AppStrings.pendingNotifications), findsOneWidget);
     });
 
     testWidgets('should have Clear Filters button', (WidgetTester tester) async {
@@ -368,7 +371,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.text('Clear Filters'), findsOneWidget);
+      expect(find.text(AppStrings.clearFilters), findsOneWidget);
       expect(find.byIcon(Icons.clear_all), findsOneWidget);
     });
   });
@@ -680,7 +683,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.widgetWithText(TextButton, 'Cancel'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, AppStrings.cancel), findsOneWidget);
     });
 
     testWidgets('Apply Settings button should be ElevatedButton', (WidgetTester tester) async {
@@ -698,7 +701,7 @@ void main() {
       );
       await tester.pumpAndSettle(); // Wait for async _loadSettings()
 
-      expect(find.widgetWithText(ElevatedButton, 'Apply Settings'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, AppStrings.applySettings), findsOneWidget);
     });
 
     testWidgets('Clear Filters should be TextButton.icon', (WidgetTester tester) async {
@@ -718,7 +721,7 @@ void main() {
 
       // TextButton.icon creates a TextButton with icon and label
       // Verify both the text and the clear_all icon exist
-      expect(find.text('Clear Filters'), findsOneWidget);
+      expect(find.text(AppStrings.clearFilters), findsOneWidget);
       expect(find.byIcon(Icons.clear_all), findsOneWidget);
     });
   });

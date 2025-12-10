@@ -10,6 +10,7 @@ import 'package:cg500_blueteeth_app/models/connection_state.dart';
 import 'package:cg500_blueteeth_app/services/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 /// Mock BLE Service for testing
 class MockBleService implements BleService {
@@ -246,8 +247,8 @@ void main() {
         ),
       );
 
-      expect(find.text('No BLE devices found'), findsOneWidget);
-      expect(find.text('Start scanning to discover nearby devices'), findsOneWidget);
+      expect(find.text(AppStrings.noDevicesFound), findsOneWidget);
+      expect(find.text(AppStrings.startScanningHint), findsOneWidget);
     });
 
     testWidgets('should show bluetooth_searching icon in empty state', (WidgetTester tester) async {
@@ -275,7 +276,7 @@ void main() {
         ),
       );
 
-      expect(find.text('No BLE devices found'), findsOneWidget);
+      expect(find.text(AppStrings.noDevicesFound), findsOneWidget);
     });
 
     testWidgets('should render in dark theme', (WidgetTester tester) async {
@@ -288,7 +289,7 @@ void main() {
         ),
       );
 
-      expect(find.text('No BLE devices found'), findsOneWidget);
+      expect(find.text(AppStrings.noDevicesFound), findsOneWidget);
     });
 
     testWidgets('should have Center widget in empty state', (WidgetTester tester) async {

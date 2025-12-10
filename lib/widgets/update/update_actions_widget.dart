@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/update_service.dart';
 import '../../services/theme_service.dart';
+import '../../l10n/app_strings.dart';
 
 /// Widget for update dialog action buttons and browser download option
 class UpdateActionsWidget extends StatelessWidget {
@@ -65,7 +66,7 @@ class UpdateActionsWidget extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'If download fails, try "Browser Download" below',
+              AppStrings.downloadFailedWarning,
               style: TextStyle(
                 color: Colors.orange.shade700,
                 fontSize: 13,
@@ -100,7 +101,7 @@ class UpdateActionsWidget extends StatelessWidget {
         child: TextButton.icon(
           onPressed: onSkipVersion,
           icon: const Icon(Icons.block),
-          label: const Text('Skip'),
+          label: const Text(AppStrings.skip),
           style: TextButton.styleFrom(
             foregroundColor: Colors.grey.shade600,
           ),
@@ -109,7 +110,7 @@ class UpdateActionsWidget extends StatelessWidget {
       Expanded(
         child: TextButton(
           onPressed: onDismiss,
-          child: const Text('Later'),
+          child: const Text(AppStrings.later),
         ),
       ),
     ];
@@ -163,7 +164,7 @@ class UpdateActionsWidget extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () => _openBrowserDownload(context),
         icon: const Icon(Icons.open_in_browser, size: 18),
-        label: const Text('Browser Download'),
+          label: const Text(AppStrings.browserDownload),
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.blue.shade600,
           side: BorderSide(color: Colors.blue.shade600),
@@ -188,7 +189,7 @@ class UpdateActionsWidget extends StatelessWidget {
 
   /// Get button text based on update type
   String _getUpdateButtonText() {
-    return _isUpdateForced() ? 'Update Now' : 'Update';
+    return _isUpdateForced() ? AppStrings.updateNow : AppStrings.update;
   }
 
   /// Get button flex value based on update type
@@ -228,7 +229,7 @@ class UpdateActionsWidget extends StatelessWidget {
           final scaffoldMessenger = ScaffoldMessenger.of(context);
           scaffoldMessenger.showSnackBar(
             SnackBar(
-              content: Text('Cannot open browser. Please visit:\n$url'),
+              content: Text(AppStrings.cannotOpenBrowser(url)),
               duration: const Duration(seconds: 5),
             ),
           );
@@ -239,7 +240,7 @@ class UpdateActionsWidget extends StatelessWidget {
         final scaffoldMessenger = ScaffoldMessenger.of(context);
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('Failed to open browser: $e'),
+            content: Text(AppStrings.openBrowserFailed(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -254,28 +255,28 @@ class UpdateActionsWidget extends StatelessWidget {
         children: [
           Icon(Icons.info, color: Colors.blue),
           const SizedBox(width: 8),
-          const Text('Download Guide'),
+          const Text(AppStrings.downloadGuide),
         ],
       ),
       content: const Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('📱 Manual Download Instructions:'),
+          Text('📱 手動下載說明:'),
           SizedBox(height: 12),
-          Text('1. Find the APK file on GitHub'),
-          Text('2. Tap to download the APK'),
-          Text('3. Open Downloads folder'),
-          Text('4. Tap the APK to install'),
-          Text('5. Allow "Install from unknown sources" if prompted'),
+          Text('1. 在 GitHub 找到 APK 檔案'),
+          Text('2. 點擊下載 APK'),
+          Text('3. 開啟「下載」資料夾'),
+          Text('4. 點擊 APK 進行安裝'),
+          Text('5. 如有提示，請允許「安裝未知來源」'),
           SizedBox(height: 12),
-          Text('The APK file will be named like:\ncg500_ble_app_v1.1.0.apk'),
+          Text('APK 檔案名稱格式:\ncg500_ble_app_v1.1.0.apk'),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Got it'),
+          child: const Text(AppStrings.gotIt),
         ),
       ],
     );

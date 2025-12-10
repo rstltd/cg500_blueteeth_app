@@ -10,6 +10,7 @@ import 'package:cg500_blueteeth_app/models/connection_state.dart';
 import 'package:cg500_blueteeth_app/services/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 /// Mock BLE Service for testing
 class MockBleService implements BleService {
@@ -223,7 +224,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Quick Stats'), findsOneWidget);
+      expect(find.text(AppStrings.quickStats), findsOneWidget);
     });
 
     testWidgets('should display Found label', (WidgetTester tester) async {
@@ -235,7 +236,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Found'), findsOneWidget);
+      expect(find.text(AppStrings.found), findsOneWidget);
     });
 
     testWidgets('should display Connected label', (WidgetTester tester) async {
@@ -247,7 +248,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(AppStrings.connected), findsOneWidget);
     });
 
     testWidgets('should display devices icon', (WidgetTester tester) async {
@@ -361,7 +362,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Quick Stats'), findsOneWidget);
+      expect(find.text(AppStrings.quickStats), findsOneWidget);
     });
 
     testWidgets('should render in dark theme', (WidgetTester tester) async {
@@ -374,7 +375,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Quick Stats'), findsOneWidget);
+      expect(find.text(AppStrings.quickStats), findsOneWidget);
     });
 
     testWidgets('should update when device list changes', (WidgetTester tester) async {

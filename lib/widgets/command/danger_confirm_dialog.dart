@@ -41,14 +41,23 @@ class DangerConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final dangerLevel = command.dangerLevel;
+
+    // Use warning-appropriate colors for warning level
+    final iconColor = dangerLevel == DangerLevel.warning
+        ? Colors.orange
+        : colorScheme.error;
+    final buttonColor = dangerLevel == DangerLevel.warning
+        ? Colors.orange
+        : colorScheme.error;
 
     return AlertDialog(
       icon: Icon(
-        Icons.warning_amber_rounded,
+        dangerLevel.icon,
         size: 48,
-        color: colorScheme.error,
+        color: iconColor,
       ),
-      title: Text('確認執行危險操作'),
+      title: Text(dangerLevel.confirmationTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,22 +74,24 @@ class DangerConfirmDialog extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(DesignTokens.spacingSM),
               decoration: BoxDecoration(
-                color: colorScheme.errorContainer.withValues(alpha: 0.3),
+                color: dangerLevel == DangerLevel.warning
+                    ? Colors.orange.withValues(alpha: 0.15)
+                    : colorScheme.errorContainer.withValues(alpha: 0.3),
                 borderRadius: DesignTokens.borderRadiusS,
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.error_outline,
+                    Icons.info_outline,
                     size: DesignTokens.iconS,
-                    color: colorScheme.error,
+                    color: iconColor,
                   ),
                   SizedBox(width: DesignTokens.spacingS),
                   Expanded(
                     child: Text(
                       command.warningMessage!,
                       style: TextStyle(
-                        color: colorScheme.error,
+                        color: iconColor,
                       ),
                     ),
                   ),
@@ -120,9 +131,9 @@ class DangerConfirmDialog extends StatelessWidget {
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
           style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.error,
+            backgroundColor: buttonColor,
           ),
-          child: Text('確認執行'),
+          child: Text(dangerLevel.confirmButtonText),
         ),
       ],
     );

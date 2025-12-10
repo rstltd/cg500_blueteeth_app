@@ -9,6 +9,7 @@ import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 /// Mock BLE Service for testing
 class MockBleService implements BleService {
@@ -232,7 +233,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Start Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
     });
 
     testWidgets('should display clear all button', (WidgetTester tester) async {
@@ -257,7 +258,7 @@ void main() {
         ),
       );
 
-      expect(find.text('0 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(0)), findsOneWidget);
     });
 
     testWidgets('should display devices icon', (WidgetTester tester) async {
@@ -282,7 +283,7 @@ void main() {
         ),
       );
 
-      expect(find.text('0 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(0)), findsOneWidget);
 
       // Add devices
       mockBleService.addDevices([
@@ -292,7 +293,7 @@ void main() {
       ]);
       await tester.pump();
 
-      expect(find.text('3 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(3)), findsOneWidget);
     });
 
     testWidgets('should show Stop Scanning when scanning stream emits true',
@@ -305,12 +306,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Start Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
 
       mockBleService.setScanning(true);
       await tester.pump();
 
-      expect(find.text('Stop Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.stopScanning), findsOneWidget);
     });
 
     testWidgets('should toggle scanning state', (WidgetTester tester) async {
@@ -323,17 +324,17 @@ void main() {
       );
 
       // Initially not scanning
-      expect(find.text('Start Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
 
       // Start scanning
       mockBleService.setScanning(true);
       await tester.pump();
-      expect(find.text('Stop Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.stopScanning), findsOneWidget);
 
       // Stop scanning
       mockBleService.setScanning(false);
       await tester.pump();
-      expect(find.text('Start Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
     });
 
     testWidgets('should render in light theme', (WidgetTester tester) async {
@@ -422,8 +423,8 @@ void main() {
       );
 
       // Should display default values
-      expect(find.text('Start Scanning'), findsOneWidget);
-      expect(find.text('0 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(0)), findsOneWidget);
     });
 
     testWidgets('should update when device list grows',
@@ -439,7 +440,7 @@ void main() {
       // Add one device
       mockBleService.addDevices([createTestDevice(id: '1')]);
       await tester.pumpAndSettle();
-      expect(find.text('1 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(1)), findsOneWidget);
 
       // Add more devices
       mockBleService.addDevices([
@@ -447,7 +448,7 @@ void main() {
         createTestDevice(id: '2'),
       ]);
       await tester.pumpAndSettle();
-      expect(find.text('2 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(2)), findsOneWidget);
     });
 
     testWidgets('should update when device list shrinks',
@@ -467,12 +468,12 @@ void main() {
         createTestDevice(id: '3'),
       ]);
       await tester.pumpAndSettle();
-      expect(find.text('3 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(3)), findsOneWidget);
 
       // Remove devices
       mockBleService.addDevices([createTestDevice(id: '1')]);
       await tester.pumpAndSettle();
-      expect(find.text('1 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(1)), findsOneWidget);
     });
 
     testWidgets('should handle empty device list after having devices',
@@ -488,12 +489,12 @@ void main() {
       // Add devices
       mockBleService.addDevices([createTestDevice(id: '1')]);
       await tester.pumpAndSettle();
-      expect(find.text('1 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(1)), findsOneWidget);
 
       // Clear devices
       mockBleService.clearDevices();
       await tester.pumpAndSettle();
-      expect(find.text('0 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(0)), findsOneWidget);
     });
   });
 
@@ -515,7 +516,7 @@ void main() {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {},
-                          child: const Text('Start Scanning'),
+                          child: Text(AppStrings.startScanning),
                         ),
                       ),
                     ],
@@ -527,7 +528,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Start Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
     });
 
     testWidgets('should display clear all button', (WidgetTester tester) async {
@@ -543,7 +544,7 @@ void main() {
               child: IconButton(
                 onPressed: () {},
                 icon: Icon(Icons.clear_all, color: Colors.grey.shade700),
-                tooltip: 'Clear Devices',
+                tooltip: AppStrings.clearDevices,
               ),
             ),
           ),
@@ -564,7 +565,7 @@ void main() {
                 Icon(Icons.devices, color: Colors.grey.shade600, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  '5 devices found',
+                  AppStrings.devicesFound(5),
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontSize: 14,
@@ -578,7 +579,7 @@ void main() {
       );
 
       expect(find.byIcon(Icons.devices), findsOneWidget);
-      expect(find.text('5 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(5)), findsOneWidget);
     });
 
     testWidgets('should display zero devices when empty', (WidgetTester tester) async {
@@ -591,7 +592,7 @@ void main() {
                 Icon(Icons.devices, color: Colors.grey.shade600, size: 16),
                 const SizedBox(width: 6),
                 Text(
-                  '0 devices found',
+                  AppStrings.devicesFound(0),
                   style: TextStyle(
                     color: Colors.grey.shade600,
                     fontSize: 14,
@@ -603,7 +604,7 @@ void main() {
         ),
       );
 
-      expect(find.text('0 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(0)), findsOneWidget);
     });
   });
 
@@ -614,13 +615,13 @@ void main() {
           home: Scaffold(
             body: ElevatedButton(
               onPressed: () {},
-              child: const Text('Stop Scanning'),
+              child: Text(AppStrings.stopScanning),
             ),
           ),
         ),
       );
 
-      expect(find.text('Stop Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.stopScanning), findsOneWidget);
     });
 
     testWidgets('should switch between Start and Stop text', (WidgetTester tester) async {
@@ -635,7 +636,7 @@ void main() {
                   onPressed: () {
                     setState(() => isScanning = !isScanning);
                   },
-                  child: Text(isScanning ? 'Stop Scanning' : 'Start Scanning'),
+                  child: Text(isScanning ? AppStrings.stopScanning : AppStrings.startScanning),
                 );
               },
             ),
@@ -643,12 +644,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Start Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.startScanning), findsOneWidget);
 
       await tester.tap(find.byType(ElevatedButton));
       await tester.pump();
 
-      expect(find.text('Stop Scanning'), findsOneWidget);
+      expect(find.text(AppStrings.stopScanning), findsOneWidget);
     });
   });
 
@@ -664,14 +665,14 @@ void main() {
               initialData: const [],
               builder: (context, snapshot) {
                 int deviceCount = snapshot.data?.length ?? 0;
-                return Text('$deviceCount devices found');
+                return Text(AppStrings.devicesFound(deviceCount));
               },
             ),
           ),
         ),
       );
 
-      expect(find.text('0 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(0)), findsOneWidget);
 
       // Add devices
       deviceController.add([
@@ -681,7 +682,7 @@ void main() {
       ]);
       await tester.pump();
 
-      expect(find.text('3 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(3)), findsOneWidget);
 
       await deviceController.close();
     });
@@ -821,13 +822,13 @@ void main() {
           home: Scaffold(
             body: ElevatedButton(
               onPressed: () => scanPressed = true,
-              child: const Text('Start Scanning'),
+              child: Text(AppStrings.startScanning),
             ),
           ),
         ),
       );
 
-      await tester.tap(find.text('Start Scanning'));
+      await tester.tap(find.text(AppStrings.startScanning));
       await tester.pump();
 
       expect(scanPressed, isTrue);
@@ -903,36 +904,36 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Text('1 devices found'),
+            body: Text(AppStrings.devicesFound(1)),
           ),
         ),
       );
 
-      expect(find.text('1 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(1)), findsOneWidget);
     });
 
     testWidgets('should show multiple devices', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Text('10 devices found'),
+            body: Text(AppStrings.devicesFound(10)),
           ),
         ),
       );
 
-      expect(find.text('10 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(10)), findsOneWidget);
     });
 
     testWidgets('should show large device count', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Text('100 devices found'),
+            body: Text(AppStrings.devicesFound(100)),
           ),
         ),
       );
 
-      expect(find.text('100 devices found'), findsOneWidget);
+      expect(find.text(AppStrings.devicesFound(100)), findsOneWidget);
     });
   });
 
@@ -944,7 +945,7 @@ void main() {
             body: IconButton(
               onPressed: () {},
               icon: const Icon(Icons.clear_all),
-              tooltip: 'Clear Devices',
+              tooltip: AppStrings.clearDevices,
             ),
           ),
         ),
@@ -952,7 +953,7 @@ void main() {
 
       // Verify tooltip is set
       final iconButton = tester.widget<IconButton>(find.byType(IconButton));
-      expect(iconButton.tooltip, 'Clear Devices');
+      expect(iconButton.tooltip, AppStrings.clearDevices);
     });
   });
 

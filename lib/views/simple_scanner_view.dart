@@ -4,6 +4,7 @@ import '../controllers/app_update_manager.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
+import '../l10n/app_strings.dart';
 import '../models/ble_device.dart';
 import '../services/animation_service.dart';
 import '../services/notification_service.dart';
@@ -106,7 +107,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
     if (!viewModel.isInitialized) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('CG500 BLE Scanner'),
+          title: const Text('CG500 藍牙掃描器'),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         ),
         body: Center(
@@ -115,7 +116,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
             children: [
               const CircularProgressIndicator(),
               SizedBox(height: DesignTokens.spacingML),
-              const Text('Initializing BLE Controller...'),
+              const Text(AppStrings.initializingBluetooth),
             ],
           ),
         ),
@@ -159,7 +160,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
           onPressed: _openNotificationSettings,
-          tooltip: 'Notification Settings',
+          tooltip: AppStrings.notificationSettingsTooltip,
         ),
 
         // More Settings Menu
@@ -174,7 +175,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
   Widget _buildSettingsMenu(BuildContext context) {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert),
-      tooltip: 'More Settings',
+      tooltip: AppStrings.moreSettings,
       onSelected: (String value) {
         switch (value) {
           case 'check_updates':
@@ -200,7 +201,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
             children: [
               const Icon(Icons.refresh),
               SizedBox(width: DesignTokens.spacingSM),
-              const Text('Check for Updates'),
+              const Text(AppStrings.checkForUpdates),
             ],
           ),
         ),
@@ -210,7 +211,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
             children: [
               const Icon(Icons.system_update_alt),
               SizedBox(width: DesignTokens.spacingSM),
-              const Text('Update Settings'),
+              const Text(AppStrings.updateSettings),
             ],
           ),
         ),
@@ -250,12 +251,12 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
                     type: PageTransitionType.slideFromBottom,
                   ),
                 ),
-                tooltip: 'Command Interface',
+                tooltip: AppStrings.commandInterface,
               ),
               IconButton(
                 icon: const Icon(Icons.bluetooth_connected),
                 onPressed: () => _showConnectedDeviceInfo(snapshot.data!),
-                tooltip: 'Device Info',
+                tooltip: AppStrings.deviceInfo,
               ),
             ],
           );
@@ -420,7 +421,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
                   child: Row(
                     children: [
                       ResponsiveText(
-                        'Available Devices',
+                        AppStrings.availableDevices,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary(context),

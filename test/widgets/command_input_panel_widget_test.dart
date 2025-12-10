@@ -4,6 +4,7 @@ import 'package:cg500_blueteeth_app/widgets/message/command_input_panel_widget.d
 import 'package:cg500_blueteeth_app/controllers/command_manager.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -59,7 +60,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Connect device to send commands'), findsOneWidget);
+        expect(find.text(AppStrings.connectToSendCommands), findsOneWidget);
       });
 
       testWidgets('should disable send button', (tester) async {
@@ -111,7 +112,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Type your command...'), findsOneWidget);
+        expect(find.text(AppStrings.enterCommand), findsOneWidget);
       });
 
       testWidgets('should enable send button', (tester) async {
@@ -226,7 +227,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('2 commands'), findsOneWidget);
+        expect(find.text(AppStrings.commandsCount(2)), findsOneWidget);
         expect(find.byIcon(Icons.history), findsOneWidget);
       });
 
@@ -276,7 +277,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Ready'), findsOneWidget);
+        expect(find.text(AppStrings.ready), findsOneWidget);
         expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
       });
 
@@ -288,7 +289,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Ready'), findsNothing);
+        expect(find.text(AppStrings.ready), findsNothing);
       });
     });
 
@@ -325,7 +326,7 @@ void main() {
         await tester.pump();
 
         // Initially not connected
-        expect(find.text('Connect device to send commands'), findsOneWidget);
+        expect(find.text(AppStrings.connectToSendCommands), findsOneWidget);
 
         // Connect - rebuild widget to pick up stream changes
         final testDevice = createTestDevice(
@@ -339,7 +340,7 @@ void main() {
         await tester.pump();
 
         // Should now show type hint
-        expect(find.text('Type your command...'), findsOneWidget);
+        expect(find.text(AppStrings.enterCommand), findsOneWidget);
 
         // Disconnect - rebuild widget to pick up stream changes
         mockController.simulateDisconnected();
@@ -347,7 +348,7 @@ void main() {
         await tester.pump();
 
         // Should show connect hint again
-        expect(find.text('Connect device to send commands'), findsOneWidget);
+        expect(find.text(AppStrings.connectToSendCommands), findsOneWidget);
       });
     });
   });

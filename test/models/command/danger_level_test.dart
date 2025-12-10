@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/models/command/danger_level.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   group('DangerLevel', () {
@@ -31,16 +32,16 @@ void main() {
     });
 
     group('displayName', () {
-      test('safe should return 安全', () {
-        expect(DangerLevel.safe.displayName, '安全');
+      test('safe should return safe display name', () {
+        expect(DangerLevel.safe.displayName, AppStrings.dangerLevelSafe);
       });
 
-      test('warning should return 警告', () {
-        expect(DangerLevel.warning.displayName, '警告');
+      test('warning should return warning display name', () {
+        expect(DangerLevel.warning.displayName, AppStrings.dangerLevelWarning);
       });
 
-      test('dangerous should return 危險', () {
-        expect(DangerLevel.dangerous.displayName, '危險');
+      test('dangerous should return dangerous display name', () {
+        expect(DangerLevel.dangerous.displayName, AppStrings.dangerLevelDangerous);
       });
     });
 

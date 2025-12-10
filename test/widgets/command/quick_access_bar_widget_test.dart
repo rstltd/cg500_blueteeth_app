@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import 'package:cg500_blueteeth_app/models/command/command.dart';
 import 'package:cg500_blueteeth_app/repositories/command_repository.dart';
 import 'package:cg500_blueteeth_app/widgets/command/quick_access_bar_widget.dart';
@@ -57,7 +58,7 @@ void main() {
         await tester.pumpWidget(buildTestWidget());
 
         // Find the menu button by its text
-        expect(find.text('更多'), findsOneWidget);
+        expect(find.text(AppStrings.more), findsOneWidget);
       });
 
       testWidgets('shows command icons', (tester) async {
@@ -102,7 +103,7 @@ void main() {
         ));
 
         // Find and tap the menu button
-        await tester.tap(find.text('更多'));
+        await tester.tap(find.text(AppStrings.more));
         await tester.pump();
 
         expect(menuOpened, true);
@@ -174,7 +175,7 @@ void main() {
           },
         ));
 
-        await tester.tap(find.text('更多'));
+        await tester.tap(find.text(AppStrings.more));
         await tester.pump();
 
         expect(menuOpened, false);
@@ -187,7 +188,7 @@ void main() {
 
         // Should still render all elements
         expect(find.byType(QuickCommandButton), findsWidgets);
-        expect(find.text('更多'), findsOneWidget);
+        expect(find.text(AppStrings.more), findsOneWidget);
       });
     });
 
@@ -380,7 +381,7 @@ void main() {
         },
       ));
 
-      await tester.tap(find.text('更多'));
+      await tester.tap(find.text(AppStrings.more));
       await tester.pump();
 
       expect(menuOpened, true);

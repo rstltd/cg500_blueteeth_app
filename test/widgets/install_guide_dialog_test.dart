@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/widgets/update/install_guide_dialog.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -186,7 +187,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Installation Guide'), findsOneWidget);
+      expect(find.text(AppStrings.installationGuide), findsOneWidget);
     });
 
     testWidgets('should show step progress indicator', (WidgetTester tester) async {
@@ -204,8 +205,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Should show step counter
-      expect(find.textContaining('Step'), findsOneWidget);
+      // Should show step counter (using stepProgress format)
+      expect(find.textContaining(AppStrings.stepProgress(1, 4).split(' ')[0]), findsOneWidget);
     });
 
     testWidgets('should display first step title', (WidgetTester tester) async {
@@ -224,7 +225,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // First step is "Starting Installation"
-      expect(find.text('Starting Installation'), findsOneWidget);
+      expect(find.text(AppStrings.startInstallation), findsOneWidget);
     });
 
     testWidgets('should have Skip Guide button', (WidgetTester tester) async {
@@ -242,7 +243,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Skip Guide'), findsOneWidget);
+      expect(find.text(AppStrings.skipGuide), findsOneWidget);
     });
 
     testWidgets('should navigate to next step', (WidgetTester tester) async {
@@ -261,14 +262,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Find the "Install Now" or "Next" button and tap it
-      // On first step without apkPath, it should be "Next"
-      final nextButton = find.text('Install Now');
+      // On first step without apkPath, it should be "Install Now"
+      final nextButton = find.text(AppStrings.installNow);
       if (nextButton.evaluate().isNotEmpty) {
         await tester.tap(nextButton);
         await tester.pumpAndSettle();
 
         // After tapping, should be on step 2
-        expect(find.textContaining('Step 2'), findsOneWidget);
+        expect(find.textContaining(AppStrings.stepProgress(2, 4).split(' / ')[0]), findsOneWidget);
       }
     });
 
@@ -293,7 +294,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Skip Guide
-      await tester.tap(find.text('Skip Guide'));
+      await tester.tap(find.text(AppStrings.skipGuide));
       await tester.pumpAndSettle();
 
       expect(completeCalled, true);
@@ -315,7 +316,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should show "Instructions:" label
-      expect(find.text('Instructions:'), findsOneWidget);
+      expect(find.text(AppStrings.instructions), findsOneWidget);
     });
 
     testWidgets('should have proper dialog decoration', (WidgetTester tester) async {
@@ -354,14 +355,14 @@ void main() {
 
       // Navigate through steps
       // Step 1: Install Now button
-      final installButton = find.text('Install Now');
+      final installButton = find.text(AppStrings.installNow);
       if (installButton.evaluate().isNotEmpty) {
         await tester.tap(installButton);
         await tester.pumpAndSettle();
       }
 
       // Step 2 should show "Next"
-      final nextButton = find.text('Next');
+      final nextButton = find.text(AppStrings.next);
       if (nextButton.evaluate().isNotEmpty) {
         await tester.tap(nextButton);
         await tester.pumpAndSettle();
@@ -393,16 +394,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // Initially no Previous button on step 1
-      expect(find.text('Previous'), findsNothing);
+      expect(find.text(AppStrings.previous), findsNothing);
 
       // Navigate to step 2
-      final installButton = find.text('Install Now');
+      final installButton = find.text(AppStrings.installNow);
       if (installButton.evaluate().isNotEmpty) {
         await tester.tap(installButton);
         await tester.pumpAndSettle();
 
         // Now Previous should be visible
-        expect(find.text('Previous'), findsOneWidget);
+        expect(find.text(AppStrings.previous), findsOneWidget);
       }
     });
 
@@ -422,17 +423,17 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to step 2
-      final installButton = find.text('Install Now');
+      final installButton = find.text(AppStrings.installNow);
       if (installButton.evaluate().isNotEmpty) {
         await tester.tap(installButton);
         await tester.pumpAndSettle();
 
         // Tap Previous
-        await tester.tap(find.text('Previous'));
+        await tester.tap(find.text(AppStrings.previous));
         await tester.pumpAndSettle();
 
         // Should be back on step 1
-        expect(find.text('Step 1 of 4'), findsOneWidget);
+        expect(find.text(AppStrings.stepProgress(1, 4)), findsOneWidget);
       }
     });
   });

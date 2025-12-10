@@ -4,6 +4,7 @@ import 'package:cg500_blueteeth_app/widgets/ble/connection_status_widget.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_ble_controller.dart';
 
 /// Tests for ConnectionStatusWidget using actual widget source code
@@ -33,9 +34,9 @@ void main() {
         ),
       );
 
-      expect(find.text('No Device Connected'), findsOneWidget);
-      expect(find.text('Connect a device first'), findsOneWidget);
-      expect(find.text('Please connect a BLE device to send commands'), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.pleaseConnectFirst), findsOneWidget);
+      expect(find.text(AppStrings.pleaseConnectBleDevice), findsOneWidget);
       expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
     });
 
@@ -51,7 +52,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(AppStrings.disconnected), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_disabled), findsOneWidget);
     });
   });
@@ -78,8 +79,8 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Device Connected'), findsOneWidget);
-      expect(find.text('Ready to send commands'), findsOneWidget);
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.readyToSendCommands), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
     });
 
@@ -104,7 +105,7 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(AppStrings.connected), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
     });
 
@@ -129,7 +130,7 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(AppStrings.connected), findsOneWidget);
       expect(find.textContaining('My Sensor'), findsOneWidget);
     });
 
@@ -154,7 +155,7 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(AppStrings.connected), findsOneWidget);
       expect(find.textContaining('Hidden Device'), findsNothing);
     });
   });
@@ -181,11 +182,11 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Device:'), findsOneWidget);
+      expect(find.text('${AppStrings.device}:'), findsOneWidget);
       expect(find.text('Info Device'), findsOneWidget);
       expect(find.text('ID:'), findsOneWidget);
       expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
-      expect(find.text('RSSI:'), findsOneWidget);
+      expect(find.text('${AppStrings.rssi}:'), findsOneWidget);
       expect(find.text('-45 dBm'), findsOneWidget);
     });
 
@@ -210,10 +211,10 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Device Connected'), findsOneWidget);
-      expect(find.text('Device:'), findsNothing);
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text('${AppStrings.device}:'), findsNothing);
       expect(find.text('ID:'), findsNothing);
-      expect(find.text('RSSI:'), findsNothing);
+      expect(find.text('${AppStrings.rssi}:'), findsNothing);
     });
 
     testWidgets('should display services count when services are available', (WidgetTester tester) async {
@@ -243,8 +244,8 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Services:'), findsOneWidget);
-      expect(find.text('3 available'), findsOneWidget);
+      expect(find.text('${AppStrings.services}:'), findsOneWidget);
+      expect(find.text(AppStrings.servicesCount(3)), findsOneWidget);
     });
 
     testWidgets('should display connection duration when connectedAt is set', (WidgetTester tester) async {
@@ -272,7 +273,7 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Connected:'), findsOneWidget);
+      expect(find.text('${AppStrings.connectedFor}:'), findsOneWidget);
       // Duration should be displayed (format varies slightly due to timing)
       expect(find.textContaining(':'), findsWidgets);
     });
@@ -302,7 +303,7 @@ void main() {
       mockController.emitConnectedDevice(device);
       await tester.pump();
 
-      expect(find.text('Connected:'), findsOneWidget);
+      expect(find.text('${AppStrings.connectedFor}:'), findsOneWidget);
       // Should show format like "01:30:45"
       expect(find.textContaining(':'), findsWidgets);
     });
@@ -321,7 +322,7 @@ void main() {
       );
 
       // Initially disconnected
-      expect(find.text('No Device Connected'), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
 
       // Connect a device
       mockController.emitConnectedDevice(
@@ -330,8 +331,8 @@ void main() {
       await tester.pump();
 
       // Should now show connected
-      expect(find.text('Device Connected'), findsOneWidget);
-      expect(find.text('No Device Connected'), findsNothing);
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsNothing);
     });
 
     testWidgets('should update when device disconnects', (WidgetTester tester) async {
@@ -352,7 +353,7 @@ void main() {
       await tester.pump();
       await tester.pump(); // extra pump for stream to settle
 
-      expect(find.text('Device Connected'), findsOneWidget);
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
 
       // Disconnect
       mockController.emitConnectedDevice(null);
@@ -360,8 +361,8 @@ void main() {
       await tester.pump(); // extra pump for stream to settle
 
       // Should now show disconnected
-      expect(find.text('No Device Connected'), findsOneWidget);
-      expect(find.text('Device Connected'), findsNothing);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.deviceConnected), findsNothing);
     });
   });
 
@@ -377,7 +378,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Command Interface'), findsOneWidget);
+      expect(find.text(AppStrings.commandInterface), findsOneWidget);
     });
 
     testWidgets('should display custom title', (WidgetTester tester) async {
@@ -476,7 +477,7 @@ void main() {
         ),
       );
 
-      expect(find.text('No Device Connected'), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
     });
 
     testWidgets('should render in dark theme', (WidgetTester tester) async {
@@ -491,7 +492,7 @@ void main() {
         ),
       );
 
-      expect(find.text('No Device Connected'), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
     });
 
     testWidgets('should render connected state in light theme', (WidgetTester tester) async {
@@ -509,7 +510,7 @@ void main() {
       mockController.emitConnectedDevice(createTestDevice(id: 'device-1'));
       await tester.pump();
 
-      expect(find.text('Device Connected'), findsOneWidget);
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
     });
 
     testWidgets('should render connected state in dark theme', (WidgetTester tester) async {
@@ -527,7 +528,7 @@ void main() {
       mockController.emitConnectedDevice(createTestDevice(id: 'device-1'));
       await tester.pump();
 
-      expect(find.text('Device Connected'), findsOneWidget);
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
     });
   });
 }

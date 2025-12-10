@@ -5,6 +5,7 @@ import 'package:cg500_blueteeth_app/controllers/command_manager.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -45,7 +46,7 @@ void main() {
         // Should show SizedBox.shrink() when no device connected
         expect(find.byType(ConnectionStatsPanelWidget), findsOneWidget);
         // Card content should not be visible
-        expect(find.text('Connection Stats'), findsNothing);
+        expect(find.text(AppStrings.connectionStats), findsNothing);
       });
     });
 
@@ -81,7 +82,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Connection Stats'), findsOneWidget);
+        expect(find.text(AppStrings.connectionStats), findsOneWidget);
         expect(find.byIcon(Icons.analytics_outlined), findsOneWidget);
       });
 
@@ -89,7 +90,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Device Name'), findsOneWidget);
+        expect(find.text(AppStrings.deviceName), findsOneWidget);
         expect(find.text('Test BLE Device'), findsOneWidget);
       });
 
@@ -97,7 +98,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Signal Strength'), findsOneWidget);
+        expect(find.text(AppStrings.signalStrength), findsOneWidget);
         expect(find.text('-55 dBm'), findsOneWidget);
       });
 
@@ -105,7 +106,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Services'), findsOneWidget);
+        expect(find.text(AppStrings.services), findsOneWidget);
         // Services count is 2
         expect(find.textContaining('2'), findsWidgets);
       });
@@ -114,15 +115,15 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('MTU Size'), findsOneWidget);
-        expect(find.text('517 bytes'), findsOneWidget);
+        expect(find.text(AppStrings.mtuSize), findsOneWidget);
+        expect(find.text('517 位元組'), findsOneWidget);
       });
 
       testWidgets('should show messages sent count', (tester) async {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Messages Sent'), findsOneWidget);
+        expect(find.text(AppStrings.messagesSent), findsOneWidget);
         // When no commands sent, messages count is 0
         expect(find.textContaining('0'), findsWidgets);
       });
@@ -138,7 +139,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Messages Sent'), findsOneWidget);
+        expect(find.text(AppStrings.messagesSent), findsOneWidget);
         // Should find "2" for messages sent (may also appear for services)
         expect(find.textContaining('2'), findsWidgets);
       });
@@ -157,7 +158,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Connected For'), findsNothing);
+        expect(find.text(AppStrings.connectedFor), findsNothing);
       });
 
       testWidgets('should show duration label when connected with time',
@@ -180,7 +181,7 @@ void main() {
         await tester.pump();
 
         // Check the label is shown
-        expect(find.text('Connected For'), findsOneWidget);
+        expect(find.text(AppStrings.connectedFor), findsOneWidget);
       });
     });
 
@@ -191,7 +192,7 @@ void main() {
         await tester.pump();
 
         // Initially no device
-        expect(find.text('Connection Stats'), findsNothing);
+        expect(find.text(AppStrings.connectionStats), findsNothing);
 
         // Connect a device
         final testDevice = createTestDevice(
@@ -205,7 +206,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Should now show stats
-        expect(find.text('Connection Stats'), findsOneWidget);
+        expect(find.text(AppStrings.connectionStats), findsOneWidget);
         expect(find.text('New Device'), findsOneWidget);
         expect(find.text('-70 dBm'), findsOneWidget);
       });
@@ -222,14 +223,14 @@ void main() {
         await tester.pumpAndSettle();
 
         // Initially connected
-        expect(find.text('Connection Stats'), findsOneWidget);
+        expect(find.text(AppStrings.connectionStats), findsOneWidget);
 
         // Disconnect
         mockController.simulateDisconnected();
         await tester.pumpAndSettle();
 
         // Should hide stats
-        expect(find.text('Connection Stats'), findsNothing);
+        expect(find.text(AppStrings.connectionStats), findsNothing);
       });
     });
 
@@ -247,7 +248,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('Services'), findsOneWidget);
+        expect(find.text(AppStrings.services), findsOneWidget);
         // 0 appears for both services and messages sent
         expect(find.textContaining('0'), findsWidgets);
       });

@@ -8,8 +8,14 @@ enum ParameterType {
 
   /// IP address and port combination input
   /// Format: `IP:Port`
-  /// Examples: $ADDR, $FTPADDR
+  /// Examples: $FTPADDR
   ipPort,
+
+  /// Host (IP or domain) and port combination input
+  /// Format: `Host:Port` where Host can be IP (192.168.1.1) or domain (example.com)
+  /// Note: Domain should NOT include http/https prefix (TCP connection, not HTTP)
+  /// Examples: $ADDR
+  hostPort,
 
   /// Numeric input with optional range validation
   /// Examples: General numeric values
@@ -22,6 +28,10 @@ enum ParameterType {
   /// Multiple checkbox selection with bitwise value calculation
   /// Examples: $ALARM (SD=1, GPS=2, TCP=4, ADC=8)
   bitFlags,
+
+  /// Dropdown selection from predefined options
+  /// Examples: $APN (internet, internet.iot)
+  dropdown,
 }
 
 /// Extension methods for [ParameterType].
@@ -33,12 +43,16 @@ extension ParameterTypeExtension on ParameterType {
         return '文字';
       case ParameterType.ipPort:
         return 'IP:Port';
+      case ParameterType.hostPort:
+        return '主機:Port';
       case ParameterType.number:
         return '數字';
       case ParameterType.hourPicker:
         return '小時';
       case ParameterType.bitFlags:
         return '多選';
+      case ParameterType.dropdown:
+        return '選單';
     }
   }
 
@@ -49,12 +63,16 @@ extension ParameterTypeExtension on ParameterType {
         return 'text';
       case ParameterType.ipPort:
         return 'number';
+      case ParameterType.hostPort:
+        return 'text'; // Can be domain or IP
       case ParameterType.number:
         return 'number';
       case ParameterType.hourPicker:
         return 'none'; // Uses picker
       case ParameterType.bitFlags:
         return 'none'; // Uses checkboxes
+      case ParameterType.dropdown:
+        return 'none'; // Uses dropdown
     }
   }
 
@@ -65,11 +83,15 @@ extension ParameterTypeExtension on ParameterType {
         return false;
       case ParameterType.ipPort:
         return true;
+      case ParameterType.hostPort:
+        return true;
       case ParameterType.number:
         return false;
       case ParameterType.hourPicker:
         return true;
       case ParameterType.bitFlags:
+        return true;
+      case ParameterType.dropdown:
         return true;
     }
   }
@@ -81,12 +103,16 @@ extension ParameterTypeExtension on ParameterType {
         return '請輸入文字';
       case ParameterType.ipPort:
         return '例如: 192.168.1.1:8080';
+      case ParameterType.hostPort:
+        return '例如: rmdgnss.com:8080 或 192.168.1.1:8080';
       case ParameterType.number:
         return '請輸入數字';
       case ParameterType.hourPicker:
         return '選擇小時 (0-23)';
       case ParameterType.bitFlags:
         return '選擇選項';
+      case ParameterType.dropdown:
+        return '請選擇';
     }
   }
 }

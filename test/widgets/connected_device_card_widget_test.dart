@@ -4,6 +4,7 @@ import 'package:cg500_blueteeth_app/widgets/ble/connected_device_card_widget.dar
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,7 +54,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Connected'), findsOneWidget);
+      expect(find.text(AppStrings.connected), findsOneWidget);
     });
 
     testWidgets('should display device name', (WidgetTester tester) async {
@@ -81,7 +82,7 @@ void main() {
         ),
       );
 
-      expect(find.text('RSSI: -65 dBm'), findsOneWidget);
+      expect(find.text('${AppStrings.rssi}: -65 dBm'), findsOneWidget);
     });
 
     testWidgets('should display services count when device has services', (WidgetTester tester) async {
@@ -107,7 +108,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Services: 2'), findsOneWidget);
+      expect(find.text('${AppStrings.services}: 2'), findsOneWidget);
     });
 
     testWidgets('should not display services count when device has no services', (WidgetTester tester) async {
@@ -149,7 +150,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Open Command Interface'), findsOneWidget);
+      expect(find.text(AppStrings.openCommandInterface), findsOneWidget);
     });
 
     testWidgets('should have chat icon on button', (WidgetTester tester) async {
@@ -178,7 +179,7 @@ void main() {
       );
 
       // Verify the button exists by checking for its text and icon
-      expect(find.text('Open Command Interface'), findsOneWidget);
+      expect(find.text(AppStrings.openCommandInterface), findsOneWidget);
       expect(find.byIcon(Icons.chat), findsOneWidget);
     });
   });
@@ -211,7 +212,7 @@ void main() {
         ),
       );
 
-      expect(find.text('RSSI: -30 dBm'), findsOneWidget);
+      expect(find.text('${AppStrings.rssi}: -30 dBm'), findsOneWidget);
     });
 
     testWidgets('should display device with weak signal', (WidgetTester tester) async {
@@ -225,7 +226,7 @@ void main() {
         ),
       );
 
-      expect(find.text('RSSI: -100 dBm'), findsOneWidget);
+      expect(find.text('${AppStrings.rssi}: -100 dBm'), findsOneWidget);
     });
 
     testWidgets('should display device with zero RSSI', (WidgetTester tester) async {
@@ -239,7 +240,7 @@ void main() {
         ),
       );
 
-      expect(find.text('RSSI: 0 dBm'), findsOneWidget);
+      expect(find.text('${AppStrings.rssi}: 0 dBm'), findsOneWidget);
     });
 
     testWidgets('should display device with many services', (WidgetTester tester) async {
@@ -261,7 +262,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Services: 10'), findsOneWidget);
+      expect(find.text('${AppStrings.services}: 10'), findsOneWidget);
     });
   });
 

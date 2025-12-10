@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/command_manager.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_ble_controller.dart';
 
 // Test helper class to access private members via reflection-like approach
@@ -558,8 +559,10 @@ void main() {
       final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
-      manager.textController.text = '中文 日本語 한국어 🔌';
-      expect(manager.textController.text, '中文 日本語 한국어 🔌');
+      // Test with mixed unicode including Chinese, Japanese, Korean, and emoji
+      const unicodeText = '中文 日本語 한국어 🔌';
+      manager.textController.text = unicodeText;
+      expect(manager.textController.text, unicodeText);
 
       manager.dispose();
     });
@@ -595,7 +598,7 @@ void main() {
       final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
-      manager.textController.text = '发送命令';
+      manager.textController.text = AppStrings.sendCommand;
       await manager.sendCommand();
       // Won't send because not connected, but shouldn't throw
       expect(true, true);
@@ -618,7 +621,9 @@ void main() {
       final controller = MockBleController();
       final manager = CommandManager(controller: controller);
 
-      manager.textController.text = 'Hello 你好 مرحبا שלום';
+      // Test with mixed scripts: English, Chinese, Arabic, Hebrew
+      const mixedScriptsText = 'Hello 你好 مرحا שלום';
+      manager.textController.text = mixedScriptsText;
       await manager.sendCommand();
       expect(true, true);
 
@@ -856,6 +861,8 @@ void main() {
       expect(messages.length, 2);
       expect(messages[0]['isCommand'], isTrue);
       expect(messages[1]['isError'], isTrue);
+      // Note: CommandManager currently uses hardcoded English string
+      // This should be updated to use AppStrings.commandSendFailed in the future
       expect(messages[1]['text'], 'Failed to send command');
     });
 

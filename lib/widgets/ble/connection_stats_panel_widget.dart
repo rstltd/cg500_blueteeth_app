@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../controllers/command_manager.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../../utils/formatting_utils.dart';
 import '../layout/responsive_layout.dart';
@@ -45,28 +46,28 @@ class ConnectionStatsPanelWidget extends StatelessWidget {
               _buildHeader(context),
               const SizedBox(height: 16),
               _StatRow(
-                label: 'Device Name',
+                label: AppStrings.deviceName,
                 value: device.displayName,
               ),
               _StatRow(
-                label: 'Signal Strength',
+                label: AppStrings.signalStrength,
                 value: '${device.rssi} dBm',
               ),
               _StatRow(
-                label: 'Services',
+                label: AppStrings.services,
                 value: '${device.services.length}',
               ),
               _StatRow(
-                label: 'MTU Size',
-                value: '${commandInfo['mtu']} bytes',
+                label: AppStrings.mtuSize,
+                value: AppStrings.bytes(commandInfo['mtu'] as int),
               ),
               _StatRow(
-                label: 'Messages Sent',
+                label: AppStrings.messagesSent,
                 value: '${commandManager.commandHistory.length}',
               ),
               if (device.connectionDuration != null)
                 _StatRow(
-                  label: 'Connected For',
+                  label: AppStrings.connectedFor,
                   value: FormattingUtils.formatDuration(device.connectionDuration!),
                 ),
             ],
@@ -86,7 +87,7 @@ class ConnectionStatsPanelWidget extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         ResponsiveText(
-          'Connection Stats',
+          AppStrings.connectionStats,
           fontSize: 16,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary(context),

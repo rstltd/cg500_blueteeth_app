@@ -824,11 +824,13 @@ class _AnimatedSignalStrengthState extends State<AnimatedSignalStrength>
     );
   }
 
+  // Adjusted thresholds based on real-world BLE testing:
+  // -60 dBm at ~10cm, -80 dBm at ~1m
   int _getSignalLevel(int rssi) {
-    if (rssi >= -50) return 4;
-    if (rssi >= -60) return 3;
-    if (rssi >= -70) return 2;
-    if (rssi >= -80) return 1;
+    if (rssi >= -65) return 4;
+    if (rssi >= -75) return 3;
+    if (rssi >= -85) return 2;
+    if (rssi >= -95) return 1;
     return 0;
   }
 

@@ -186,7 +186,7 @@ void main() {
         );
       });
 
-      test('throws for missing required parameter', () {
+      test('uses placeholder for missing required parameter by default', () {
         final command = DeviceCommand(
           command: '\$MAC',
           name: 'Set MAC',
@@ -198,7 +198,25 @@ void main() {
         );
 
         expect(
-          () => command.buildCommandString({}),
+          command.buildCommandString({}),
+          '\$MAC,<Device ID>',
+        );
+      });
+
+      test('throws for missing required parameter when throwOnMissing is true',
+          () {
+        final command = DeviceCommand(
+          command: '\$MAC',
+          name: 'Set MAC',
+          description: 'Set MAC',
+          category: CommandCategory.config,
+          parameters: [
+            CommandParameter.text(id: 'deviceId', label: 'Device ID'),
+          ],
+        );
+
+        expect(
+          () => command.buildCommandString({}, throwOnMissing: true),
           throwsArgumentError,
         );
       });

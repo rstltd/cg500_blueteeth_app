@@ -62,8 +62,13 @@ class DeviceCommand {
   /// Builds the full command string with the given parameter values.
   ///
   /// [paramValues] is a map of parameter ID to value.
+  /// [throwOnMissing] if true, throws when required parameters are missing.
+  ///                  if false, uses placeholder text for missing params.
   /// Returns the formatted command string ready to send.
-  String buildCommandString(Map<String, String> paramValues) {
+  String buildCommandString(
+    Map<String, String> paramValues, {
+    bool throwOnMissing = false,
+  }) {
     if (!hasParameters) {
       return command;
     }
@@ -75,8 +80,11 @@ class DeviceCommand {
       if (value != null && value.isNotEmpty) {
         parts.add(value);
       } else if (param.required) {
-        // Missing required parameter - this shouldn't happen if validation passes
-        throw ArgumentError('Missing required parameter: ${param.label}');
+        if (throwOnMissing) {
+          throw ArgumentError('Missing required parameter: ${param.label}');
+        }
+        // Use placeholder for preview display
+        parts.add('<${param.label}>');
       }
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/ble/device_list_widget.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_ble_controller.dart';
 
 /// Tests for DeviceListWidget using actual widget source code
@@ -31,8 +32,8 @@ void main() {
         ),
       );
 
-      expect(find.text('No BLE devices found'), findsOneWidget);
-      expect(find.text('Start scanning to discover nearby devices'), findsOneWidget);
+      expect(find.text(AppStrings.noDevicesFound), findsOneWidget);
+      expect(find.text(AppStrings.startScanningHint), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_searching), findsOneWidget);
     });
 
@@ -51,7 +52,7 @@ void main() {
       mockController.emitScanning(true);
       await tester.pump();
 
-      expect(find.text('Scanning...'), findsOneWidget);
+      expect(find.text(AppStrings.scanning), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
@@ -69,13 +70,13 @@ void main() {
       // Start scanning
       mockController.emitScanning(true);
       await tester.pump();
-      expect(find.text('Scanning...'), findsOneWidget);
+      expect(find.text(AppStrings.scanning), findsOneWidget);
 
       // Stop scanning
       mockController.emitScanning(false);
       await tester.pump();
 
-      expect(find.text('Scanning...'), findsNothing);
+      expect(find.text(AppStrings.scanning), findsNothing);
     });
   });
 
@@ -146,9 +147,9 @@ void main() {
       expect(find.text('-65 dBm'), findsOneWidget);
     });
 
-    testWidgets('should display "Unknown Device" when name is empty', (WidgetTester tester) async {
+    testWidgets('should display unknown device name when name is empty', (WidgetTester tester) async {
       final devices = [
-        createTestDevice(id: 'test-1', name: '', displayName: 'Unknown Device'),
+        createTestDevice(id: 'test-1', name: '', displayName: AppStrings.unknownDevice),
       ];
 
       await tester.pumpWidget(
@@ -164,7 +165,7 @@ void main() {
       mockController.emitDevices(devices);
       await tester.pumpAndSettle();
 
-      expect(find.text('Unknown Device'), findsOneWidget);
+      expect(find.text(AppStrings.unknownDevice), findsOneWidget);
     });
   });
 
@@ -257,7 +258,7 @@ void main() {
       mockController.emitDevices([device]);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Connect'));
+      await tester.tap(find.text('連線'));
       await tester.pump();
 
       expect(connectedDevice, isNotNull);
@@ -332,11 +333,11 @@ void main() {
       mockController.emitDevices([device]);
       await tester.pumpAndSettle();
 
-      expect(find.text('Last Seen'), findsOneWidget);
-      expect(find.text('5m ago'), findsOneWidget);
+      expect(find.text(AppStrings.lastSeen), findsOneWidget);
+      expect(find.text('5 分鐘前'), findsOneWidget);
     });
 
-    testWidgets('should display "Just now" for recent last seen', (WidgetTester tester) async {
+    testWidgets('should display just now for recent last seen', (WidgetTester tester) async {
       final device = createTestDevice(
         id: 'device-1',
         name: 'Test Device',
@@ -356,7 +357,7 @@ void main() {
       mockController.emitDevices([device]);
       await tester.pumpAndSettle();
 
-      expect(find.text('Just now'), findsOneWidget);
+      expect(find.text('剛剛'), findsOneWidget);
     });
 
     testWidgets('should display hours ago for older last seen', (WidgetTester tester) async {
@@ -379,7 +380,7 @@ void main() {
       mockController.emitDevices([device]);
       await tester.pumpAndSettle();
 
-      expect(find.text('3h ago'), findsOneWidget);
+      expect(find.text('3 小時前'), findsOneWidget);
     });
 
     testWidgets('should display days ago for very old last seen', (WidgetTester tester) async {
@@ -402,7 +403,7 @@ void main() {
       mockController.emitDevices([device]);
       await tester.pumpAndSettle();
 
-      expect(find.text('2d ago'), findsOneWidget);
+      expect(find.text('2 天前'), findsOneWidget);
     });
   });
 
@@ -418,7 +419,7 @@ void main() {
         ),
       );
 
-      expect(find.text('No BLE devices found'), findsOneWidget);
+      expect(find.text(AppStrings.noDevicesFound), findsOneWidget);
 
       // Add first device
       mockController.emitDevices([
@@ -430,7 +431,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.text('First Device'), findsOneWidget);
-      expect(find.text('No BLE devices found'), findsNothing);
+      expect(find.text(AppStrings.noDevicesFound), findsNothing);
     });
 
     // NOTE: "should update when connected device changes" test skipped -

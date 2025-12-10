@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 
 /// A reusable message bubble widget for chat-style communication
 class MessageBubbleWidget extends StatelessWidget {
@@ -74,7 +75,7 @@ class MessageBubbleWidget extends StatelessWidget {
           ),
           SizedBox(width: DesignTokens.spacingXS),
           Text(
-            'Command',
+            AppStrings.command,
             style: AppTextStyles.captionSmall(context).copyWith(
               fontWeight: FontWeight.w500,
               color: Colors.white.withValues(alpha: 0.8),
@@ -98,7 +99,7 @@ class MessageBubbleWidget extends StatelessWidget {
           ),
           SizedBox(width: DesignTokens.spacingXS),
           Text(
-            'Error',
+            '錯誤',
             style: AppTextStyles.captionSmall(context).copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.errorColor(context),
@@ -122,7 +123,7 @@ class MessageBubbleWidget extends StatelessWidget {
           ),
           SizedBox(width: DesignTokens.spacingXS),
           Text(
-            'Response',
+            '回應',
             style: AppTextStyles.captionSmall(context).copyWith(
               fontWeight: FontWeight.w500,
               color: AppColors.successColor(context),
@@ -214,7 +215,7 @@ class MessageBubbleWidget extends StatelessWidget {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Message copied to clipboard'),
+        content: const Text('已複製訊息到剪貼簿'),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusS),
@@ -304,12 +305,12 @@ class _MessageListWidgetState extends State<MessageListWidget> {
           ),
           SizedBox(height: DesignTokens.spacingM),
           Text(
-            'No messages yet',
+            AppStrings.noMessagesYet,
             style: AppTextStyles.titleMedium(context),
           ),
           SizedBox(height: DesignTokens.spacingS),
           Text(
-            'Send a command to start the conversation',
+            AppStrings.sendCommandToStart,
             style: AppTextStyles.bodyMedium(context).copyWith(
               color: AppColors.textSecondary(context),
             ),

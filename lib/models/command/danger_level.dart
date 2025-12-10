@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 /// Danger level for device commands.
 ///
@@ -35,11 +36,11 @@ extension DangerLevelExtension on DangerLevel {
   String get displayName {
     switch (this) {
       case DangerLevel.safe:
-        return '安全';
+        return AppStrings.dangerLevelSafe;
       case DangerLevel.warning:
-        return '警告';
+        return AppStrings.dangerLevelWarning;
       case DangerLevel.dangerous:
-        return '危險';
+        return AppStrings.dangerLevelDangerous;
     }
   }
 
@@ -71,11 +72,11 @@ extension DangerLevelExtension on DangerLevel {
   String get confirmationTitle {
     switch (this) {
       case DangerLevel.safe:
-        return '確認執行';
+        return AppStrings.confirmExecution;
       case DangerLevel.warning:
-        return '注意';
+        return AppStrings.attention;
       case DangerLevel.dangerous:
-        return '警告：危險操作';
+        return AppStrings.warningDangerousOperation;
     }
   }
 
@@ -83,11 +84,11 @@ extension DangerLevelExtension on DangerLevel {
   String get confirmButtonText {
     switch (this) {
       case DangerLevel.safe:
-        return '執行';
+        return AppStrings.execute;
       case DangerLevel.warning:
-        return '我了解，繼續執行';
+        return AppStrings.understandAndContinue;
       case DangerLevel.dangerous:
-        return '確認執行危險操作';
+        return AppStrings.confirmDangerousOperation;
     }
   }
 }

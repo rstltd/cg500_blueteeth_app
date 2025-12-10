@@ -239,66 +239,70 @@ void main() {
       });
     });
 
+    // Adjusted thresholds based on real-world BLE testing:
+    // -60 dBm at ~10cm, -80 dBm at ~1m
     group('rssiDescription', () {
-      test('should return Excellent for rssi >= -80', () {
+      test('should return Excellent for rssi >= -65', () {
+        final device = testDevice.copyWith(rssi: -60);
+        expect(device.rssiDescription, 'Excellent');
+      });
+
+      test('should return Excellent for rssi = -65', () {
+        final device = testDevice.copyWith(rssi: -65);
+        expect(device.rssiDescription, 'Excellent');
+      });
+
+      test('should return Very Good for rssi >= -75', () {
         final device = testDevice.copyWith(rssi: -70);
-        expect(device.rssiDescription, 'Excellent');
-      });
-
-      test('should return Excellent for rssi = -80', () {
-        final device = testDevice.copyWith(rssi: -80);
-        expect(device.rssiDescription, 'Excellent');
-      });
-
-      test('should return Very Good for rssi >= -90', () {
-        final device = testDevice.copyWith(rssi: -85);
         expect(device.rssiDescription, 'Very Good');
       });
 
-      test('should return Good for rssi >= -100', () {
-        final device = testDevice.copyWith(rssi: -95);
+      test('should return Good for rssi >= -85', () {
+        final device = testDevice.copyWith(rssi: -80);
         expect(device.rssiDescription, 'Good');
       });
 
-      test('should return Fair for rssi >= -110', () {
-        final device = testDevice.copyWith(rssi: -105);
+      test('should return Fair for rssi >= -95', () {
+        final device = testDevice.copyWith(rssi: -90);
         expect(device.rssiDescription, 'Fair');
       });
 
-      test('should return Poor for rssi < -110', () {
-        final device = testDevice.copyWith(rssi: -115);
+      test('should return Poor for rssi < -95', () {
+        final device = testDevice.copyWith(rssi: -100);
         expect(device.rssiDescription, 'Poor');
       });
     });
 
+    // Adjusted thresholds based on real-world BLE testing:
+    // -60 dBm at ~10cm, -80 dBm at ~1m
     group('signalStrength', () {
-      test('should return 1.0 for rssi >= -60', () {
-        final device = testDevice.copyWith(rssi: -50);
+      test('should return 1.0 for rssi >= -65', () {
+        final device = testDevice.copyWith(rssi: -60);
         expect(device.signalStrength, 1.0);
       });
 
-      test('should return 0.8 for rssi >= -80', () {
-        final device = testDevice.copyWith(rssi: -75);
+      test('should return 0.8 for rssi >= -75', () {
+        final device = testDevice.copyWith(rssi: -70);
         expect(device.signalStrength, 0.8);
       });
 
-      test('should return 0.6 for rssi >= -90', () {
-        final device = testDevice.copyWith(rssi: -85);
+      test('should return 0.6 for rssi >= -85', () {
+        final device = testDevice.copyWith(rssi: -80);
         expect(device.signalStrength, 0.6);
       });
 
-      test('should return 0.4 for rssi >= -100', () {
-        final device = testDevice.copyWith(rssi: -95);
+      test('should return 0.4 for rssi >= -95', () {
+        final device = testDevice.copyWith(rssi: -90);
         expect(device.signalStrength, 0.4);
       });
 
-      test('should return 0.2 for rssi >= -110', () {
-        final device = testDevice.copyWith(rssi: -105);
+      test('should return 0.2 for rssi >= -105', () {
+        final device = testDevice.copyWith(rssi: -100);
         expect(device.signalStrength, 0.2);
       });
 
-      test('should return 0.1 for rssi < -110', () {
-        final device = testDevice.copyWith(rssi: -120);
+      test('should return 0.1 for rssi < -105', () {
+        final device = testDevice.copyWith(rssi: -110);
         expect(device.signalStrength, 0.1);
       });
     });
@@ -647,53 +651,55 @@ void main() {
     });
 
     group('rssi boundary values', () {
-      test('should handle rssi = -60 (boundary for 1.0)', () {
-        final device = testDevice.copyWith(rssi: -60);
+      // Adjusted thresholds based on real-world BLE testing:
+      // -60 dBm at ~10cm, -80 dBm at ~1m
+      test('should handle rssi = -65 (boundary for 1.0)', () {
+        final device = testDevice.copyWith(rssi: -65);
         expect(device.signalStrength, 1.0);
       });
 
-      test('should handle rssi = -61 (just below 1.0 threshold)', () {
-        final device = testDevice.copyWith(rssi: -61);
+      test('should handle rssi = -66 (just below 1.0 threshold)', () {
+        final device = testDevice.copyWith(rssi: -66);
         expect(device.signalStrength, 0.8);
       });
 
-      test('should handle rssi = -80 (boundary for 0.8)', () {
-        final device = testDevice.copyWith(rssi: -80);
+      test('should handle rssi = -75 (boundary for 0.8)', () {
+        final device = testDevice.copyWith(rssi: -75);
         expect(device.signalStrength, 0.8);
       });
 
-      test('should handle rssi = -81 (just below 0.8 threshold)', () {
-        final device = testDevice.copyWith(rssi: -81);
+      test('should handle rssi = -76 (just below 0.8 threshold)', () {
+        final device = testDevice.copyWith(rssi: -76);
         expect(device.signalStrength, 0.6);
       });
 
-      test('should handle rssi = -90 (boundary for 0.6)', () {
-        final device = testDevice.copyWith(rssi: -90);
+      test('should handle rssi = -85 (boundary for 0.6)', () {
+        final device = testDevice.copyWith(rssi: -85);
         expect(device.signalStrength, 0.6);
       });
 
-      test('should handle rssi = -91 (just below 0.6 threshold)', () {
-        final device = testDevice.copyWith(rssi: -91);
+      test('should handle rssi = -86 (just below 0.6 threshold)', () {
+        final device = testDevice.copyWith(rssi: -86);
         expect(device.signalStrength, 0.4);
       });
 
-      test('should handle rssi = -100 (boundary for 0.4)', () {
-        final device = testDevice.copyWith(rssi: -100);
+      test('should handle rssi = -95 (boundary for 0.4)', () {
+        final device = testDevice.copyWith(rssi: -95);
         expect(device.signalStrength, 0.4);
       });
 
-      test('should handle rssi = -101 (just below 0.4 threshold)', () {
-        final device = testDevice.copyWith(rssi: -101);
+      test('should handle rssi = -96 (just below 0.4 threshold)', () {
+        final device = testDevice.copyWith(rssi: -96);
         expect(device.signalStrength, 0.2);
       });
 
-      test('should handle rssi = -110 (boundary for 0.2)', () {
-        final device = testDevice.copyWith(rssi: -110);
+      test('should handle rssi = -105 (boundary for 0.2)', () {
+        final device = testDevice.copyWith(rssi: -105);
         expect(device.signalStrength, 0.2);
       });
 
-      test('should handle rssi = -111 (just below 0.2 threshold)', () {
-        final device = testDevice.copyWith(rssi: -111);
+      test('should handle rssi = -106 (just below 0.2 threshold)', () {
+        final device = testDevice.copyWith(rssi: -106);
         expect(device.signalStrength, 0.1);
       });
 
@@ -714,43 +720,45 @@ void main() {
     });
 
     group('rssiDescription boundary values', () {
-      test('should return Excellent at boundary -80', () {
-        final device = testDevice.copyWith(rssi: -80);
+      // Adjusted thresholds based on real-world BLE testing:
+      // -60 dBm at ~10cm, -80 dBm at ~1m
+      test('should return Excellent at boundary -65', () {
+        final device = testDevice.copyWith(rssi: -65);
         expect(device.rssiDescription, 'Excellent');
       });
 
-      test('should return Very Good at -81', () {
-        final device = testDevice.copyWith(rssi: -81);
+      test('should return Very Good at -66', () {
+        final device = testDevice.copyWith(rssi: -66);
         expect(device.rssiDescription, 'Very Good');
       });
 
-      test('should return Very Good at boundary -90', () {
-        final device = testDevice.copyWith(rssi: -90);
+      test('should return Very Good at boundary -75', () {
+        final device = testDevice.copyWith(rssi: -75);
         expect(device.rssiDescription, 'Very Good');
       });
 
-      test('should return Good at -91', () {
-        final device = testDevice.copyWith(rssi: -91);
+      test('should return Good at -76', () {
+        final device = testDevice.copyWith(rssi: -76);
         expect(device.rssiDescription, 'Good');
       });
 
-      test('should return Good at boundary -100', () {
-        final device = testDevice.copyWith(rssi: -100);
+      test('should return Good at boundary -85', () {
+        final device = testDevice.copyWith(rssi: -85);
         expect(device.rssiDescription, 'Good');
       });
 
-      test('should return Fair at -101', () {
-        final device = testDevice.copyWith(rssi: -101);
+      test('should return Fair at -86', () {
+        final device = testDevice.copyWith(rssi: -86);
         expect(device.rssiDescription, 'Fair');
       });
 
-      test('should return Fair at boundary -110', () {
-        final device = testDevice.copyWith(rssi: -110);
+      test('should return Fair at boundary -95', () {
+        final device = testDevice.copyWith(rssi: -95);
         expect(device.rssiDescription, 'Fair');
       });
 
-      test('should return Poor at -111', () {
-        final device = testDevice.copyWith(rssi: -111);
+      test('should return Poor at -96', () {
+        final device = testDevice.copyWith(rssi: -96);
         expect(device.rssiDescription, 'Poor');
       });
     });

@@ -1,3 +1,4 @@
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import 'parameter_type.dart';
 
 /// Represents a parameter definition for a device command.
@@ -86,6 +87,29 @@ class CommandParameter {
     );
   }
 
+  /// Creates a Host:Port parameter (supports IP or domain).
+  ///
+  /// [defaultHost] can be an IP address (e.g., "192.168.1.1") or
+  /// a domain name (e.g., "rmdgnss.com") without http/https prefix.
+  factory CommandParameter.hostPort({
+    required String id,
+    required String label,
+    String? defaultHost,
+    String? defaultPort,
+    bool required = true,
+  }) {
+    return CommandParameter(
+      id: id,
+      label: label,
+      type: ParameterType.hostPort,
+      hint: '例如: rmdgnss.com:8080 或 192.168.1.1:8080',
+      defaultValue: defaultHost != null && defaultPort != null
+          ? '$defaultHost:$defaultPort'
+          : null,
+      required: required,
+    );
+  }
+
   /// Creates a number parameter with optional range.
   factory CommandParameter.number({
     required String id,
@@ -150,11 +174,42 @@ class CommandParameter {
     );
   }
 
+  /// Creates a dropdown parameter with predefined options.
+  ///
+  /// [dropdownOptions] is a list of selectable options.
+  /// [defaultValue] should match one of the option values.
+  factory CommandParameter.dropdown({
+    required String id,
+    required String label,
+    required List<DropdownOption> dropdownOptions,
+    String? defaultValue,
+    bool required = true,
+  }) {
+    return CommandParameter(
+      id: id,
+      label: label,
+      type: ParameterType.dropdown,
+      defaultValue: defaultValue,
+      required: required,
+      options: {
+        'dropdownOptions': dropdownOptions,
+      },
+    );
+  }
+
   /// Gets the bit flag options if this is a bitFlags parameter.
   List<BitFlagOption>? get bitFlagOptions {
     if (type != ParameterType.bitFlags || options == null) return null;
     final flags = options!['flags'];
     if (flags is List<BitFlagOption>) return flags;
+    return null;
+  }
+
+  /// Gets the dropdown options if this is a dropdown parameter.
+  List<DropdownOption>? get dropdownOptions {
+    if (type != ParameterType.dropdown || options == null) return null;
+    final opts = options!['dropdownOptions'];
+    if (opts is List<DropdownOption>) return opts;
     return null;
   }
 
@@ -174,7 +229,7 @@ class CommandParameter {
   /// Returns null if valid, or an error message if invalid.
   String? validate(String? value) {
     if (required && (value == null || value.isEmpty)) {
-      return '$label 為必填項目';
+      return AppStrings.requiredField(label);
     }
 
     if (value == null || value.isEmpty) {
@@ -188,6 +243,9 @@ class CommandParameter {
       case ParameterType.ipPort:
         return _validateIpPort(value);
 
+      case ParameterType.hostPort:
+        return _validateHostPort(value);
+
       case ParameterType.number:
         return _validateNumber(value);
 
@@ -196,6 +254,9 @@ class CommandParameter {
 
       case ParameterType.bitFlags:
         return _validateBitFlags(value);
+
+      case ParameterType.dropdown:
+        return _validateDropdown(value);
     }
   }
 
@@ -225,6 +286,98 @@ class CommandParameter {
     final portNum = int.tryParse(port);
     if (portNum == null || portNum < 1 || portNum > 65535) {
       return 'Port 必須在 1-65535 之間';
+    }
+
+    return null;
+  }
+
+  String? _validateHostPort(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) {
+      return '格式錯誤，請使用 主機:Port 格式';
+    }
+
+    final host = parts[0];
+    final port = parts[1];
+
+    // Validate host (can be IP or domain)
+    if (host.isEmpty) {
+      return '主機位址不可為空';
+    }
+
+    // Check if it looks like an IP address
+    if (_looksLikeIpAddress(host)) {
+      final ipError = _validateIpAddress(host);
+      if (ipError != null) {
+        return ipError;
+      }
+    } else {
+      // Validate as domain
+      final domainError = _validateDomain(host);
+      if (domainError != null) {
+        return domainError;
+      }
+    }
+
+    // Validate port
+    final portNum = int.tryParse(port);
+    if (portNum == null || portNum < 1 || portNum > 65535) {
+      return 'Port 必須在 1-65535 之間';
+    }
+
+    return null;
+  }
+
+  bool _looksLikeIpAddress(String value) {
+    // If it contains only digits and dots, it's likely an IP
+    return RegExp(r'^[\d.]+$').hasMatch(value);
+  }
+
+  String? _validateIpAddress(String ip) {
+    final ipParts = ip.split('.');
+    if (ipParts.length != 4) {
+      return 'IP 位址格式錯誤';
+    }
+
+    for (final part in ipParts) {
+      final num = int.tryParse(part);
+      if (num == null || num < 0 || num > 255) {
+        return 'IP 位址格式錯誤';
+      }
+    }
+
+    return null;
+  }
+
+  String? _validateDomain(String domain) {
+    // Reject if contains http:// or https://
+    if (domain.toLowerCase().startsWith('http://') ||
+        domain.toLowerCase().startsWith('https://')) {
+      return '請勿包含 http:// 或 https://，僅需輸入網域名稱';
+    }
+
+    // Domain validation regex:
+    // - Labels separated by dots
+    // - Each label: starts with letter/digit, can contain hyphens, ends with letter/digit
+    // - Labels are 1-63 characters
+    // - Total length <= 253 characters
+    if (domain.length > 253) {
+      return '網域名稱過長';
+    }
+
+    // Simple domain validation pattern
+    // Allows: example.com, sub.example.com, rmdgnss.com, etc.
+    final domainPattern = RegExp(
+      r'^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$',
+    );
+
+    if (!domainPattern.hasMatch(domain)) {
+      return '網域名稱格式錯誤';
+    }
+
+    // Must have at least one dot for a valid domain (e.g., example.com)
+    if (!domain.contains('.')) {
+      return '網域名稱必須包含至少一個點 (例如: rmdgnss.com)';
     }
 
     return null;
@@ -280,6 +433,21 @@ class CommandParameter {
     return null;
   }
 
+  String? _validateDropdown(String value) {
+    final opts = dropdownOptions;
+    if (opts == null || opts.isEmpty) {
+      return null; // No options defined, accept any value
+    }
+
+    // Check if value matches one of the available options
+    final validValues = opts.map((o) => o.value).toList();
+    if (!validValues.contains(value)) {
+      return '請從選單中選擇有效選項';
+    }
+
+    return null;
+  }
+
   @override
   String toString() {
     return 'CommandParameter(id: $id, label: $label, type: $type)';
@@ -314,4 +482,25 @@ class BitFlagOption {
 
   @override
   String toString() => 'BitFlagOption(label: $label, value: $value)';
+}
+
+/// Represents a single option in a dropdown parameter.
+class DropdownOption {
+  /// The display label for this option.
+  final String label;
+
+  /// The actual value sent in the command.
+  final String value;
+
+  /// Optional description for this option.
+  final String? description;
+
+  const DropdownOption({
+    required this.label,
+    required this.value,
+    this.description,
+  });
+
+  @override
+  String toString() => 'DropdownOption(label: $label, value: $value)';
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 
 /// Result of a command execution.
 enum CommandResult {
@@ -58,19 +59,19 @@ class CommandFeedbackOverlay extends StatefulWidget {
           Icons.check_circle,
           colorScheme.primaryContainer,
           colorScheme.onPrimaryContainer,
-          '指令發送成功',
+          AppStrings.commandSentSuccess,
         ),
       CommandResult.failure => (
           Icons.error,
           colorScheme.errorContainer,
           colorScheme.onErrorContainer,
-          '指令發送失敗',
+          AppStrings.commandSendFailed,
         ),
       CommandResult.pending => (
           Icons.hourglass_empty,
           colorScheme.tertiaryContainer,
           colorScheme.onTertiaryContainer,
-          '發送中...',
+          AppStrings.sendingCommand,
         ),
     };
 
@@ -190,19 +191,19 @@ class _CommandFeedbackOverlayState extends State<CommandFeedbackOverlay>
           Icons.check_circle,
           colorScheme.primaryContainer,
           colorScheme.primary,
-          '指令發送成功',
+          AppStrings.commandSentSuccess,
         ),
       CommandResult.failure => (
           Icons.error,
           colorScheme.errorContainer,
           colorScheme.error,
-          '指令發送失敗',
+          AppStrings.commandSendFailed,
         ),
       CommandResult.pending => (
           Icons.hourglass_empty,
           colorScheme.tertiaryContainer,
           colorScheme.tertiary,
-          '發送中...',
+          AppStrings.sendingCommand,
         ),
     };
 

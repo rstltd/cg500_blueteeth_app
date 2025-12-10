@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import '../../services/command_parameter_storage_service.dart';
 import '../../design/design_system.dart';
 import '../../models/command/command.dart';
+import '../../l10n/app_strings.dart';
 import 'command_preview_widget.dart';
 import 'parameters/text_parameter_input.dart';
 import 'parameters/ip_port_parameter_input.dart';
+import 'parameters/host_port_parameter_input.dart';
 import 'parameters/hour_picker_input.dart';
 import 'parameters/bit_flags_input.dart';
+import 'parameters/dropdown_parameter_input.dart';
 
 /// A bottom sheet for entering command parameters.
 class CommandFormSheet extends StatefulWidget {
@@ -120,7 +123,10 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
     // Save parameters for next time
     _saveParameters();
 
-    final commandString = widget.command.buildCommandString(_parameterValues);
+    final commandString = widget.command.buildCommandString(
+      _parameterValues,
+      throwOnMissing: true,
+    );
     widget.onSubmit(commandString);
   }
 
@@ -252,7 +258,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '設定參數',
+                  AppStrings.setParameters,
                   style: TextStyle(
                     fontSize: DesignTokens.fontTitle,
                     fontWeight: FontWeight.bold,
@@ -275,7 +281,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
               Icons.close,
               color: colorScheme.onSurfaceVariant,
             ),
-            tooltip: '關閉',
+            tooltip: AppStrings.close,
           ),
         ],
       ),
@@ -302,6 +308,14 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           enabled: widget.isConnected,
         );
 
+      case ParameterType.hostPort:
+        return HostPortParameterInput(
+          parameter: parameter,
+          onChanged: (value) => _onParameterChanged(parameter.id, value),
+          initialValue: initialValue,
+          enabled: widget.isConnected,
+        );
+
       case ParameterType.number:
         return TextParameterInput(
           parameter: parameter,
@@ -320,6 +334,14 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
 
       case ParameterType.bitFlags:
         return BitFlagsInput(
+          parameter: parameter,
+          onChanged: (value) => _onParameterChanged(parameter.id, value),
+          initialValue: initialValue,
+          enabled: widget.isConnected,
+        );
+
+      case ParameterType.dropdown:
+        return DropdownParameterInput(
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
@@ -353,7 +375,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           SizedBox(width: DesignTokens.spacingS),
           Expanded(
             child: Text(
-              '已載入上次使用的參數',
+              AppStrings.lastParametersLoaded,
               style: TextStyle(
                 fontSize: DesignTokens.fontS,
                 color: colorScheme.primary,
@@ -366,7 +388,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
               Icons.refresh,
               size: DesignTokens.iconS,
             ),
-            label: Text('重設'),
+            label: Text(AppStrings.reset),
             style: TextButton.styleFrom(
               padding: EdgeInsets.symmetric(
                 horizontal: DesignTokens.spacingS,
@@ -393,7 +415,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
               padding: EdgeInsets.symmetric(vertical: DesignTokens.spacingSM),
               side: BorderSide(color: colorScheme.outline),
             ),
-            child: Text('取消'),
+            child: Text(AppStrings.cancel),
           ),
         ),
         SizedBox(width: DesignTokens.spacingM),
@@ -414,7 +436,7 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
               size: DesignTokens.iconS,
             ),
             label: Text(
-              widget.isConnected ? '發送指令' : '設備未連線',
+              widget.isConnected ? AppStrings.sendCommand : AppStrings.deviceNotConnected,
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
 import '../../models/command/command.dart';
+import '../../l10n/app_strings.dart';
 
 /// A tab bar widget for filtering commands by category.
 ///
@@ -43,7 +44,7 @@ class CommandCategoryTabs extends StatelessWidget {
         children: [
           // "All" tab
           _CategoryTab(
-            label: '全部',
+            label: AppStrings.all,
             icon: Icons.apps,
             isSelected: selectedCategory == null,
             count: showCounts ? totalCount : null,
@@ -233,7 +234,7 @@ class CommandCategorySidebar extends StatelessWidget {
       children: [
         // "All" option
         _SidebarItem(
-          label: '全部指令',
+          label: AppStrings.allCommands,
           icon: Icons.apps,
           isSelected: selectedCategory == null,
           count: totalCount,

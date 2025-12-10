@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/ble/device_status_panel_widget.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -30,8 +31,8 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('No Device Connected'), findsOneWidget);
-        expect(find.text('Please connect a BLE device first'), findsOneWidget);
+        expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+        expect(find.text(AppStrings.pleaseConnectBleDeviceFirst), findsOneWidget);
         expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
       });
 
@@ -41,7 +42,7 @@ void main() {
 
         // Find container with orange color
         final warningContainer = find.ancestor(
-          of: find.text('No Device Connected'),
+          of: find.text(AppStrings.noDeviceConnected),
           matching: find.byType(Container),
         );
         expect(warningContainer, findsWidgets);
@@ -126,7 +127,7 @@ void main() {
         await tester.pump();
 
         // Initially no device
-        expect(find.text('No Device Connected'), findsOneWidget);
+        expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
 
         // Simulate connection - need to rebuild widget to pick up stream change
         mockController.simulateConnected(testDevice);
@@ -135,7 +136,7 @@ void main() {
 
         // Should now show device info
         expect(find.text('Test BLE Device'), findsOneWidget);
-        expect(find.text('No Device Connected'), findsNothing);
+        expect(find.text(AppStrings.noDeviceConnected), findsNothing);
       });
 
       testWidgets('should show disconnected state when device disconnects',
@@ -151,7 +152,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('No Device Connected'), findsOneWidget);
+        expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
       });
     });
 
@@ -262,7 +263,7 @@ void main() {
         }
 
         // Should end in disconnected state
-        expect(find.text('No Device Connected'), findsOneWidget);
+        expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
       });
     });
   });

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 
 /// A search widget for filtering BLE devices in the AppBar.
 ///
@@ -10,7 +11,7 @@ class DeviceSearchWidget extends StatefulWidget {
     super.key,
     required this.onSearchChanged,
     this.onSearchClosed,
-    this.hintText = 'Search devices...',
+    this.hintText = AppStrings.searchDevices,
   });
 
   /// Callback when search text changes.
@@ -108,7 +109,7 @@ class _DeviceSearchWidgetState extends State<DeviceSearchWidget>
             ),
           ),
           onPressed: _toggleSearch,
-          tooltip: _isExpanded ? 'Close Search' : 'Search Devices',
+          tooltip: _isExpanded ? AppStrings.closeSearch : AppStrings.searchDevice,
         ),
       ],
     );
@@ -167,7 +168,7 @@ class DeviceSearchBar extends StatelessWidget {
     required this.controller,
     required this.onSearchChanged,
     this.onClear,
-    this.hintText = 'Search by name or ID...',
+    this.hintText = AppStrings.searchByNameOrId,
     this.enabled = true,
   });
 

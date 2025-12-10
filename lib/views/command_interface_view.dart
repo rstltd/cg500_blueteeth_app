@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
+import '../l10n/app_strings.dart';
 import '../models/command/command.dart';
 import '../services/notification_service.dart';
 import '../core/mixins/notification_listener_mixin.dart';
@@ -97,7 +98,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           IconButton(
             icon: const Icon(Icons.clear_all),
             onPressed: viewModel.clearMessages,
-            tooltip: 'Clear Messages',
+            tooltip: AppStrings.clearMessages,
           ),
         ],
       ),
@@ -112,7 +113,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
   Widget _buildLoadingScaffold(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Command Interface'),
+        title: const Text(AppStrings.commandInterface),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Center(
@@ -121,7 +122,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           children: [
             const CircularProgressIndicator(),
             SizedBox(height: DesignTokens.spacingML),
-            const Text('Initializing command interface...'),
+            const Text(AppStrings.initializingCommandInterface),
           ],
         ),
       ),
@@ -131,7 +132,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
   Widget _buildErrorScaffold(BuildContext context, String error) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Command Interface'),
+        title: const Text(AppStrings.commandInterface),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Center(
@@ -140,11 +141,11 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           children: [
             Icon(Icons.error_outline, size: DesignTokens.iconXL, color: Colors.red),
             SizedBox(height: DesignTokens.spacingM),
-            Text('Error: $error'),
+            Text(AppStrings.error(error)),
             SizedBox(height: DesignTokens.spacingM),
             ElevatedButton(
               onPressed: () => viewModel.initialize(),
-              child: const Text('Retry'),
+              child: const Text(AppStrings.retry),
             ),
           ],
         ),
@@ -200,8 +201,8 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
       );
 
       if (commandString != null && mounted) {
-        // Check if dangerous command requires confirmation
-        if (command.dangerLevel == DangerLevel.dangerous) {
+        // Check if command requires confirmation (warning or dangerous level)
+        if (command.dangerLevel.requiresConfirmation) {
           final confirmed = await DangerConfirmDialog.show(
             context: context,
             command: command,
@@ -214,8 +215,8 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
         _showCommandFeedback(success, commandString);
       }
     } else {
-      // For commands without parameters, check danger level first
-      if (command.dangerLevel == DangerLevel.dangerous) {
+      // For commands without parameters, check if confirmation is required first
+      if (command.dangerLevel.requiresConfirmation) {
         final commandString = command.buildCommandString({});
         final confirmed = await DangerConfirmDialog.show(
           context: context,
@@ -256,14 +257,14 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
             Row(
               children: [
                 Text(
-                  'Communication',
+                  AppStrings.communicationLog,
                   style: AppTextStyles.titleSmall(context),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: viewModel.clearMessages,
                   icon: const Icon(Icons.clear_all),
-                  tooltip: 'Clear Messages',
+                  tooltip: AppStrings.clearMessages,
                 ),
               ],
             ),
@@ -427,7 +428,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
                   child: Row(
                     children: [
                       ResponsiveText(
-                        'Device Communication',
+                        AppStrings.deviceCommunication,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary(context),
@@ -436,7 +437,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
                       IconButton(
                         onPressed: viewModel.clearMessages,
                         icon: const Icon(Icons.clear_all),
-                        tooltip: 'Clear Messages',
+                        tooltip: AppStrings.clearMessages,
                       ),
                     ],
                   ),

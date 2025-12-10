@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/command/command_feedback_widget.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   group('CommandResult enum', () {
@@ -36,7 +37,7 @@ void main() {
       await tester.pump(); // Start animation
 
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
-      expect(find.text('指令發送成功'), findsOneWidget);
+      expect(find.text(AppStrings.commandSentSuccess), findsOneWidget);
 
       // Cleanup pending timers
       await tester.pumpAndSettle();
@@ -56,7 +57,7 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('指令發送失敗'), findsOneWidget);
+      expect(find.text(AppStrings.commandSendFailed), findsOneWidget);
 
       await tester.pumpAndSettle();
     });
@@ -75,7 +76,7 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.hourglass_empty), findsOneWidget);
-      expect(find.text('發送中...'), findsOneWidget);
+      expect(find.text(AppStrings.sendingCommand), findsOneWidget);
 
       await tester.pumpAndSettle();
     });
@@ -185,7 +186,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('指令發送成功'), findsOneWidget);
+      expect(find.text(AppStrings.commandSentSuccess), findsOneWidget);
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
     });
 
@@ -212,7 +213,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('指令發送失敗'), findsOneWidget);
+      expect(find.text(AppStrings.commandSendFailed), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
     });
 
@@ -291,7 +292,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('發送中...'), findsOneWidget);
+      expect(find.text(AppStrings.sendingCommand), findsOneWidget);
       expect(find.byIcon(Icons.hourglass_empty), findsOneWidget);
     });
   });

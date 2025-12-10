@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 
 /// Widget for displaying scanning status with animated progress indicator
 class ScanningIndicatorWidget extends StatelessWidget {
@@ -52,7 +53,7 @@ class ScanningIndicatorWidget extends StatelessWidget {
               ),
               SizedBox(width: DesignTokens.spacingSM),
               Text(
-                'Scanning for BLE devices...',
+                AppStrings.scanningForDevices,
                 style: AppTextStyles.labelLarge(context).copyWith(
                   color: AppColors.onInfoContainer(context),
                 ),

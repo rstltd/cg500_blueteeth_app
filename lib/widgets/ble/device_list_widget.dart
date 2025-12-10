@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../common/animated_widgets.dart';
 
@@ -134,14 +135,14 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
           ),
           SizedBox(height: DesignTokens.spacingL),
           Text(
-            'No devices match "${widget.searchQuery}"',
+            AppStrings.noMatchingDevices(widget.searchQuery),
             style: AppTextStyles.titleMedium(context).copyWith(
               color: AppColors.textPrimary(context),
             ),
           ),
           SizedBox(height: DesignTokens.spacingS),
           Text(
-            '$totalDevices device${totalDevices == 1 ? '' : 's'} available, try a different search',
+            AppStrings.availableDevicesHint(totalDevices),
             style: AppTextStyles.bodyMedium(context).copyWith(
               color: AppColors.textSecondary(context),
             ),
@@ -172,14 +173,14 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
           ),
           SizedBox(height: DesignTokens.spacingL),
           Text(
-            'No BLE devices found',
+            AppStrings.noDevicesFound,
             style: AppTextStyles.titleMedium(context).copyWith(
               color: AppColors.textPrimary(context),
             ),
           ),
           SizedBox(height: DesignTokens.spacingS),
           Text(
-            'Start scanning to discover nearby devices',
+            AppStrings.startScanningHint,
             style: AppTextStyles.bodyMedium(context).copyWith(
               color: AppColors.textSecondary(context),
             ),
@@ -214,7 +215,7 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
                       ),
                       SizedBox(width: DesignTokens.spacingS),
                       Text(
-                        'Scanning...',
+                        AppStrings.scanning,
                         style: AppTextStyles.labelLarge(context).copyWith(
                           color: AppColors.onInfoContainer(context),
                         ),
@@ -316,7 +317,7 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                device.name.isNotEmpty ? device.name : 'Unknown Device',
+                device.name.isNotEmpty ? device.name : AppStrings.unknownDevice,
                 style: AppTextStyles.titleSmall(context),
               ),
               SizedBox(height: DesignTokens.spacingXS / 2), // 2dp
@@ -341,11 +342,11 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
         _buildInfoRow(context, 'RSSI', '${device.rssi} dBm'),
         if (device.services.isNotEmpty) ...[
           SizedBox(height: DesignTokens.spacingXS),
-          _buildInfoRow(context, 'Services', '${device.services.length} available'),
+          _buildInfoRow(context, AppStrings.services, AppStrings.servicesCount(device.services.length)),
         ],
         if (device.lastSeen != null) ...[
           SizedBox(height: DesignTokens.spacingXS),
-          _buildInfoRow(context, 'Last Seen', _formatLastSeen(device.lastSeen!)),
+          _buildInfoRow(context, AppStrings.lastSeen, _formatLastSeen(device.lastSeen!)),
         ],
       ],
     );
@@ -370,19 +371,21 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
 
   /// Build signal strength indicator
   Widget _buildSignalStrengthIndicator(BuildContext context, BleDeviceModel device) {
+    // Adjusted thresholds based on real-world BLE testing:
+    // -60 dBm at ~10cm, -80 dBm at ~1m
     Color getSignalColor(BuildContext context, int rssi) {
-      if (rssi >= -40) return AppColors.successColor(context);
-      if (rssi >= -55) return AppColors.successColor(context).withValues(alpha: 0.7);
-      if (rssi >= -70) return AppColors.warningColor(context);
-      if (rssi >= -85) return AppColors.errorColor(context);
+      if (rssi >= -65) return AppColors.successColor(context);
+      if (rssi >= -75) return AppColors.successColor(context).withValues(alpha: 0.7);
+      if (rssi >= -85) return AppColors.warningColor(context);
+      if (rssi >= -95) return AppColors.errorColor(context);
       return AppColors.errorColor(context);
     }
 
     int getSignalBars(int rssi) {
-      if (rssi >= -40) return 4;
-      if (rssi >= -55) return 3;
-      if (rssi >= -70) return 2;
-      if (rssi >= -85) return 1;
+      if (rssi >= -65) return 4;
+      if (rssi >= -75) return 3;
+      if (rssi >= -85) return 2;
+      if (rssi >= -95) return 1;
       return 0;
     }
 
@@ -419,7 +422,7 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
                 : AppColors.neutralColor(context),
             size: DesignTokens.iconS,
           ),
-          tooltip: device.isFavorite ? 'Remove from favorites' : 'Add to favorites',
+          tooltip: device.isFavorite ? AppStrings.removeFromFavorites : AppStrings.addToFavorites,
         ),
 
         const Spacer(),
@@ -438,7 +441,7 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
             size: DesignTokens.iconXS,
           ),
           label: Text(
-            isConnected ? 'Disconnect' : 'Connect',
+            isConnected ? '中斷連線' : '連線',
             style: AppTextStyles.buttonSmall(context).copyWith(color: Colors.white),
           ),
           style: ElevatedButton.styleFrom(
@@ -465,13 +468,13 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
     final difference = now.difference(lastSeen);
     
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return '剛剛';
     } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m ago';
+      return '${difference.inMinutes} 分鐘前';
     } else if (difference.inDays < 1) {
-      return '${difference.inHours}h ago';
+      return '${difference.inHours} 小時前';
     } else {
-      return '${difference.inDays}d ago';
+      return '${difference.inDays} 天前';
     }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../controllers/command_manager.dart';
 import '../../models/ble_device.dart';
+import '../../l10n/app_strings.dart';
 
 /// Widget for entering and sending BLE commands with history navigation.
 ///
@@ -136,8 +137,8 @@ class _CommandTextField extends StatelessWidget {
         enabled: canSendCommands,
         decoration: InputDecoration(
           hintText: canSendCommands
-              ? 'Type your command...'
-              : 'Connect device to send commands',
+              ? AppStrings.enterCommand
+              : AppStrings.connectToSendCommands,
           hintStyle: TextStyle(
             color: Colors.grey.shade500,
           ),
@@ -254,13 +255,13 @@ class _HistoryNavigationButtons extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.keyboard_arrow_up),
             onPressed: canSendCommands ? () => onNavigateHistory(true) : null,
-            tooltip: 'Previous command',
+            tooltip: AppStrings.previousCommand,
             iconSize: 20,
           ),
           IconButton(
             icon: const Icon(Icons.keyboard_arrow_down),
             onPressed: canSendCommands ? () => onNavigateHistory(false) : null,
-            tooltip: 'Next command',
+            tooltip: AppStrings.nextCommand,
             iconSize: 20,
           ),
         ],
@@ -287,7 +288,7 @@ class _HistoryCountIndicator extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Text(
-          '$count commands',
+          '$count 個指令',
           style: TextStyle(
             color: Colors.grey.shade600,
             fontSize: 12,
@@ -321,7 +322,7 @@ class _ReadyIndicator extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            'Ready',
+            AppStrings.ready,
             style: TextStyle(
               fontSize: 11,
               color: Colors.green.shade700,

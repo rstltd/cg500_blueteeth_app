@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/update/version_info_widget.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +38,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Current Version:'), findsOneWidget);
+      expect(find.text('${AppStrings.currentVersionLabel}:'), findsOneWidget);
       expect(find.text('1.5.0'), findsOneWidget);
     });
 
@@ -54,7 +55,7 @@ void main() {
         ),
       );
 
-      expect(find.text('New Version:'), findsOneWidget);
+      expect(find.text('${AppStrings.newVersionLabel}:'), findsOneWidget);
       expect(find.text('2.5.0'), findsOneWidget);
     });
 
@@ -71,7 +72,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Download Size:'), findsOneWidget);
+      expect(find.text('${AppStrings.downloadSizeLabel}:'), findsOneWidget);
       expect(find.text('15.0 MB'), findsOneWidget);
     });
 
@@ -90,7 +91,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Release Date:'), findsOneWidget);
+      expect(find.text('${AppStrings.releaseDateLabel}:'), findsOneWidget);
       expect(find.text('20/3/2024'), findsOneWidget);
     });
 
@@ -109,7 +110,7 @@ void main() {
         ),
       );
 
-      expect(find.text("What's New:"), findsOneWidget);
+      expect(find.text('${AppStrings.whatsNew}:'), findsOneWidget);
       expect(find.text('New feature: Dark mode support'), findsOneWidget);
     });
 
@@ -126,7 +127,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Bug fixes and performance improvements'), findsOneWidget);
+      expect(find.text(AppStrings.defaultReleaseNotes), findsOneWidget);
     });
 
     testWidgets('should have Column layout', (WidgetTester tester) async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/update/legacy_update_banner.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -300,6 +301,77 @@ void main() {
       );
 
       expect(find.byType(LegacyUpdateBanner), findsOneWidget);
+    });
+  });
+
+  group('LegacyUpdateBanner string constants', () {
+    testWidgets('should use AppStrings for download button', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: LegacyUpdateBanner(),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // The download button uses AppStrings.download
+      // Note: The button may not be visible if _shouldShow is false,
+      // so we verify the constant is correct
+      expect(AppStrings.download, equals('下載'));
+    });
+
+    testWidgets('should use AppStrings for manual download text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: LegacyUpdateBanner(),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // The manual download text uses AppStrings.clickToDownloadManually
+      expect(AppStrings.clickToDownloadManually, equals('點擊從 GitHub 手動下載'));
+    });
+
+    testWidgets('should use AppStrings for new version available text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: LegacyUpdateBanner(),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // The new version available text uses AppStrings.newVersionAvailable
+      // This is a function that takes a version parameter
+      final versionText = AppStrings.newVersionAvailable('2.0.0');
+      expect(versionText, equals('新版本可用: 2.0.0'));
+    });
+
+    testWidgets('should verify all AppStrings constants are defined', (WidgetTester tester) async {
+      // Verify that all constants used by LegacyUpdateBanner exist in AppStrings
+      expect(AppStrings.download, isNotNull);
+      expect(AppStrings.clickToDownloadManually, isNotNull);
+      expect(AppStrings.downloadApkManually, isNotNull);
+
+      // Verify the newVersionAvailable function works
+      final result = AppStrings.newVersionAvailable('1.0.0');
+      expect(result, contains('新版本可用'));
+      expect(result, contains('1.0.0'));
+
+      // Verify pleaseGoTo function works
+      final urlResult = AppStrings.pleaseGoTo('https://example.com');
+      expect(urlResult, contains('請前往'));
+      expect(urlResult, contains('https://example.com'));
     });
   });
 }

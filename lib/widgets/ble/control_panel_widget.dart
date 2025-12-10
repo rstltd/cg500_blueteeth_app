@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../common/animated_widgets.dart';
 
@@ -45,8 +46,8 @@ class ControlPanelWidget extends StatelessWidget {
                       onPressed: isScanning 
                           ? controller.stopScanning 
                           : controller.startScanning,
-                      text: 'Start Scanning',
-                      scanningText: 'Stop Scanning',
+                      text: AppStrings.startScanning,
+                      scanningText: AppStrings.stopScanning,
                     );
                   },
                 ),
@@ -61,7 +62,7 @@ class ControlPanelWidget extends StatelessWidget {
                 child: IconButton(
                   onPressed: controller.clearDevices,
                   icon: Icon(Icons.clear_all, color: AppColors.neutralColor(context)),
-                  tooltip: 'Clear Devices',
+                  tooltip: AppStrings.clearDevices,
                 ),
               ),
             ],
@@ -85,7 +86,7 @@ class ControlPanelWidget extends StatelessWidget {
             Icon(Icons.devices, color: AppColors.neutralColor(context), size: DesignTokens.iconXS),
             SizedBox(width: DesignTokens.spacingXS + 2), // 6dp
             Text(
-              '$deviceCount devices found',
+              AppStrings.devicesFound(deviceCount),
               style: AppTextStyles.labelLarge(context).copyWith(
                 color: AppColors.neutralColor(context),
               ),

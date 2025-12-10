@@ -3,6 +3,7 @@ import '../../controllers/app_update_manager.dart';
 import '../../design/design_system.dart';
 import '../../services/update_service.dart';
 import '../../utils/logger.dart';
+import '../../l10n/app_strings.dart';
 
 /// Banner widget that shows update notification at the top of the app
 /// Replaces the legacy update banner with enhanced functionality
@@ -173,7 +174,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                             color: AppColors.textOnPrimary(context),
                             size: 20,
                           ),
-                          tooltip: 'Dismiss',
+                          tooltip: AppStrings.close,
                         ),
                       ],
                       
@@ -193,7 +194,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                             ),
                           ),
                           child: Text(
-                            _updateInfo!.isForced ? 'Update Now' : 'Update',
+                            _updateInfo!.isForced ? AppStrings.updateNow : AppStrings.update,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
@@ -240,18 +241,18 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
   String _getUpdateTitle() {
     switch (_updateInfo!.updateType) {
       case UpdateType.critical:
-        return 'Critical Update Available';
+        return AppStrings.importantUpdateAvailable;
       case UpdateType.forced:
-        return 'Required Update';
+        return AppStrings.requiredUpdate;
       case UpdateType.recommended:
-        return 'Update Available';
+        return AppStrings.updateAvailable;
       default:
-        return 'Optional Update';
+        return AppStrings.optionalUpdate;
     }
   }
 
   String _getUpdateMessage() {
-    return 'Version ${_updateInfo!.latestVersion} with enhanced features is available';
+    return AppStrings.updateDescription(_updateInfo!.latestVersion);
   }
 
   Color _getPrimaryColor() {

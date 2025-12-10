@@ -109,23 +109,25 @@ class BleDeviceModel {
     return DateTime.now().difference(connectedAt!);
   }
 
+  // Adjusted thresholds based on real-world BLE testing:
+  // -60 dBm at ~10cm, -80 dBm at ~1m
   String get rssiDescription {
-    if (rssi >= -80) return 'Excellent';
-    if (rssi >= -90) return 'Very Good';
-    if (rssi >= -100) return 'Good';
-    if (rssi >= -110) return 'Fair';
+    if (rssi >= -65) return 'Excellent';
+    if (rssi >= -75) return 'Very Good';
+    if (rssi >= -85) return 'Good';
+    if (rssi >= -95) return 'Fair';
     return 'Poor';
   }
 
   double get signalStrength {
     // Convert RSSI to a 0-1 scale for UI display
-    // BLE devices typically range from -30dBm (excellent) to -100dBm (poor)
-    // Adjusted for real-world BLE signal ranges
-    if (rssi >= -60) return 1.0;
-    if (rssi >= -80) return 0.8;
-    if (rssi >= -90) return 0.6;
-    if (rssi >= -100) return 0.4;
-    if (rssi >= -110) return 0.2;
+    // Adjusted for real-world BLE signal ranges:
+    // -60 dBm at ~10cm, -80 dBm at ~1m
+    if (rssi >= -65) return 1.0;
+    if (rssi >= -75) return 0.8;
+    if (rssi >= -85) return 0.6;
+    if (rssi >= -95) return 0.4;
+    if (rssi >= -105) return 0.2;
     return 0.1;
   }
 

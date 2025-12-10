@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,7 @@ void main() {
     return BleDeviceModel(
       id: id,
       name: name,
-      displayName: name.isNotEmpty ? name : 'Unknown Device',
+      displayName: name.isNotEmpty ? name : AppStrings.unknownDevice,
       rssi: rssi,
       isFavorite: isFavorite,
       lastSeen: lastSeen,
@@ -50,7 +51,7 @@ void main() {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'No BLE devices found',
+                    AppStrings.noDevicesFound,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -59,7 +60,7 @@ void main() {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start scanning to discover nearby devices',
+                    AppStrings.startScanningHint,
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: 14,
@@ -73,8 +74,8 @@ void main() {
         ),
       );
 
-      expect(find.text('No BLE devices found'), findsOneWidget);
-      expect(find.text('Start scanning to discover nearby devices'), findsOneWidget);
+      expect(find.text(AppStrings.noDevicesFound), findsOneWidget);
+      expect(find.text(AppStrings.startScanningHint), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_searching), findsOneWidget);
     });
 
@@ -101,7 +102,7 @@ void main() {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Scanning...',
+                    AppStrings.scanning,
                     style: TextStyle(
                       color: Colors.blue.shade800,
                       fontWeight: FontWeight.w500,
@@ -114,7 +115,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Scanning...'), findsOneWidget);
+      expect(find.text(AppStrings.scanning), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
   });
@@ -178,7 +179,7 @@ void main() {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  device.name.isNotEmpty ? device.name : 'Unknown Device',
+                  device.name.isNotEmpty ? device.name : AppStrings.unknownDevice,
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -187,7 +188,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Unknown Device'), findsOneWidget);
+      expect(find.text(AppStrings.unknownDevice), findsOneWidget);
     });
 
     testWidgets('should display device ID', (WidgetTester tester) async {
@@ -367,9 +368,9 @@ void main() {
                 ElevatedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.link, size: 16),
-                  label: const Text(
-                    'Connect',
-                    style: TextStyle(fontSize: 13),
+                  label: Text(
+                    AppStrings.connect,
+                    style: const TextStyle(fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue.shade600,
@@ -382,7 +383,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Connect'), findsOneWidget);
+      expect(find.text(AppStrings.connect), findsOneWidget);
       expect(find.byIcon(Icons.link), findsOneWidget);
     });
 
@@ -395,9 +396,9 @@ void main() {
                 ElevatedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.link_off, size: 16),
-                  label: const Text(
-                    'Disconnect',
-                    style: TextStyle(fontSize: 13),
+                  label: Text(
+                    AppStrings.disconnect,
+                    style: const TextStyle(fontSize: 13),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade600,
@@ -410,7 +411,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text(AppStrings.disconnect), findsOneWidget);
       expect(find.byIcon(Icons.link_off), findsOneWidget);
     });
 
@@ -463,13 +464,13 @@ void main() {
             body: ElevatedButton.icon(
               onPressed: () => pressed = true,
               icon: const Icon(Icons.link),
-              label: const Text('Connect'),
+              label: Text(AppStrings.connect),
             ),
           ),
         ),
       );
 
-      await tester.tap(find.text('Connect'));
+      await tester.tap(find.text(AppStrings.connect));
       await tester.pump();
 
       expect(pressed, isTrue);
@@ -780,7 +781,7 @@ void main() {
     test('should have displayName fallback to Unknown Device', () {
       final device = createTestDevice(name: '');
 
-      expect(device.displayName, 'Unknown Device');
+      expect(device.displayName, AppStrings.unknownDevice);
     });
 
     test('should display device name when name is not empty', () {
@@ -870,7 +871,7 @@ void main() {
               builder: (context, snapshot) {
                 bool isScanning = snapshot.data ?? false;
                 if (isScanning) {
-                  return const Text('Scanning...');
+                  return Text(AppStrings.scanning);
                 }
                 return const Text('Not scanning');
               },
@@ -885,7 +886,7 @@ void main() {
       scanningController.add(true);
       await tester.pump();
 
-      expect(find.text('Scanning...'), findsOneWidget);
+      expect(find.text(AppStrings.scanning), findsOneWidget);
 
       await scanningController.close();
     });

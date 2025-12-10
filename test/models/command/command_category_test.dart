@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/models/command/command_category.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   group('CommandCategory', () {
@@ -17,20 +18,20 @@ void main() {
 
   group('CommandCategoryExtension', () {
     group('displayName', () {
-      test('query should return 查詢', () {
-        expect(CommandCategory.query.displayName, '查詢');
+      test('query should return category query name', () {
+        expect(CommandCategory.query.displayName, AppStrings.categoryQuery);
       });
 
-      test('config should return 設定', () {
-        expect(CommandCategory.config.displayName, '設定');
+      test('config should return category config name', () {
+        expect(CommandCategory.config.displayName, AppStrings.categoryConfig);
       });
 
-      test('control should return 控制', () {
-        expect(CommandCategory.control.displayName, '控制');
+      test('control should return category control name', () {
+        expect(CommandCategory.control.displayName, AppStrings.categoryControl);
       });
 
-      test('debug should return 除錯', () {
-        expect(CommandCategory.debug.displayName, '除錯');
+      test('debug should return category debug name', () {
+        expect(CommandCategory.debug.displayName, AppStrings.categoryDebug);
       });
     });
 

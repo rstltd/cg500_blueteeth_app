@@ -4,6 +4,7 @@ import 'package:cg500_blueteeth_app/widgets/ble/device_details_dialog.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -52,7 +53,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Device ID:'), findsOneWidget);
+        expect(find.text('${AppStrings.deviceId}:'), findsOneWidget);
         expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
       });
 
@@ -66,7 +67,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Name:'), findsOneWidget);
+        expect(find.text('${AppStrings.name}:'), findsOneWidget);
         expect(find.text('Named Device'), findsWidgets);
       });
 
@@ -80,8 +81,8 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Name:'), findsOneWidget);
-        expect(find.text('Unknown'), findsOneWidget);
+        expect(find.text('${AppStrings.name}:'), findsOneWidget);
+        expect(find.text(AppStrings.unknown), findsOneWidget);
       });
 
       testWidgets('should show RSSI with description', (tester) async {
@@ -94,7 +95,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('RSSI:'), findsOneWidget);
+        expect(find.text('${AppStrings.rssi}:'), findsOneWidget);
         expect(find.textContaining('-55 dBm'), findsOneWidget);
       });
 
@@ -108,7 +109,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Connection:'), findsOneWidget);
+        expect(find.text('${AppStrings.connectionStatus}:'), findsOneWidget);
         expect(find.text('Connected'), findsOneWidget);
       });
 
@@ -122,7 +123,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Services:'), findsOneWidget);
+        expect(find.text('${AppStrings.services}:'), findsOneWidget);
         expect(find.text('0'), findsOneWidget);
       });
     });
@@ -138,7 +139,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Last Seen:'), findsOneWidget);
+        expect(find.text('${AppStrings.lastSeen}:'), findsOneWidget);
       });
 
       testWidgets('should not show last seen when null', (tester) async {
@@ -151,7 +152,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Last Seen:'), findsNothing);
+        expect(find.text('${AppStrings.lastSeen}:'), findsNothing);
       });
 
       testWidgets('should show connected at when available', (tester) async {
@@ -164,7 +165,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Connected At:'), findsOneWidget);
+        expect(find.text('${AppStrings.connectedAt}:'), findsOneWidget);
       });
 
       testWidgets('should not show connected at when null', (tester) async {
@@ -177,7 +178,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Connected At:'), findsNothing);
+        expect(find.text('${AppStrings.connectedAt}:'), findsNothing);
       });
     });
 
@@ -202,7 +203,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Services:'), findsWidgets);
+        expect(find.text('${AppStrings.services}:'), findsWidgets);
       });
 
       testWidgets('should list each service with bullet', (tester) async {
@@ -258,7 +259,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Close'), findsOneWidget);
+        expect(find.text(AppStrings.close), findsOneWidget);
         expect(find.byType(TextButton), findsOneWidget);
       });
 
@@ -279,7 +280,7 @@ void main() {
         expect(find.byType(AlertDialog), findsOneWidget);
 
         // Close dialog
-        await tester.tap(find.text('Close'));
+        await tester.tap(find.text(AppStrings.close));
         await tester.pumpAndSettle();
 
         expect(find.byType(AlertDialog), findsNothing);

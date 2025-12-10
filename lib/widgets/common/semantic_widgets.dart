@@ -74,11 +74,13 @@ class SemanticDeviceCard extends StatelessWidget {
     );
   }
 
+  // Adjusted thresholds based on real-world BLE testing:
+  // -60 dBm at ~10cm, -80 dBm at ~1m
   String _getSignalStrengthLabel(int rssi) {
-    if (rssi >= -40) return 'Excellent';
-    if (rssi >= -55) return 'Very Good';
-    if (rssi >= -70) return 'Good';
-    if (rssi >= -85) return 'Fair';
+    if (rssi >= -65) return 'Excellent';
+    if (rssi >= -75) return 'Very Good';
+    if (rssi >= -85) return 'Good';
+    if (rssi >= -95) return 'Fair';
     return 'Weak';
   }
 }
@@ -340,11 +342,13 @@ class SemanticSignalStrength extends StatelessWidget {
     );
   }
 
+  // Adjusted thresholds based on real-world BLE testing:
+  // -60 dBm at ~10cm, -80 dBm at ~1m
   String _getStrengthDescription(int rssi) {
-    if (rssi >= -40) return 'Excellent';
-    if (rssi >= -55) return 'Very good';
-    if (rssi >= -70) return 'Good';
-    if (rssi >= -85) return 'Fair';
+    if (rssi >= -65) return 'Excellent';
+    if (rssi >= -75) return 'Very good';
+    if (rssi >= -85) return 'Good';
+    if (rssi >= -95) return 'Fair';
     return 'Weak';
   }
 }

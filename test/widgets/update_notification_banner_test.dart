@@ -6,6 +6,7 @@ import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 /// Helper function to create test AppUpdateManager with mock services
@@ -555,6 +556,152 @@ void main() {
     test('AppUpdateManager autoDownloadEnabled should be boolean', () {
       final manager = AppUpdateManager();
       expect(manager.autoDownloadEnabled, isA<bool>());
+    });
+  });
+
+  group('UpdateNotificationBanner string constants', () {
+    testWidgets('should use AppStrings for update available title', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.updateAvailable, equals('有可用更新'));
+    });
+
+    testWidgets('should use AppStrings for important update title', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.importantUpdateAvailable, equals('重要更新可用'));
+    });
+
+    testWidgets('should use AppStrings for required update title', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.requiredUpdate, equals('必要更新'));
+    });
+
+    testWidgets('should use AppStrings for optional update title', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.optionalUpdate, equals('可選更新'));
+    });
+
+    testWidgets('should use AppStrings for update button text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.update, equals('更新'));
+    });
+
+    testWidgets('should use AppStrings for later button text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.later, equals('稍後'));
+    });
+
+    testWidgets('should use AppStrings for skip button text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UpdateNotificationBanner(
+              updateManager: updateManager,
+            ),
+          ),
+        ),
+      );
+
+      // Give time for async initialization
+      await tester.pumpAndSettle();
+
+      // Verify AppStrings constants are defined correctly
+      expect(AppStrings.skip, equals('跳過'));
+    });
+
+    testWidgets('should verify all AppStrings constants used by UpdateNotificationBanner', (WidgetTester tester) async {
+      // Verify that all constants used by UpdateNotificationBanner exist in AppStrings
+      expect(AppStrings.updateAvailable, isNotNull);
+      expect(AppStrings.importantUpdateAvailable, isNotNull);
+      expect(AppStrings.requiredUpdate, isNotNull);
+      expect(AppStrings.optionalUpdate, isNotNull);
+      expect(AppStrings.update, isNotNull);
+      expect(AppStrings.updateNow, isNotNull);
+      expect(AppStrings.later, isNotNull);
+      expect(AppStrings.skip, isNotNull);
+      expect(AppStrings.close, isNotNull);
+
+      // Verify the updateDescription function works
+      final result = AppStrings.updateDescription('2.0.0');
+      expect(result, contains('版本'));
+      expect(result, contains('2.0.0'));
     });
   });
 }

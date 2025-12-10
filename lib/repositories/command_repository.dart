@@ -138,10 +138,22 @@ class CommandRepository implements CommandRepositoryInterface {
         category: CommandCategory.config,
         icon: Icons.signal_cellular_alt,
         parameters: [
-          CommandParameter.text(
+          CommandParameter.dropdown(
             id: 'apnName',
             label: 'APN 名稱',
-            hint: '例如: internet',
+            dropdownOptions: const [
+              DropdownOption(
+                label: '一般 4G SIM 卡',
+                value: 'internet',
+                description: '適用於一般消費者 4G SIM 卡',
+              ),
+              DropdownOption(
+                label: 'IoT 專用 SIM 卡',
+                value: 'internet.iot',
+                description: '適用於物聯網專用 SIM 卡',
+              ),
+            ],
+            defaultValue: 'internet',
           ),
         ],
         example: '\$APN,internet',
@@ -149,16 +161,18 @@ class CommandRepository implements CommandRepositoryInterface {
       DeviceCommand(
         command: '\$ADDR',
         name: '設定 TCP 路徑',
-        description: '設定 TCP 傳輸路徑的 IP 和 Port',
+        description: '設定 TCP 傳輸路徑的 IP/網域 和 Port',
         category: CommandCategory.config,
         icon: Icons.router,
         parameters: [
-          CommandParameter.ipPort(
+          CommandParameter.hostPort(
             id: 'tcpAddr',
             label: 'TCP 位址',
+            defaultHost: 'rmdgnss.com',
+            defaultPort: '8180',
           ),
         ],
-        example: '\$ADDR,211.20.56.183:8180',
+        example: '\$ADDR,rmdgnss.com:8180',
       ),
       DeviceCommand(
         command: '\$ALARM',

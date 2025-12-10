@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 
 /// Widget for displaying BLE connection status and device information
@@ -79,7 +80,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         ),
         SizedBox(width: DesignTokens.spacingS),
         Text(
-          'Connected',
+          AppStrings.connected,
           style: AppTextStyles.labelLarge(context).copyWith(
             color: Colors.green,
           ),
@@ -115,7 +116,7 @@ class ConnectionStatusWidget extends StatelessWidget {
           _buildStatusHeader(context, false),
           SizedBox(height: DesignTokens.spacingS),
           Text(
-            'Please connect a BLE device to send commands',
+            AppStrings.pleaseConnectBleDevice,
             style: AppTextStyles.bodyMedium(context).copyWith(
               color: Colors.orange.shade700,
             ),
@@ -136,7 +137,7 @@ class ConnectionStatusWidget extends StatelessWidget {
         ),
         SizedBox(width: DesignTokens.spacingS),
         Text(
-          'Disconnected',
+          AppStrings.disconnected,
           style: AppTextStyles.labelLarge(context).copyWith(
             color: Colors.red,
           ),
@@ -166,13 +167,13 @@ class ConnectionStatusWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isConnected ? 'Device Connected' : 'No Device Connected',
+                isConnected ? AppStrings.deviceConnected : AppStrings.noDeviceConnected,
                 style: AppTextStyles.titleSmall(context).copyWith(
                   color: isConnected ? Colors.green.shade800 : Colors.orange.shade800,
                 ),
               ),
               Text(
-                isConnected ? 'Ready to send commands' : 'Connect a device first',
+                isConnected ? AppStrings.readyToSendCommands : AppStrings.pleaseConnectFirst,
                 style: AppTextStyles.bodySmall(context).copyWith(
                   color: isConnected ? Colors.green.shade700 : Colors.orange.shade700,
                 ),
@@ -195,13 +196,13 @@ class ConnectionStatusWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow(context, 'Device', device.displayName),
+          _buildInfoRow(context, AppStrings.device, device.displayName),
           _buildInfoRow(context, 'ID', device.id),
-          _buildInfoRow(context, 'RSSI', '${device.rssi} dBm'),
+          _buildInfoRow(context, AppStrings.rssi, '${device.rssi} dBm'),
           if (device.services.isNotEmpty)
-            _buildInfoRow(context, 'Services', '${device.services.length} available'),
+            _buildInfoRow(context, AppStrings.services, AppStrings.servicesCount(device.services.length)),
           if (device.connectionDuration != null)
-            _buildInfoRow(context, 'Connected', _formatDuration(device.connectionDuration!)),
+            _buildInfoRow(context, AppStrings.connectedFor, _formatDuration(device.connectionDuration!)),
         ],
       ),
     );
@@ -256,7 +257,7 @@ class ConnectionStatusAppBar extends StatelessWidget implements PreferredSizeWid
   const ConnectionStatusAppBar({
     super.key,
     required this.controller,
-    this.title = 'Command Interface',
+    this.title = AppStrings.commandInterface,
     this.actions,
   });
 

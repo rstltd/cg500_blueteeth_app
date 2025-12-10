@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../../models/connection_state.dart';
 
@@ -26,7 +27,7 @@ class QuickStatsWidget extends StatelessWidget {
           child: Column(
             children: [
               ResponsiveText(
-                'Quick Stats',
+                AppStrings.quickStats,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary(context),
@@ -35,8 +36,8 @@ class QuickStatsWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatItem(context, 'Found', deviceCount.toString(), Icons.devices),
-                  _buildStatItem(context, 'Connected', connectedCount.toString(), Icons.link),
+                  _buildStatItem(context, AppStrings.found, deviceCount.toString(), Icons.devices),
+                  _buildStatItem(context, AppStrings.connected, connectedCount.toString(), Icons.link),
                 ],
               ),
             ],

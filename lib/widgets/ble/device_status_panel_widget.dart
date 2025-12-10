@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../../services/theme_service.dart';
 
@@ -292,7 +293,7 @@ class _NoDeviceWarning extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'No Device Connected',
+                  AppStrings.noDeviceConnected,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.orange.shade800,
@@ -300,7 +301,7 @@ class _NoDeviceWarning extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Please connect a BLE device first',
+                  AppStrings.pleaseConnectBleDeviceFirst,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.orange.shade700,

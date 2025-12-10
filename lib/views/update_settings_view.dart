@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../services/network_service.dart';
 import '../services/update_service.dart';
 import '../core/view_model/view_model.dart';
@@ -56,7 +57,7 @@ class _UpdateSettingsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Update Settings'),
+        title: const Text(AppStrings.updateSettings),
         backgroundColor: AppColors.backgroundGradientStart(context),
         elevation: 0,
         actions: [
@@ -69,7 +70,7 @@ class _UpdateSettingsContent extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh),
-            tooltip: 'Check for Updates',
+            tooltip: AppStrings.checkUpdateTooltip,
           ),
         ],
       ),
@@ -86,7 +87,7 @@ class _UpdateSettingsContent extends StatelessWidget {
     // Show error state
     if (!viewModel.hasPreferences) {
       return const Center(
-        child: Text('Failed to load update settings'),
+        child: Text(AppStrings.cannotLoadUpdateSettings),
       );
     }
 
@@ -176,7 +177,7 @@ class _NetworkStatusCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Network Status',
+                  AppStrings.networkStatus,
                   style: AppTextStyles.titleSmall(context),
                 ),
                 SizedBox(height: DesignTokens.spacingXS),
@@ -205,19 +206,19 @@ class _UpdateCheckSettingsCard extends StatelessWidget {
     final prefs = viewModel.preferences!;
 
     return _SettingsSection(
-      title: 'Update Checking',
+      title: AppStrings.updateCheck,
       icon: Icons.update,
       children: [
         SwitchListTile(
-          title: const Text('Auto Check for Updates'),
-          subtitle: const Text('Automatically check for updates when app starts'),
+          title: const Text(AppStrings.autoCheckUpdates),
+          subtitle: const Text(AppStrings.autoCheckUpdatesDesc),
           value: prefs.autoCheckEnabled,
           onChanged: viewModel.setAutoCheckEnabled,
           activeColor: Colors.blue.shade600,
         ),
         ListTile(
-          title: const Text('Check Frequency'),
-          subtitle: const Text('How often to check for updates'),
+          title: const Text(AppStrings.checkFrequency),
+          subtitle: const Text(AppStrings.checkFrequencyDesc),
           trailing: DropdownButton<UpdateFrequency>(
             value: prefs.updateFrequency,
             onChanged: prefs.autoCheckEnabled
@@ -250,19 +251,19 @@ class _DownloadSettingsCard extends StatelessWidget {
     final prefs = viewModel.preferences!;
 
     return _SettingsSection(
-      title: 'Download Settings',
+      title: AppStrings.downloadSettings,
       icon: Icons.download,
       children: [
         SwitchListTile(
-          title: const Text('Auto Download Updates'),
-          subtitle: const Text('Automatically download updates when found'),
+          title: const Text(AppStrings.autoDownloadUpdates),
+          subtitle: const Text(AppStrings.autoDownloadUpdatesDesc),
           value: prefs.autoDownloadEnabled,
           onChanged: viewModel.setAutoDownloadEnabled,
           activeColor: Colors.blue.shade600,
         ),
         SwitchListTile(
-          title: const Text('WiFi Only Downloads'),
-          subtitle: const Text('Only download updates when connected to WiFi'),
+          title: const Text(AppStrings.wifiOnlyDownload),
+          subtitle: const Text(AppStrings.wifiOnlyDownloadDesc),
           value: prefs.wifiOnlyDownload,
           onChanged: viewModel.setWifiOnlyDownload,
           activeColor: Colors.blue.shade600,
@@ -282,14 +283,14 @@ class _SkippedVersionsCard extends StatelessWidget {
     final prefs = viewModel.preferences!;
 
     return _SettingsSection(
-      title: 'Skipped Versions',
+      title: AppStrings.skippedVersions,
       icon: Icons.skip_next,
       children: [
         if (prefs.skippedVersions.isEmpty)
           Padding(
             padding: DesignTokens.paddingVerticalM,
             child: Text(
-              'No versions skipped',
+              AppStrings.noSkippedVersions,
               style: AppTextStyles.bodyMedium(context).copyWith(
                 color: AppColors.textSecondary(context),
                 fontStyle: FontStyle.italic,
@@ -299,7 +300,7 @@ class _SkippedVersionsCard extends StatelessWidget {
         else
           ...prefs.skippedVersions.map((version) => ListTile(
                 leading: const Icon(Icons.block),
-                title: Text('Version $version'),
+                title: Text(AppStrings.version(version)),
                 trailing: IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => viewModel.unskipVersion(version),
@@ -311,7 +312,7 @@ class _SkippedVersionsCard extends StatelessWidget {
             child: TextButton.icon(
               onPressed: viewModel.clearSkippedVersions,
               icon: const Icon(Icons.clear_all),
-              label: const Text('Clear All'),
+              label: const Text(AppStrings.clearAll),
             ),
           ),
       ],
@@ -329,20 +330,20 @@ class _CurrentVersionCard extends StatelessWidget {
     final versionInfo = viewModel.currentVersionInfo;
 
     return _SettingsSection(
-      title: 'Current Version',
+      title: AppStrings.currentVersion,
       icon: Icons.info_outline,
       children: [
         ListTile(
-          title: const Text('Version'),
+          title: const Text(AppStrings.versionLabel),
           trailing: Text(
-            versionInfo['version'] ?? 'Unknown',
+            versionInfo['version'] ?? AppStrings.unknown,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         ListTile(
-          title: const Text('Build Number'),
+          title: const Text(AppStrings.buildNumber),
           trailing: Text(
-            versionInfo['buildNumber'] ?? 'Unknown',
+            versionInfo['buildNumber'] ?? AppStrings.unknown,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -359,12 +360,12 @@ class _ResetSettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SettingsSection(
-      title: 'Reset',
+      title: AppStrings.resetSection,
       icon: Icons.restore,
       children: [
         ListTile(
-          title: const Text('Reset to Defaults'),
-          subtitle: const Text('Reset all update settings to default values'),
+          title: const Text(AppStrings.restoreDefaults),
+          subtitle: const Text(AppStrings.restoreDefaultsDesc),
           trailing: const Icon(Icons.restore),
           onTap: () => _showResetDialog(context),
         ),
@@ -376,14 +377,14 @@ class _ResetSettingsCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset Settings'),
+        title: const Text(AppStrings.resetSettingsTitle),
         content: const Text(
-          'Are you sure you want to reset all update settings to their default values? This action cannot be undone.',
+          AppStrings.resetSettingsConfirmation,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text(AppStrings.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -391,11 +392,11 @@ class _ResetSettingsCard extends StatelessWidget {
               viewModel.resetToDefaults();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Settings reset to defaults'),
+                  content: Text(AppStrings.settingsRestored),
                 ),
               );
             },
-            child: const Text('Reset'),
+            child: const Text(AppStrings.resetSection),
           ),
         ],
       ),

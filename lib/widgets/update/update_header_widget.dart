@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/update_service.dart';
+import '../../l10n/app_strings.dart';
 
 /// Widget for update dialog header with type-specific styling
 class UpdateHeaderWidget extends StatelessWidget {
@@ -114,11 +115,11 @@ class UpdateHeaderWidget extends StatelessWidget {
   String _getUpdateTypeTitle() {
     switch (updateInfo.updateType) {
       case UpdateType.critical:
-        return 'Critical Update';
+        return AppStrings.importantUpdateAvailable;
       case UpdateType.forced:
-        return 'Required Update';
+        return AppStrings.requiredUpdate;
       default:
-        return 'Update Available';
+        return AppStrings.updateAvailable;
     }
   }
 

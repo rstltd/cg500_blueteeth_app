@@ -6,6 +6,7 @@ import '../../core/service_locator.dart' show getIt;
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
 import '../../services/smart_notification_service.dart';
+import '../../l10n/app_strings.dart';
 
 /// Dialog for configuring notification preferences
 class NotificationSettingsDialog extends StatefulWidget {
@@ -115,7 +116,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             ),
             SizedBox(height: DesignTokens.spacingM),
             Text(
-              'Loading settings...',
+              AppStrings.loadingSettings,
               style: AppTextStyles.bodyMedium(context).copyWith(
                 color: AppColors.textSecondary(context),
               ),
@@ -163,12 +164,12 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Notification Settings',
+                  AppStrings.notificationSettings,
                   style: AppTextStyles.titleLarge(context),
                 ),
                 SizedBox(height: DesignTokens.spacingXS),
                 Text(
-                  'Configure when and how notifications are shown',
+                  AppStrings.notificationSettingsSubtitle,
                   style: AppTextStyles.bodyMedium(context).copyWith(
                     color: AppColors.textSecondary(context),
                   ),
@@ -187,19 +188,19 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Notification Level', Icons.notifications),
+          _buildSectionHeader(AppStrings.notificationLevel, Icons.notifications),
           _buildBleVerbosityCard(),
 
           SizedBox(height: DesignTokens.spacingL),
-          _buildSectionHeader('Smart Filtering', Icons.filter_alt),
+          _buildSectionHeader(AppStrings.smartFiltering, Icons.filter_alt),
           _buildSmartFilteringCard(),
 
           SizedBox(height: DesignTokens.spacingL),
-          _buildSectionHeader('Notification Categories', Icons.category),
+          _buildSectionHeader(AppStrings.notificationCategories, Icons.category),
           _buildNotificationCategories(),
 
           SizedBox(height: DesignTokens.spacingL),
-          _buildSectionHeader('Statistics', Icons.analytics),
+          _buildSectionHeader(AppStrings.statistics, Icons.analytics),
           _buildStatisticsCard(),
         ],
       ),
@@ -222,7 +223,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Control how many BLE operation notifications are generated',
+              AppStrings.controlBleNotifications,
               style: AppTextStyles.bodyMedium(context).copyWith(
                 color: AppColors.textSecondary(context),
               ),
@@ -230,29 +231,29 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
             SizedBox(height: DesignTokens.spacingM),
             _buildBleVerbosityOption(
               BleNotificationVerbosity.minimal,
-              'Errors Only',
-              'Only show error notifications (recommended)',
+              AppStrings.errorsOnly,
+              AppStrings.errorsOnlyDesc,
               Icons.error_outline,
               AppColors.errorColor(context),
             ),
             _buildBleVerbosityOption(
               BleNotificationVerbosity.normal,
-              'Errors & Warnings',
-              'Show errors and warnings',
+              AppStrings.errorsAndWarnings,
+              AppStrings.errorsAndWarningsDesc,
               Icons.warning_amber,
               AppColors.warningColor(context),
             ),
             _buildBleVerbosityOption(
               BleNotificationVerbosity.verbose,
-              'All Details',
-              'Show all notifications including info and success',
+              AppStrings.allDetails,
+              AppStrings.allDetailsDesc,
               Icons.notifications_active,
               AppColors.infoColor(context),
             ),
             _buildBleVerbosityOption(
               BleNotificationVerbosity.silent,
-              'Silent',
-              'Don\'t generate any BLE notifications',
+              AppStrings.silent,
+              AppStrings.silentDesc,
               Icons.notifications_off,
               AppColors.neutralColor(context),
             ),
@@ -362,8 +363,8 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SwitchListTile(
-              title: const Text('Enable Smart Filtering'),
-              subtitle: const Text('Automatically reduce notification spam and duplicates'),
+              title: const Text(AppStrings.enableSmartFiltering),
+              subtitle: const Text(AppStrings.smartFilteringDesc),
               value: _enableSmartFiltering,
               onChanged: (value) {
                 setState(() {
@@ -390,7 +391,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
                     SizedBox(width: DesignTokens.spacingS),
                     Expanded(
                       child: Text(
-                        'Smart filtering prevents duplicate notifications, reduces connection status spam, and silences internal operations.',
+                        AppStrings.smartFilteringExplanation,
                         style: AppTextStyles.bodySmall(context).copyWith(
                           color: AppColors.onInfoContainer(context),
                         ),
@@ -421,32 +422,32 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
         child: Column(
           children: [
             _buildCategorySwitch(
-              'Connection Events',
-              'Show notifications when devices connect/disconnect',
+              AppStrings.connectionEvents,
+              AppStrings.connectionEventsDesc,
               _showConnectionNotifications,
               (value) => setState(() => _showConnectionNotifications = value),
               Icons.bluetooth_connected,
             ),
             const Divider(height: 24),
             _buildCategorySwitch(
-              'Scanning Events',
-              'Show notifications during device scanning',
+              AppStrings.scanningEvents,
+              AppStrings.scanningEventsDesc,
               _showScanningNotifications,
               (value) => setState(() => _showScanningNotifications = value),
               Icons.radar,
             ),
             const Divider(height: 24),
             _buildCategorySwitch(
-              'MTU Configuration',
-              'Show notifications about MTU setup',
+              AppStrings.mtuConfigurationCategory,
+              AppStrings.mtuConfiguration,
               _showMtuNotifications,
               (value) => setState(() => _showMtuNotifications = value),
               Icons.settings_ethernet,
             ),
             const Divider(height: 24),
             _buildCategorySwitch(
-              'Command Feedback',
-              'Show notifications for sent commands',
+              AppStrings.commandFeedback,
+              AppStrings.commandFeedbackDesc,
               _showCommandNotifications,
               (value) => setState(() => _showCommandNotifications = value),
               Icons.send,
@@ -521,11 +522,11 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
         padding: DesignTokens.paddingM,
         child: Column(
           children: [
-            _buildStatRow('Total Notifications', '${stats['total_notifications']}'),
+            _buildStatRow(AppStrings.totalNotifications, '${stats['total_notifications']}'),
             SizedBox(height: DesignTokens.spacingS),
-            _buildStatRow('Filtered Notifications', '${stats['filtered_notifications']}'),
+            _buildStatRow(AppStrings.filteredNotifications, '${stats['filtered_notifications']}'),
             SizedBox(height: DesignTokens.spacingS),
-            _buildStatRow('Pending Notifications', '${stats['pending_notifications']}'),
+            _buildStatRow(AppStrings.pendingNotifications, '${stats['pending_notifications']}'),
             SizedBox(height: DesignTokens.spacingSM),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -535,13 +536,13 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
                     _notificationService.clearFilters();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Notification filters cleared'),
+                        content: Text(AppStrings.notificationFiltersCleared),
                         duration: Duration(seconds: 2),
                       ),
                     );
                   },
                   icon: const Icon(Icons.clear_all),
-                  label: const Text('Clear Filters'),
+                  label: const Text(AppStrings.clearFilters),
                 ),
               ],
             ),
@@ -583,7 +584,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
         children: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text(AppStrings.cancel),
           ),
           SizedBox(width: DesignTokens.spacingSM),
           ElevatedButton(
@@ -596,7 +597,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
                 vertical: DesignTokens.spacingSM,
               ),
             ),
-            child: const Text('Apply Settings'),
+            child: const Text(AppStrings.applySettings),
           ),
         ],
       ),
@@ -634,7 +635,7 @@ class _NotificationSettingsDialogState extends State<NotificationSettingsDialog>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Notification settings saved'),
+          content: const Text(AppStrings.notificationSettingsSaved),
           backgroundColor: AppColors.successColor(context),
           duration: const Duration(seconds: 2),
         ),

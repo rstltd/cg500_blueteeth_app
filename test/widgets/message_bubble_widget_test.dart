@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/message/message_bubble_widget.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,7 @@ void main() {
       );
 
       expect(find.text('AT+VERSION'), findsOneWidget);
-      expect(find.text('Command'), findsOneWidget);
+      expect(find.text(AppStrings.command), findsOneWidget);
       expect(find.byIcon(Icons.send), findsOneWidget);
     });
 
@@ -278,8 +279,8 @@ void main() {
         ),
       );
 
-      expect(find.text('No messages yet'), findsOneWidget);
-      expect(find.text('Send a command to start the conversation'), findsOneWidget);
+      expect(find.text(AppStrings.noMessagesYet), findsOneWidget);
+      expect(find.text(AppStrings.sendCommandToStart), findsOneWidget);
       expect(find.byIcon(Icons.chat_bubble_outline), findsOneWidget);
     });
 

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import 'package:cg500_blueteeth_app/models/command/command_parameter.dart';
 import 'package:cg500_blueteeth_app/models/command/parameter_type.dart';
 
@@ -30,6 +31,32 @@ void main() {
         expect(param.id, 'addr');
         expect(param.type, ParameterType.ipPort);
         expect(param.defaultValue, '192.168.1.1:8080');
+      });
+
+      test('hostPort() creates Host:Port parameter with IP', () {
+        final param = CommandParameter.hostPort(
+          id: 'addr',
+          label: 'Address',
+          defaultHost: '192.168.1.1',
+          defaultPort: '8080',
+        );
+
+        expect(param.id, 'addr');
+        expect(param.type, ParameterType.hostPort);
+        expect(param.defaultValue, '192.168.1.1:8080');
+      });
+
+      test('hostPort() creates Host:Port parameter with domain', () {
+        final param = CommandParameter.hostPort(
+          id: 'addr',
+          label: 'Address',
+          defaultHost: 'rmdgnss.com',
+          defaultPort: '8180',
+        );
+
+        expect(param.id, 'addr');
+        expect(param.type, ParameterType.hostPort);
+        expect(param.defaultValue, 'rmdgnss.com:8180');
       });
 
       test('number() creates number parameter with range', () {
@@ -73,6 +100,24 @@ void main() {
         expect(param.bitFlagOptions, flags);
         expect(param.defaultValue, '3');
       });
+
+      test('dropdown() creates dropdown parameter', () {
+        final options = [
+          const DropdownOption(label: 'Option A', value: 'a'),
+          const DropdownOption(label: 'Option B', value: 'b'),
+        ];
+
+        final param = CommandParameter.dropdown(
+          id: 'choice',
+          label: 'Choice',
+          dropdownOptions: options,
+          defaultValue: 'a',
+        );
+
+        expect(param.type, ParameterType.dropdown);
+        expect(param.dropdownOptions, options);
+        expect(param.defaultValue, 'a');
+      });
     });
 
     group('validate', () {
@@ -84,8 +129,8 @@ void main() {
             required: true,
           );
 
-          expect(param.validate(null), contains('必填'));
-          expect(param.validate(''), contains('必填'));
+          expect(param.validate(null), AppStrings.requiredField('Test'));
+          expect(param.validate(''), AppStrings.requiredField('Test'));
         });
 
         test('returns null for empty optional field', () {
@@ -135,6 +180,49 @@ void main() {
           expect(param.validate('192.168.1.1:0'), isNotNull);
           expect(param.validate('192.168.1.1:65536'), isNotNull);
           expect(param.validate('192.168.1.1:abc'), isNotNull);
+        });
+      });
+
+      group('Host:Port validation', () {
+        final param = CommandParameter.hostPort(id: 'addr', label: 'Address');
+
+        test('accepts valid IP:Port', () {
+          expect(param.validate('192.168.1.1:8080'), isNull);
+          expect(param.validate('0.0.0.0:1'), isNull);
+          expect(param.validate('255.255.255.255:65535'), isNull);
+        });
+
+        test('accepts valid domain:Port', () {
+          expect(param.validate('rmdgnss.com:8180'), isNull);
+          expect(param.validate('example.com:80'), isNull);
+          expect(param.validate('sub.domain.example.com:443'), isNull);
+        });
+
+        test('rejects invalid format', () {
+          expect(param.validate('192.168.1.1'), isNotNull);
+          expect(param.validate('example.com'), isNotNull);
+          expect(param.validate(':8080'), isNotNull);
+        });
+
+        test('rejects invalid IP', () {
+          expect(param.validate('256.168.1.1:8080'), isNotNull);
+          expect(param.validate('192.168.1:8080'), isNotNull);
+          expect(param.validate('192.168.1.1.1:8080'), isNotNull);
+        });
+
+        test('rejects invalid domain', () {
+          expect(param.validate('nodot:8080'), isNotNull); // No dot in domain
+        });
+
+        test('rejects http/https prefix', () {
+          expect(param.validate('http://example.com:8080'), isNotNull);
+          expect(param.validate('https://example.com:8080'), isNotNull);
+        });
+
+        test('rejects invalid port', () {
+          expect(param.validate('example.com:0'), isNotNull);
+          expect(param.validate('example.com:65536'), isNotNull);
+          expect(param.validate('example.com:abc'), isNotNull);
         });
       });
 
@@ -217,6 +305,38 @@ void main() {
 
         test('rejects non-numeric values', () {
           expect(param.validate('abc'), isNotNull);
+        });
+      });
+
+      group('dropdown validation', () {
+        final param = CommandParameter.dropdown(
+          id: 'apn',
+          label: 'APN',
+          dropdownOptions: const [
+            DropdownOption(label: 'General SIM', value: 'internet'),
+            DropdownOption(label: 'IoT SIM', value: 'internet.iot'),
+          ],
+        );
+
+        test('accepts valid dropdown option values', () {
+          expect(param.validate('internet'), isNull);
+          expect(param.validate('internet.iot'), isNull);
+        });
+
+        test('rejects values not in options list', () {
+          expect(param.validate('invalid'), isNotNull);
+          expect(param.validate('other.apn'), isNotNull);
+          expect(param.validate(''), isNotNull); // required field
+        });
+
+        test('accepts any value when no options defined', () {
+          final emptyParam = CommandParameter(
+            id: 'empty',
+            label: 'Empty',
+            type: ParameterType.dropdown,
+            required: false,
+          );
+          expect(emptyParam.validate('anything'), isNull);
         });
       });
     });

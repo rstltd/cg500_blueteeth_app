@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/models/command/command.dart';
 import 'package:cg500_blueteeth_app/repositories/command_repository.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   late CommandRepository repository;
@@ -170,7 +171,7 @@ void main() {
       });
 
       test('finds commands by name', () {
-        final results = repository.searchCommands('設備資訊');
+        final results = repository.searchCommands(AppStrings.deviceInfo);
 
         expect(results, isNotEmpty);
         expect(results.any((c) => c.command == '\$INFO'), true);
@@ -260,7 +261,7 @@ void main() {
         final cmd = repository.getCommand('\$INFO');
 
         expect(cmd, isNotNull);
-        expect(cmd!.name, contains('設備資訊'));
+        expect(cmd!.name, contains(AppStrings.deviceInfo));
         expect(cmd.category, CommandCategory.query);
         expect(cmd.hasParameters, false);
         expect(cmd.dangerLevel, DangerLevel.safe);
@@ -275,12 +276,12 @@ void main() {
         expect(cmd.parameters.first.type, ParameterType.text);
       });
 
-      test('\$ADDR has IP:Port parameter', () {
+      test('\$ADDR has Host:Port parameter', () {
         final cmd = repository.getCommand('\$ADDR');
 
         expect(cmd, isNotNull);
         expect(cmd!.hasParameters, true);
-        expect(cmd.parameters.first.type, ParameterType.ipPort);
+        expect(cmd.parameters.first.type, ParameterType.hostPort);
       });
 
       test('\$ALARM has bitFlags parameter', () {

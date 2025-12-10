@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_actions_widget.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -60,9 +61,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Skip'), findsOneWidget);
-      expect(find.text('Later'), findsOneWidget);
-      expect(find.text('Update'), findsOneWidget);
+      expect(find.text(AppStrings.skip), findsOneWidget);
+      expect(find.text(AppStrings.later), findsOneWidget);
+      expect(find.text(AppStrings.update), findsOneWidget);
     });
 
     testWidgets('should hide Skip and Later buttons for forced update', (WidgetTester tester) async {
@@ -86,9 +87,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Skip'), findsNothing);
-      expect(find.text('Later'), findsNothing);
-      expect(find.text('Update Now'), findsOneWidget);
+      expect(find.text(AppStrings.skip), findsNothing);
+      expect(find.text(AppStrings.later), findsNothing);
+      expect(find.text(AppStrings.updateNow), findsOneWidget);
     });
 
     testWidgets('should hide Skip and Later buttons for critical update', (WidgetTester tester) async {
@@ -110,8 +111,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Skip'), findsNothing);
-      expect(find.text('Later'), findsNothing);
+      expect(find.text(AppStrings.skip), findsNothing);
+      expect(find.text(AppStrings.later), findsNothing);
     });
 
     testWidgets('should show Browser Download button', (WidgetTester tester) async {
@@ -130,7 +131,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Browser Download'), findsOneWidget);
+      expect(find.text(AppStrings.browserDownload), findsOneWidget);
       expect(find.byIcon(Icons.open_in_browser), findsOneWidget);
     });
 
@@ -189,7 +190,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('download fails'), findsOneWidget);
+      expect(find.textContaining(AppStrings.downloadFailedWarning), findsOneWidget);
     });
 
     testWidgets('should not show warning when not downloading', (WidgetTester tester) async {
@@ -208,7 +209,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('download fails'), findsNothing);
+      expect(find.textContaining(AppStrings.downloadFailedWarning), findsNothing);
     });
 
     testWidgets('should not show warning when progress > 0', (WidgetTester tester) async {
@@ -227,7 +228,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('download fails'), findsNothing);
+      expect(find.textContaining(AppStrings.downloadFailedWarning), findsNothing);
     });
 
     testWidgets('should call onStartUpdate when update button pressed', (WidgetTester tester) async {
@@ -272,7 +273,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Skip'));
+      await tester.tap(find.text(AppStrings.skip));
       await tester.pump();
 
       expect(called, isTrue);
@@ -297,7 +298,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Later'));
+      await tester.tap(find.text(AppStrings.later));
       await tester.pump();
 
       expect(called, isTrue);
@@ -321,8 +322,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Skip'), findsNothing);
-      expect(find.text('Later'), findsNothing);
+      expect(find.text(AppStrings.skip), findsNothing);
+      expect(find.text(AppStrings.later), findsNothing);
     });
   });
 
@@ -447,7 +448,7 @@ void main() {
       );
 
       // Verify browser download button exists by text
-      expect(find.text('Browser Download'), findsOneWidget);
+      expect(find.text(AppStrings.browserDownload), findsOneWidget);
     });
   });
 }

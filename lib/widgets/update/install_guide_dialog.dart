@@ -3,6 +3,7 @@ import '../../services/update_service.dart';
 import '../../core/service_locator.dart' show getIt;
 import '../../design/design_system.dart';
 import '../../utils/logger.dart';
+import '../../l10n/app_strings.dart';
 
 /// Dialog that provides step-by-step installation guide for APK files
 class InstallGuideDialog extends StatefulWidget {
@@ -31,48 +32,36 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
   
   List<InstallStep> _getSteps(BuildContext context) => [
     InstallStep(
-      title: 'Starting Installation',
-      description: 'The update is being prepared for installation.',
+      title: AppStrings.startInstallation,
+      description: AppStrings.startInstallationDesc,
       icon: Icons.download_done,
       color: AppColors.successColor(context),
       instructions: const [
-        'The APK installation has been triggered',
-        'Android system installer should open shortly',
-        'If nothing happens, tap "Install Manually" below',
+        'APK 安裝已被觸發',
+        'Android 系統安裝程式將會開啟',
+        AppStrings.startInstallationInstruction,
       ],
     ),
     InstallStep(
-      title: 'Enable Unknown Sources',
-      description: 'Allow installation of apps from unknown sources.',
+      title: AppStrings.enableUnknownSources,
+      description: AppStrings.enableUnknownSourcesDesc,
       icon: Icons.security,
       color: AppColors.warningColor(context),
-      instructions: const [
-        'If prompted, tap "Settings" in the security dialog',
-        'Toggle "Allow from this source" or "Unknown sources"',
-        'Return to the installation screen',
-      ],
+      instructions: AppStrings.enableUnknownSourcesInstructions,
     ),
     InstallStep(
-      title: 'Install Update',
-      description: 'Proceed with the installation process.',
+      title: AppStrings.installUpdate,
+      description: AppStrings.installUpdateDesc,
       icon: Icons.system_update_alt,
       color: AppColors.infoColor(context),
-      instructions: const [
-        'Review the app permissions if shown',
-        'Tap "Install" to proceed',
-        'Wait for installation to complete',
-      ],
+      instructions: AppStrings.installUpdateInstructions,
     ),
     InstallStep(
-      title: 'Installation Complete',
-      description: 'The update has been installed successfully.',
+      title: AppStrings.installationComplete,
+      description: AppStrings.installationCompleteDesc,
       icon: Icons.check_circle,
       color: AppColors.successColor(context),
-      instructions: const [
-        'The app will restart automatically',
-        'You\'ll see the new version in the app',
-        'All your data and settings are preserved',
-      ],
+      instructions: AppStrings.installationCompleteInstructions,
     ),
   ];
 
@@ -134,7 +123,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Failed to start installation. Please install manually.'),
+              content: const Text(AppStrings.cannotStartInstallation),
               backgroundColor: AppColors.errorColor(context),
             ),
           );
@@ -145,7 +134,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Installation error: $e'),
+            content: Text(AppStrings.installationError(e.toString())),
             backgroundColor: AppColors.errorColor(context),
           ),
         );
@@ -226,14 +215,14 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Installation Guide',
+                  AppStrings.installationGuide,
                   style: AppTextStyles.titleLarge(context).copyWith(
                     color: AppColors.textOnPrimary(context),
                   ),
                 ),
                 SizedBox(height: DesignTokens.spacingXS),
                 Text(
-                  'Step ${_currentStep + 1} of ${_getSteps(context).length}',
+                  AppStrings.stepProgress(_currentStep + 1, _getSteps(context).length),
                   style: AppTextStyles.bodyLarge(context).copyWith(
                     color: AppColors.whiteOverlay90(context),
                   ),
@@ -356,7 +345,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Instructions:',
+                AppStrings.instructions,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -438,7 +427,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                   });
                 },
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Previous'),
+                label: const Text(AppStrings.previous),
               ),
             ),
           
@@ -468,7 +457,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                 }
               },
               icon: Icon(isLastStep ? Icons.check : (_currentStep == 0 ? Icons.install_mobile : Icons.arrow_forward)),
-              label: Text(isLastStep ? 'Got It!' : (_currentStep == 0 ? 'Install Now' : 'Next')),
+              label: Text(isLastStep ? AppStrings.gotIt : (_currentStep == 0 ? AppStrings.installNow : AppStrings.next)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: steps[_currentStep].color,
                 foregroundColor: AppColors.textOnPrimary(context),
@@ -488,7 +477,7 @@ class _InstallGuideDialogState extends State<InstallGuideDialog>
                 Navigator.of(context).pop();
                 widget.onComplete?.call();
               },
-              child: const Text('Skip Guide'),
+              child: const Text(AppStrings.skipGuide),
             ),
           ],
         ],

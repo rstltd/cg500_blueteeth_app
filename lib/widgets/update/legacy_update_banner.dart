@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 
 /// Smart update banner that only shows for truly outdated versions
 /// This bypasses the complex update system and provides direct download
@@ -105,14 +106,14 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'New Version Available: $_targetVersion',
+                  AppStrings.newVersionAvailable(_targetVersion),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.onInfoContainer(context),
                   ),
                 ),
                 Text(
-                  'Tap to download manually from GitHub',
+                  AppStrings.clickToDownloadManually,
                   style: TextStyle(
                     color: AppColors.onInfoContainer(context).withValues(alpha: 0.8),
                     fontSize: 13,
@@ -128,7 +129,7 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
               foregroundColor: AppColors.textOnPrimary(context),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text('Download'),
+            child: const Text(AppStrings.download),
           ),
           const SizedBox(width: 8),
           IconButton(
@@ -157,7 +158,7 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Download the APK file and install manually'),
+              content: const Text(AppStrings.downloadApkManually),
               backgroundColor: AppColors.infoColor(context),
               duration: const Duration(seconds: 4),
             ),
@@ -168,7 +169,7 @@ class _LegacyUpdateBannerState extends State<LegacyUpdateBanner> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Visit: $url'),
+            content: Text(AppStrings.pleaseGoTo(url)),
             backgroundColor: AppColors.warningColor(context),
             duration: const Duration(seconds: 5),
           ),

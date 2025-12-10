@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_header_widget.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Update Available'), findsOneWidget);
+      expect(find.text(AppStrings.updateAvailable), findsOneWidget);
       expect(find.text('Version 2.0.0'), findsOneWidget);
       expect(find.byIcon(Icons.system_update_alt), findsOneWidget);
     });
@@ -52,7 +53,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Update Available'), findsOneWidget);
+      expect(find.text(AppStrings.updateAvailable), findsOneWidget);
       expect(find.byIcon(Icons.system_update_alt), findsOneWidget);
     });
 
@@ -67,7 +68,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Critical Update'), findsOneWidget);
+      expect(find.text(AppStrings.importantUpdateAvailable), findsOneWidget);
       expect(find.byIcon(Icons.security), findsOneWidget);
     });
 
@@ -82,7 +83,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Required Update'), findsOneWidget);
+      expect(find.text(AppStrings.requiredUpdate), findsOneWidget);
       expect(find.byIcon(Icons.system_update), findsOneWidget);
     });
 

@@ -4,6 +4,7 @@ import 'package:cg500_blueteeth_app/controllers/update_logic_manager.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
 import 'package:cg500_blueteeth_app/models/download_progress.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
 /// Helper function to create a test UpdateLogicManager with mock dependencies
@@ -680,14 +681,14 @@ void main() {
         onProgressUpdated: (_, status) => receivedStatuses.add(status),
       );
 
-      mgr.onProgressUpdated?.call(0.5, '中文状态');
+      mgr.onProgressUpdated?.call(0.5, AppStrings.connecting);
       mgr.onProgressUpdated?.call(0.5, 'Status with émojis 🎉');
       mgr.onProgressUpdated?.call(0.5, 'Special: @#\$%^&*()');
       mgr.onProgressUpdated?.call(0.5, '');
       mgr.onProgressUpdated?.call(0.5, '   ');
 
       expect(receivedStatuses.length, 5);
-      expect(receivedStatuses[0], '中文状态');
+      expect(receivedStatuses[0], AppStrings.connecting);
       expect(receivedStatuses[1], 'Status with émojis 🎉');
       mgr.dispose();
     });

@@ -156,6 +156,9 @@ All views now use the ViewModelProvider pattern for state management:
 - **`message_bubble_widget.dart`** - Chat-style message display for BLE communication
 - **`connection_status_widget.dart`** - Connection state and duration display
 
+**Command Components:**
+- **`danger_confirm_dialog.dart`** - Confirmation dialog for dangerous/warning level commands with dynamic colors (orange for warning, red for dangerous)
+
 **Update System Components:**
 - **`update_dialog.dart`** - Main update dialog container
 - **`update_header_widget.dart`** - Update type header with visual indicators
@@ -171,7 +174,10 @@ All views now use the ViewModelProvider pattern for state management:
 - **`animated_widgets.dart`** - Custom animated components (scan buttons, connection status)
 - **`notification_settings_dialog.dart`** - User interface for notification preferences
 
-#### 8. **Utils Layer** (`lib/utils/`)
+#### 8. **Localization Layer** (`lib/l10n/`)
+- **`app_strings.dart`** - Centralized UI string constants for internationalization preparation
+
+#### 9. **Utils Layer** (`lib/utils/`)
 - **`responsive_utils.dart`** - Screen breakpoint management and responsive calculations
 - **`logger.dart`** - Application logging utilities
 
@@ -346,12 +352,14 @@ ViewModelListener<MyViewModel>(
 - **Modern UI Components**: Material Design 3 with animated elements and smooth transitions
 - **Chat-Style Communication**: Message bubbles with timestamps and command history navigation
 - **Theme Management**: Persistent dark/light mode with comprehensive color system
-- **Signal Strength Visualization**: Realistic RSSI thresholds optimized for BLE devices
+- **Signal Strength Visualization**: Realistic RSSI thresholds optimized for BLE devices (based on real-world testing)
 - **Connection Duration Tracking**: Real-time connection time display and statistics
 - **MTU Auto-Configuration**: Automatic 517-byte MTU setting for optimal data transfer
 - **Error Handling System**: Categorized error responses with user-friendly messaging
 - **Animation Framework**: Custom painters for radar effects and status indicators
 - **Automatic Update System**: GitHub Releases integration with in-app update notifications and APK installation
+- **Internationalization Ready**: Centralized UI strings via `AppStrings` class for future multi-language support
+- **Command Danger Levels**: Three-tier danger level system (safe/warning/dangerous) with visual confirmation dialogs
 
 #### **Improved Maintainability:**
 - **Single Responsibility**: Each class focused on specific functionality
@@ -412,11 +420,12 @@ All major features are implemented and functional. The app provides:
 - Automated update system with GitHub Releases integration and modular update dialogs
 - ViewModelProvider pattern for all main views (100% migration complete)
 
-**Test Coverage:** 2173 tests passing
+**Test Coverage:** 2446 tests passing
 - ViewModelProvider core tests: 39 tests
 - ViewModel unit tests: 200+ tests per ViewModel
 - Widget tests: Comprehensive coverage for all UI components
 - Integration tests: BLE controller and service integration
+- Model tests: Comprehensive RSSI threshold and boundary value testing
 
 **Architecture Readiness:**
 The codebase is now ready for:
@@ -488,12 +497,12 @@ bool success = await controller.sendCommand("your command here");
 ```
 
 ### Signal Strength Optimization
-RSSI thresholds optimized for typical BLE operating ranges:
-- Excellent: ≥-40dBm 
-- Very Good: ≥-55dBm
-- Good: ≥-70dBm  
-- Fair: ≥-85dBm
-- Poor: <-85dBm
+RSSI thresholds optimized based on real-world BLE testing (-60 dBm at ~10cm, -80 dBm at ~1m):
+- Excellent: ≥-65dBm (1.0 signal strength)
+- Very Good: ≥-75dBm (0.8 signal strength)
+- Good: ≥-85dBm (0.6 signal strength)
+- Fair: ≥-95dBm (0.4 signal strength)
+- Poor: <-95dBm (0.2 or 0.1 signal strength)
 
 ## Deployment and Release System
 

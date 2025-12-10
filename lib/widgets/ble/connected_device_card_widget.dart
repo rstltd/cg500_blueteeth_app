@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../../views/command_interface_view.dart';
 
@@ -28,7 +29,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
               SizedBox(width: DesignTokens.spacingSM),
               Expanded(
                 child: ResponsiveText(
-                  'Connected',
+                  AppStrings.connected,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppColors.successColor(context),
@@ -52,7 +53,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
           if (device.services.isNotEmpty) ...[
             SizedBox(height: DesignTokens.spacingS),
             ResponsiveText(
-              'Services: ${device.services.length}',
+              '${AppStrings.services}: ${device.services.length}',
               fontSize: 14,
               color: AppColors.textSecondary(context),
             ),
@@ -67,7 +68,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.chat),
-              label: const Text('Open Command Interface'),
+              label: const Text(AppStrings.openCommandInterface),
             ),
           ),
         ],

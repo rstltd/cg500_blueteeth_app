@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../../models/connection_state.dart';
 import '../../utils/formatting_utils.dart';
@@ -32,42 +33,42 @@ class DeviceDetailsDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _InfoRow(label: 'Device ID', value: device.id),
+            _InfoRow(label: AppStrings.deviceId, value: device.id),
             _InfoRow(
-              label: 'Name',
-              value: device.name.isNotEmpty ? device.name : 'Unknown',
+              label: AppStrings.name,
+              value: device.name.isNotEmpty ? device.name : AppStrings.unknown,
             ),
             _InfoRow(
-              label: 'RSSI',
+              label: AppStrings.rssi,
               value: '${device.rssi} dBm (${device.rssiDescription})',
             ),
             _InfoRow(
-              label: 'Connection',
+              label: AppStrings.connectionStatus,
               value: device.connectionState.displayName,
             ),
             if (device.lastSeen != null)
               _InfoRow(
-                label: 'Last Seen',
+                label: AppStrings.lastSeen,
                 value: FormattingUtils.formatDateTime(device.lastSeen!),
               ),
             if (device.connectedAt != null)
               _InfoRow(
-                label: 'Connected At',
+                label: AppStrings.connectedAt,
                 value: FormattingUtils.formatDateTime(device.connectedAt!),
               ),
             if (device.connectionDuration != null)
               _InfoRow(
-                label: 'Duration',
+                label: AppStrings.connectionDuration,
                 value: FormattingUtils.formatDuration(device.connectionDuration!),
               ),
             _InfoRow(
-              label: 'Services',
+              label: AppStrings.services,
               value: '${device.services.length}',
             ),
             if (device.services.isNotEmpty) ...[
               const SizedBox(height: 8),
               const Text(
-                'Services:',
+                AppStrings.servicesList,
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               ...device.services.map(
@@ -83,7 +84,7 @@ class DeviceDetailsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: const Text(AppStrings.close),
         ),
       ],
     );
