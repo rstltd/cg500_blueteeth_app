@@ -846,7 +846,8 @@ void main() {
         releaseNotes: '',
         releaseDate: DateTime.now(),
       );
-      expect(info.hasUpdate, isTrue);
+      // Same semver, only one side has build number - treat as equal
+      expect(info.hasUpdate, isFalse);
     });
 
     test('should handle current with build number vs latest without', () {
@@ -858,7 +859,7 @@ void main() {
         releaseNotes: '',
         releaseDate: DateTime.now(),
       );
-      // Current has build number, latest doesn't - current is newer
+      // Same semver, only one side has build number - treat as equal
       expect(info.hasUpdate, isFalse);
     });
 

@@ -131,29 +131,36 @@ class SimpleReleaseManager:
         print(f"[OK] Version updated to: {new_version}")
         return new_version
 
+    def _run(self, cmd, **kwargs):
+        """Run a subprocess with UTF-8 encoding to avoid cp950 errors on Windows."""
+        kwargs.setdefault('shell', True)
+        kwargs.setdefault('encoding', 'utf-8')
+        kwargs.setdefault('errors', 'replace')
+        return subprocess.run(cmd, **kwargs)
+
     def run_quality_checks(self):
         """Run flutter analyze and flutter test before building."""
         os.chdir(self.project_root)
 
         print("[INFO] Running flutter analyze...")
-        result = subprocess.run(
-            ['flutter', 'analyze'], capture_output=True, text=True, shell=True
+        result = self._run(
+            ['flutter', 'analyze'], capture_output=True
         )
         if result.returncode != 0:
             print(result.stdout)
             print(result.stderr)
-            raise RuntimeError("flutter analyze failed — fix issues before releasing")
+            raise RuntimeError("flutter analyze failed -- fix issues before releasing")
 
         print("[OK] Static analysis passed")
 
         print("[INFO] Running flutter test...")
-        result = subprocess.run(
-            ['flutter', 'test'], capture_output=True, text=True, shell=True
+        result = self._run(
+            ['flutter', 'test'], capture_output=True
         )
         if result.returncode != 0:
             print(result.stdout)
             print(result.stderr)
-            raise RuntimeError("flutter test failed — fix tests before releasing")
+            raise RuntimeError("flutter test failed -- fix tests before releasing")
 
         print("[OK] All tests passed")
 
@@ -165,15 +172,15 @@ class SimpleReleaseManager:
 
         if clean:
             print("[INFO] Cleaning previous builds (--clean flag)...")
-            subprocess.run(['flutter', 'clean'], check=True, shell=True)
+            self._run(['flutter', 'clean'], check=True)
 
-        subprocess.run(['flutter', 'pub', 'get'], check=True, shell=True)
+        self._run(['flutter', 'pub', 'get'], check=True)
 
         # Build APK
         print("[INFO] Building APK (this may take a few minutes)...")
-        result = subprocess.run([
+        result = self._run([
             'flutter', 'build', 'apk', '--release'
-        ], capture_output=True, text=True, shell=True)
+        ], capture_output=True)
 
         if result.returncode != 0:
             raise RuntimeError(f"APK build failed: {result.stderr}")
@@ -224,7 +231,7 @@ class SimpleReleaseManager:
 
         for gh_path in possible_paths:
             try:
-                subprocess.run([gh_path, '--version'], capture_output=True, check=True, shell=True)
+                self._run([gh_path, '--version'], capture_output=True, check=True)
                 return gh_path
             except (subprocess.CalledProcessError, FileNotFoundError):
                 continue
@@ -332,7 +339,7 @@ class SimpleReleaseManager:
             '--notes', release_notes,
         ]
 
-        result = subprocess.run(cmd, cwd=self.project_root, capture_output=True, text=True, shell=True)
+        result = self._run(cmd, cwd=self.project_root, capture_output=True)
 
         if result.returncode != 0:
             raise RuntimeError(f"GitHub release failed: {result.stderr}")
