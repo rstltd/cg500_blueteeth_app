@@ -115,15 +115,10 @@ class UpdateInfo {
           // If build numbers can't be parsed, ignore them
           Logger.debug('Failed to parse build numbers: $e');
         }
-      } else if (v2Build.length > 1) {
-        // Version2 has build number, version1 doesn't - version2 is newer
-        Logger.debug('v2 has build number, v1 doesn\'t -> -1');
-        return -1;
-      } else if (v1Build.length > 1) {
-        // Version1 has build number, version2 doesn't - version1 is newer
-        Logger.debug('v1 has build number, v2 doesn\'t -> 1');
-        return 1;
       }
+      // When only one side has a build number, treat as equal.
+      // This handles the case where GitHub tag is "3.2.0" (no build)
+      // but the app reports "3.2.0+29" (with build number).
 
       Logger.debug('Versions are equal -> 0');
       return 0;
