@@ -58,5 +58,11 @@ create_*.py
 # Root level test dart files (keep test/ directory)
 /test_*.dart
 
+# Claude Code local settings
+.claude/settings.local.json
+
+# Release notes (generated per-release, not tracked)
+release_notes.md
+
 # Deprecated config files
 shorebird.yaml
