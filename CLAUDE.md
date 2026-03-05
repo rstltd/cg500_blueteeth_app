@@ -31,6 +31,17 @@ This is a Flutter mobile application named `cg500_blueteeth_app` - appears to be
 - `python scripts/update_version.py current` - Show current version
 - `python scripts/update_version.py patch` - Increment patch version only (no release)
 
+### Release Notes Workflow (IMPORTANT)
+**Before every release**, AI must generate a user-facing `release_notes.md` file in the project root summarizing all changes since the last release. This file is used by the release script via `--notes-file`.
+
+**Steps:**
+1. Review commits since last tag: `git log $(git describe --tags --abbrev=0)..HEAD --oneline`
+2. Write a clear, user-facing `release_notes.md` (in the project root) with sections like "New Features", "Improvements", "Bug Fixes" as appropriate. Write in English. Do not include commit hashes.
+3. Show the content to the user for approval
+4. User runs: `python scripts/simple_release.py patch --notes-file release_notes.md`
+
+**AI must proactively do this whenever the user asks to release/publish/deploy** — do not wait for the user to ask for release notes separately.
+
 ## Architecture
 
 ### Project Structure

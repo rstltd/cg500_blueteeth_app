@@ -452,7 +452,7 @@ class MockBleService implements BleService {
     return List.generate(
       _discoverServicesCount,
       (index) => BleServiceModel(
-        uuid: '0000180${index}-0000-1000-8000-00805f9b34fb',
+        uuid: '0000180$index-0000-1000-8000-00805f9b34fb',
         displayName: 'Mock Service $index',
         characteristics: [],
       ),
@@ -749,8 +749,8 @@ class MockBleNotificationDelegate extends BleNotificationDelegate {
   final List<String> commandErrors = [];
   int devicesClearedCount = 0;
 
-  MockBleNotificationDelegate(NotificationService notificationService)
-      : super(notificationService, verbosity: BleNotificationVerbosity.verbose);
+  MockBleNotificationDelegate(super.notificationService)
+      : super(verbosity: BleNotificationVerbosity.verbose);
 
   @override
   void onInitializeSuccess() {

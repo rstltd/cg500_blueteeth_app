@@ -33,25 +33,25 @@ class SmartNotificationService extends NotificationService {
   
   // Notification categories (mutable to allow configuration)
   // Using Set.from() to ensure mutable sets
-  static final Set<String> _silentOperations = Set<String>.from([
+  static final Set<String> _silentOperations = <String>{
     'MTU Configured',
     'Command Sent',
     'Communication Ready',
-  ]);
+  };
 
-  static final Set<String> _criticalNotifications = Set<String>.from([
+  static final Set<String> _criticalNotifications = <String>{
     'Connection Failed',
     'Bluetooth Not Supported',
     'Permissions Required',
     'Send Failed',
-  ]);
+  };
 
-  static final Set<String> _debouncedNotifications = Set<String>.from([
+  static final Set<String> _debouncedNotifications = <String>{
     'Connected',
     'Disconnected',
     'Scan Failed',
     'Bluetooth Disabled',
-  ]);
+  };
 
   @override
   Stream<NotificationModel> get notifications => _baseNotificationService.notifications;

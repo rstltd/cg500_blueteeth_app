@@ -50,6 +50,9 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   final List<MessageData> _messages = [];
   MessageFilter _currentFilter = MessageFilter.all;
   String? _executingCommand;
+  bool _isAutoScrollPaused = false;
+  int _unreadCount = 0;
+  static const double _nearBottomThreshold = 50.0;
 
   /// The BLE controller instance.
   BleControllerInterface get controller => _controller;
@@ -66,6 +69,12 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
 
   /// The currently executing command (for loading state).
   String? get executingCommand => _executingCommand;
+
+  /// Whether auto-scroll is paused (user scrolled up).
+  bool get isAutoScrollPaused => _isAutoScrollPaused;
+
+  /// Number of new messages since auto-scroll was paused.
+  int get unreadCount => _unreadCount;
 
   /// Scroll controller for the message list.
   ScrollController get scrollController => _scrollController;
@@ -129,10 +138,13 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     // Initialize parameter storage
     await _parameterStorageService.initialize();
 
+    // Add scroll listener for smart auto-scroll
+    _scrollController.addListener(_onScrollPositionChanged);
+
     // Create command manager with callbacks
     _commandManager = CommandManager(
       controller: _controller,
-      onCommandSent: _scrollToBottom,
+      onCommandSent: _onUserCommandSent,
       onMessageAdded: _onMessageFromCommandManager,
     );
 
@@ -176,14 +188,29 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   /// Add a message to the list.
   void addMessage(MessageData message) {
     _messages.add(message);
-    safeNotifyListeners();
-    _scrollToBottom();
+    if (_isAutoScrollPaused) {
+      _unreadCount++;
+      safeNotifyListeners();
+    } else {
+      safeNotifyListeners();
+      _scrollToBottom();
+    }
   }
 
   /// Clear all messages.
   void clearMessages() {
     _messages.clear();
+    _isAutoScrollPaused = false;
+    _unreadCount = 0;
     safeNotifyListeners();
+  }
+
+  /// Resume auto-scroll, clear unread count, and scroll to bottom.
+  void resumeAutoScroll() {
+    _isAutoScrollPaused = false;
+    _unreadCount = 0;
+    safeNotifyListeners();
+    _scrollToBottom();
   }
 
   /// Send the current command or a specific command text.
@@ -243,6 +270,29 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     }
   }
 
+  void _onScrollPositionChanged() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final isNearBottom =
+        position.pixels >= position.maxScrollExtent - _nearBottomThreshold;
+
+    if (isNearBottom && _isAutoScrollPaused) {
+      _isAutoScrollPaused = false;
+      _unreadCount = 0;
+      safeNotifyListeners();
+    } else if (!isNearBottom && !_isAutoScrollPaused) {
+      _isAutoScrollPaused = true;
+      safeNotifyListeners();
+    }
+  }
+
+  void _onUserCommandSent() {
+    _isAutoScrollPaused = false;
+    _unreadCount = 0;
+    safeNotifyListeners();
+    _scrollToBottom();
+  }
+
   void _scrollToBottom() {
     // Use post-frame callback to ensure layout is complete
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -259,6 +309,7 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   @override
   void onDispose() {
     _commandManager.dispose();
+    _scrollController.removeListener(_onScrollPositionChanged);
     _scrollController.dispose();
     super.onDispose();
   }

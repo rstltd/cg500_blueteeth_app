@@ -226,6 +226,12 @@ abstract class AppStrings {
   /// Initializing command interface
   static const String initializingCommandInterface = '正在初始化指令介面...';
 
+  /// New messages indicator
+  static String newMessages(int count) => '$count 則新訊息';
+
+  /// Scroll to bottom tooltip
+  static const String scrollToBottom = '捲動到底部';
+
   // ============================================================
   // Command Feedback
   // ============================================================

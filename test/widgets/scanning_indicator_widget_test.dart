@@ -8,7 +8,6 @@ import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
-import 'package:cg500_blueteeth_app/services/smart_notification_service.dart';
 import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 /// Mock BLE Service for testing

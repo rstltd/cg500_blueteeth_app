@@ -3,15 +3,18 @@ import 'package:flutter/services.dart';
 import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 
-/// A reusable message bubble widget for chat-style communication
-class MessageBubbleWidget extends StatelessWidget {
+/// A compact log entry widget for terminal-style communication display.
+///
+/// Layout per row (~30px height):
+/// [HH:mm:ss]  [arrow] [TYPE]  [message text...]
+class LogEntryWidget extends StatelessWidget {
   final Map<String, dynamic> message;
-  final bool showTimestamp;
+  final int index;
 
-  const MessageBubbleWidget({
+  const LogEntryWidget({
     super.key,
     required this.message,
-    this.showTimestamp = true,
+    this.index = 0,
   });
 
   @override
@@ -21,194 +24,87 @@ class MessageBubbleWidget extends StatelessWidget {
     final String text = message['text'] ?? '';
     final DateTime timestamp = message['timestamp'] ?? DateTime.now();
 
-    return Container(
-      margin: EdgeInsets.symmetric(
-        vertical: DesignTokens.spacingXS,
-        horizontal: DesignTokens.spacingSM,
-      ),
-      child: Column(
-        crossAxisAlignment: isCommand ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          _buildMessageBubble(context, text, isCommand, isError),
-          if (showTimestamp) _buildTimestamp(context, timestamp, isCommand),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(BuildContext context, String text, bool isCommand, bool isError) {
-    final isDesktop = ResponsiveUtils.isDesktop(context);
-    final maxWidth = ResponsiveUtils.getCardMaxWidth(context) * 0.8;
-
     return GestureDetector(
       onLongPress: () => _copyToClipboard(context, text),
       child: Container(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        padding: EdgeInsets.all(isDesktop ? DesignTokens.spacingM : DesignTokens.spacingSM),
-        decoration: _getBubbleDecoration(context, isCommand, isError),
-        child: Column(
+        padding: EdgeInsets.symmetric(
+          vertical: DesignTokens.spacingXS,
+          horizontal: DesignTokens.spacingS,
+        ),
+        color: index.isEven
+            ? Colors.transparent
+            : AppColors.backgroundGradientStart(context).withValues(alpha: 0.3),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isCommand)
-              _buildCommandHeader(context)
-            else if (isError)
-              _buildErrorHeader(context)
-            else
-              _buildResponseHeader(context),
-            _buildMessageText(context, text, isCommand, isError),
+            // Timestamp
+            Text(
+              _formatTimestamp(timestamp),
+              style: TextStyle(
+                fontSize: 12,
+                fontFamily: 'monospace',
+                color: AppColors.textSecondary(context),
+              ),
+            ),
+            SizedBox(width: DesignTokens.spacingS),
+            // Type indicator
+            _buildTypeIndicator(context, isCommand, isError),
+            SizedBox(width: DesignTokens.spacingS),
+            // Message text
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'monospace',
+                  color: isError
+                      ? AppColors.errorColor(context)
+                      : AppColors.textPrimary(context),
+                  height: 1.3,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCommandHeader(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: DesignTokens.spacingXS),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.send,
-            size: DesignTokens.fontM,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-          SizedBox(width: DesignTokens.spacingXS),
-          Text(
-            AppStrings.command,
-            style: AppTextStyles.captionSmall(context).copyWith(
-              fontWeight: FontWeight.w500,
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildTypeIndicator(
+      BuildContext context, bool isCommand, bool isError) {
+    final String arrow;
+    final String label;
+    final Color color;
 
-  Widget _buildErrorHeader(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: DesignTokens.spacingXS),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: DesignTokens.fontM,
-            color: AppColors.errorColor(context),
-          ),
-          SizedBox(width: DesignTokens.spacingXS),
-          Text(
-            '錯誤',
-            style: AppTextStyles.captionSmall(context).copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.errorColor(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildResponseHeader(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: DesignTokens.spacingXS),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.arrow_back,
-            size: DesignTokens.fontM,
-            color: AppColors.successColor(context),
-          ),
-          SizedBox(width: DesignTokens.spacingXS),
-          Text(
-            '回應',
-            style: AppTextStyles.captionSmall(context).copyWith(
-              fontWeight: FontWeight.w500,
-              color: AppColors.successColor(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageText(BuildContext context, String text, bool isCommand, bool isError) {
-    return SelectableText(
-      text,
-      style: TextStyle(
-        fontSize: ResponsiveUtils.getFontSize(context, base: 14),
-        color: _getTextColor(context, isCommand, isError),
-        fontFamily: text.contains(RegExp(r'[0-9A-Fa-f]{2,}')) ? 'monospace' : null,
-        height: 1.4,
-      ),
-    );
-  }
-
-  Widget _buildTimestamp(BuildContext context, DateTime timestamp, bool isCommand) {
-    return Container(
-      margin: EdgeInsets.only(
-        top: DesignTokens.spacingXS,
-        left: isCommand ? 0 : DesignTokens.spacingS,
-        right: isCommand ? DesignTokens.spacingS : 0,
-      ),
-      child: Text(
-        _formatTimestamp(timestamp),
-        style: AppTextStyles.captionSmall(context),
-      ),
-    );
-  }
-
-  BoxDecoration _getBubbleDecoration(BuildContext context, bool isCommand, bool isError) {
     if (isError) {
-      return BoxDecoration(
-        color: AppColors.errorContainer(context),
-        borderRadius: DesignTokens.borderRadiusL,
-        border: Border.all(color: AppColors.errorBorder(context)),
-      );
+      arrow = 'x';
+      label = 'ERR';
+      color = AppColors.errorColor(context);
+    } else if (isCommand) {
+      arrow = '->';
+      label = 'CMD';
+      color = AppColors.infoColor(context);
+    } else {
+      arrow = '<-';
+      label = 'RSP';
+      color = AppColors.successColor(context);
     }
 
-    if (isCommand) {
-      return BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.commandGradientStart(context),
-            AppColors.commandGradientEnd(context),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: DesignTokens.borderRadiusL,
-        boxShadow: DesignTokens.cardShadow(context),
-      );
-    }
-
-    return BoxDecoration(
-      color: AppColors.backgroundGradientStart(context),
-      borderRadius: DesignTokens.borderRadiusL,
-      border: Border.all(color: AppColors.borderColor(context)),
-      boxShadow: DesignTokens.subtleShadow(context),
+    return Text(
+      '$arrow $label',
+      style: TextStyle(
+        fontSize: 12,
+        fontFamily: 'monospace',
+        fontWeight: FontWeight.w600,
+        color: color,
+      ),
     );
-  }
-
-  Color _getTextColor(BuildContext context, bool isCommand, bool isError) {
-    if (isError) return AppColors.onErrorContainer(context);
-    if (isCommand) return Colors.white;
-    return AppColors.textPrimary(context);
   }
 
   String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inDays > 0) {
-      return '${timestamp.day}/${timestamp.month} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inHours > 0) {
-      return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
-    } else {
-      return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
-    }
+    return '${timestamp.hour.toString().padLeft(2, '0')}:'
+        '${timestamp.minute.toString().padLeft(2, '0')}:'
+        '${timestamp.second.toString().padLeft(2, '0')}';
   }
 
   void _copyToClipboard(BuildContext context, String text) {
@@ -218,23 +114,22 @@ class MessageBubbleWidget extends StatelessWidget {
         content: const Text('已複製訊息到剪貼簿'),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusS),
+        shape:
+            RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusS),
       ),
     );
   }
 }
 
-/// A widget that displays a list of message bubbles with auto-scrolling
+/// A widget that displays a list of log entries.
 class MessageListWidget extends StatefulWidget {
   final List<Map<String, dynamic>> messages;
   final ScrollController? scrollController;
-  final bool autoScroll;
 
   const MessageListWidget({
     super.key,
     required this.messages,
     this.scrollController,
-    this.autoScroll = true,
   });
 
   @override
@@ -251,24 +146,6 @@ class _MessageListWidgetState extends State<MessageListWidget> {
   }
 
   @override
-  void didUpdateWidget(MessageListWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.autoScroll && widget.messages.length > oldWidget.messages.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-    }
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     if (widget.messages.isEmpty) {
       return _buildEmptyState(context);
@@ -279,8 +156,9 @@ class _MessageListWidgetState extends State<MessageListWidget> {
       padding: DesignTokens.paddingS,
       itemCount: widget.messages.length,
       itemBuilder: (context, index) {
-        return MessageBubbleWidget(
+        return LogEntryWidget(
           message: widget.messages[index],
+          index: index,
         );
       },
     );

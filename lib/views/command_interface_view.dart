@@ -286,14 +286,60 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
                 borderRadius: DesignTokens.borderRadiusM,
                 border: Border.all(color: AppColors.borderColor(context)),
               ),
-              child: MessageListWidget(
-                messages: messageMaps,
-                scrollController: viewModel.scrollController,
-                autoScroll: viewModel.currentFilter == MessageFilter.all,
+              child: Stack(
+                children: [
+                  MessageListWidget(
+                    messages: messageMaps,
+                    scrollController: viewModel.scrollController,
+                  ),
+                  if (viewModel.isAutoScrollPaused &&
+                      viewModel.unreadCount > 0)
+                    Positioned(
+                      bottom: DesignTokens.spacingS,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: _buildNewMessageIndicator(context),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNewMessageIndicator(BuildContext context) {
+    return GestureDetector(
+      onTap: viewModel.resumeAutoScroll,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingSM,
+          vertical: DesignTokens.spacingXS,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.infoColor(context),
+          borderRadius: DesignTokens.borderRadiusL,
+          boxShadow: DesignTokens.cardShadow(context),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.arrow_downward,
+                size: 14, color: Colors.white),
+            SizedBox(width: DesignTokens.spacingXS),
+            Text(
+              AppStrings.newMessages(viewModel.unreadCount),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
