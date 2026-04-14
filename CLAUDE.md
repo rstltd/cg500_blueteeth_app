@@ -110,9 +110,7 @@ Configured in `android/app/src/main/AndroidManifest.xml`:
 
 The application follows an MVC (Model-View-Controller) architecture enhanced with MVVM (Model-View-ViewModel) pattern for Views. This hybrid approach provides:
 - **MVC**: Overall application structure with Services and Controllers
-- **MVVM**: View-specific state management via ViewModelProvider pattern
-
-**Migration Status: 100% Complete** - All main views have been migrated to ViewModelProvider pattern.
+- **MVVM**: View-specific state management via the in-house `ViewModelProvider` pattern (`lib/core/view_model/`); all main views use it.
 
 ### Architecture Layers:
 
@@ -149,10 +147,9 @@ The application follows an MVC (Model-View-Controller) architecture enhanced wit
 - **`update_settings_view_model.dart`** - ViewModel for update settings with preferences management
 
 #### 6. **Views Layer** (`lib/views/`)
-All views now use the ViewModelProvider pattern for state management:
-- **`simple_scanner_view.dart`** - Responsive BLE scanner with ViewModelProvider (uses SimpleScannerViewModel)
-- **`command_interface_view.dart`** - Chat-style command interface with ViewModelProvider (uses CommandInterfaceViewModel)
-- **`update_settings_view.dart`** - Update preferences management with ViewModelProvider (uses UpdateSettingsViewModel)
+- **`simple_scanner_view.dart`** — BLE scanner (uses `SimpleScannerViewModel`)
+- **`command_interface_view.dart`** — Chat-style command interface (uses `CommandInterfaceViewModel`)
+- **`update_settings_view.dart`** — Update preferences (uses `UpdateSettingsViewModel`)
 
 #### 7. **Widgets Layer** (`lib/widgets/`)
 **Scanner Components:**
@@ -356,22 +353,6 @@ ViewModelListener<MyViewModel>(
 - **Widgets**: Focused, reusable UI components following single responsibility principle
 - **Utils**: Pure utility functions and helper classes for common operations
 
-#### **Enhanced Features:**
-- **Nordic UART Service**: Standard BLE UART communication protocol with proper UUID mapping
-- **Smart Notification Filtering**: Debounced notifications with duplicate prevention and unified verbosity control
-- **Responsive Design System**: Adaptive layouts with mobile/tablet/desktop breakpoints
-- **Modern UI Components**: Material Design 3 with animated elements and smooth transitions
-- **Chat-Style Communication**: Message bubbles with timestamps and command history navigation
-- **Theme Management**: Persistent dark/light mode with comprehensive color system
-- **Signal Strength Visualization**: Realistic RSSI thresholds optimized for BLE devices (based on real-world testing)
-- **Connection Duration Tracking**: Real-time connection time display and statistics
-- **MTU Auto-Configuration**: Automatic 517-byte MTU setting for optimal data transfer
-- **Error Handling System**: Categorized error responses with user-friendly messaging
-- **Animation Framework**: Custom painters for radar effects and status indicators
-- **Automatic Update System**: GitHub Releases integration with in-app update notifications and APK installation
-- **Internationalization Ready**: Centralized UI strings via `AppStrings` class for future multi-language support
-- **Command Danger Levels**: Three-tier danger level system (safe/warning/dangerous) with visual confirmation dialogs
-
 #### **Improved Maintainability:**
 - **Single Responsibility**: Each class focused on specific functionality
 - **Dependency Injection**: Loosely coupled components
@@ -389,63 +370,8 @@ The codebase follows strict single responsibility principles with highly modular
 - Models encapsulate data and state management
 - This architecture enables easy testing, maintenance, and feature additions
 
-#### **Refactoring Standards:**
-Recent comprehensive refactoring phases have achieved:
-- **Phase 1**: `command_interface_view.dart` (1150→948 lines, 17.5% reduction)
-- **Phase 2**: `simple_scanner_view.dart` (849→472 lines, 44.4% reduction)
-- **Phase 3**: `update_dialog.dart` (839→175 lines, 79.1% reduction)
-
-This demonstrates the effectiveness of extracting focused, reusable components that follow single responsibility principle.
-
-#### **Mid-Term Architecture Improvements (Completed):**
-1. **Unified ResponsiveLayout Usage**
-   - `responsive_layout.dart` re-exports `responsive_utils.dart` and `app_colors.dart`
-   - Simplified imports across widget and view files
-   - Single import for all responsive utilities
-
-2. **ViewModelProvider Pattern (100% Complete)**
-   - Custom lightweight MVVM implementation without external dependencies
-   - Automatic lifecycle management (init, dispose, stream subscriptions)
-   - Built-in loading/error state handling
-   - Compatible with existing Service Locator (GetIt)
-   - All main views now use this pattern
-
-#### **View Migrations (Completed):**
-All main views have been successfully migrated to the ViewModelProvider pattern:
-
-| View | ViewModel | Status |
-|------|-----------|--------|
-| `simple_scanner_view.dart` | `SimpleScannerViewModel` | ✅ Completed |
-| `command_interface_view.dart` | `CommandInterfaceViewModel` | ✅ Completed |
-| `update_settings_view.dart` | `UpdateSettingsViewModel` | ✅ Completed |
-
-Migration benefits achieved: Cleaner separation of concerns, automatic subscription cleanup, testable ViewModels, consistent state management patterns.
-
-#### **Current Status:**
-All major features are implemented and functional. The app provides:
-- Professional BLE device scanning and management with modular UI components
-- Real-time text command communication via Nordic UART Service
-- Intelligent user notification system with spam prevention
-- Multi-platform responsive design with breakpoint-based layouts
-- Comprehensive error handling and user feedback systems
-- Automated update system with GitHub Releases integration and modular update dialogs
-- ViewModelProvider pattern for all main views (100% migration complete)
-
-**Test Coverage:** 2446 tests passing
-- ViewModelProvider core tests: 39 tests
-- ViewModel unit tests: 200+ tests per ViewModel
-- Widget tests: Comprehensive coverage for all UI components
-- Integration tests: BLE controller and service integration
-- Model tests: Comprehensive RSSI threshold and boundary value testing
-
-**Architecture Readiness:**
-The codebase is now ready for:
-- UI redesign / theme customization
-- New feature development
-- Existing feature modifications
-- Performance optimizations
-
-All views follow consistent patterns, making changes predictable and testable.
+#### **Conventions:**
+- `lib/widgets/common/responsive_layout.dart` re-exports `responsive_utils.dart` and `app_colors.dart` — single import for all responsive utilities.
 
 ## BLE Usage Guide
 
@@ -506,6 +432,13 @@ await controller.initialize();
 await controller.connectToDevice(deviceId);
 bool success = await controller.sendCommand("your command here");
 ```
+
+### BLE Response Reassembly (BleMessageAssembler)
+CG500 device responses are `\r\n` line-terminated and frequently span multiple BLE notifications. Long responses like `$INFO`, `$SHOWP`, `$CMD`, and the `$DEBUG` GPS stream exceed `MTU - 3` (~514 bytes) and arrive as several chunks that must be reassembled into logical messages.
+
+- **Never decode `characteristic.lastValueStream` chunks directly** — feed them into `BleMessageAssembler` (`lib/services/ble_message_assembler.dart`).
+- The assembler emits **one message per `\r\n` / `\n` line** (line drain has zero-delay), with a **50ms quiet-timeout fallback** for un-delimited streaming output and a **4KB overflow safety flush**. UTF-8 is decoded with `allowMalformed: true` so multi-byte codepoints split across chunk boundaries do not throw.
+- When re-subscribing to the TX characteristic on reconnect, **always `await _responseSubscription?.cancel()` and `_assembler?.dispose()` first**. The previous broadcast subscription is not auto-cancelled when the field is overwritten — leaking it causes N-fold duplicate emissions.
 
 ### Signal Strength Optimization
 RSSI thresholds optimized based on real-world BLE testing (-60 dBm at ~10cm, -80 dBm at ~1m):
@@ -588,6 +521,7 @@ flutter run -t test_permissions.dart
 - **Preference Fallback Logic**: Always use non-restrictive fallbacks (allow mobile data) when settings are loading
 - **Setting Synchronization**: Call `updateService.updatePreferences(prefs)` after any UI setting changes
 - **Permission Handling**: Check both legacy and Android 8.0+ unknown sources permissions
+- **Diagnostic Logging in Release Builds**: `Logger.ble` / `debug` / `command` / `info` are silent in release because `_currentLogLevel = kDebugMode ? _debugLevel : _errorLevel`. For traces that must work in production (e.g. capturing user-reported BLE bugs), use `Logger.diagnostic()` and toggle `Logger.diagnosticEnabled = true`. The diagnostic channel is used by `BleMessageAssembler` to log raw hex chunks and by the `addMessage` dedup guard in `CommandInterfaceViewModel`.
 
 #### Documentation References:
 - WiFi-only fix details: `WIFI_ONLY_FIX.md`
