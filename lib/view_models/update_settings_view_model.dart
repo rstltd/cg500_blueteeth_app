@@ -1,7 +1,9 @@
 import '../services/update_service.dart';
 import '../services/network_service.dart';
+import '../services/role_service.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
+import '../models/role/user_role.dart';
 import '../models/update_preferences.dart';
 
 /// ViewModel for the Update Settings View.
@@ -29,14 +31,18 @@ class UpdateSettingsViewModel extends BaseViewModel {
   UpdateSettingsViewModel({
     UpdateService? updateService,
     NetworkService? networkService,
+    RoleService? roleService,
   })  : _injectedUpdateService = updateService,
-        _injectedNetworkService = networkService;
+        _injectedNetworkService = networkService,
+        _injectedRoleService = roleService;
 
   final UpdateService? _injectedUpdateService;
   final NetworkService? _injectedNetworkService;
+  final RoleService? _injectedRoleService;
 
   late final UpdateService _updateService;
   late final NetworkService _networkService;
+  late final RoleService _roleService;
 
   UpdatePreferences? _preferences;
   NetworkStatus _networkStatus = NetworkStatus.unknown;
@@ -75,6 +81,7 @@ class UpdateSettingsViewModel extends BaseViewModel {
     _updateService = _injectedUpdateService ?? getIt<UpdateService>();
     _networkService =
         _injectedNetworkService ?? getIt<NetworkService>();
+    _roleService = _injectedRoleService ?? getIt<RoleService>();
 
     // Subscribe to network status changes
     subscribe<NetworkStatus>(
@@ -82,11 +89,28 @@ class UpdateSettingsViewModel extends BaseViewModel {
       _onNetworkStatusChanged,
     );
 
+    // Subscribe to role changes so the developer-mode switch reflects
+    // the current state immediately after unlock or disable.
+    subscribe<UserRole>(
+      _roleService.roleStream,
+      (_) => safeNotifyListeners(),
+    );
+
     // Set initial network status
     _networkStatus = _networkService.currentStatus;
 
     // Load preferences
     await _loadPreferences();
+  }
+
+  // --- Developer Mode ---
+
+  /// Whether the app is currently in developer mode.
+  bool get isDeveloperMode => _roleService.currentRole.isDeveloper;
+
+  /// Leave developer mode. No password required.
+  void disableDeveloperMode() {
+    _roleService.disableDeveloperMode();
   }
 
   void _onNetworkStatusChanged(NetworkStatus status) {

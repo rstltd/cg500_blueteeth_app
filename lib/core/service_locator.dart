@@ -17,7 +17,9 @@ import '../services/install_manager.dart';
 import '../services/theme_service.dart';
 import '../services/error_handling_service.dart';
 import '../services/command_parameter_storage_service.dart';
+import '../services/role_service.dart';
 import '../repositories/command_repository.dart';
+import '../repositories/role_aware_command_repository.dart';
 import '../controllers/simple_ble_controller.dart';
 import '../controllers/app_update_manager.dart';
 
@@ -69,9 +71,18 @@ Future<void> setupServiceLocator() async {
     () => CommandParameterStorageService(),
   );
 
-  // CommandRepository - device command definitions
+  // RoleService - tracks current user role and password hash
+  getIt.registerLazySingleton<RoleService>(
+    () => RoleService(),
+  );
+
+  // CommandRepository - device command definitions, wrapped with role-aware
+  // filtering. Field operators (normal mode) only see the whitelist.
   getIt.registerLazySingleton<CommandRepositoryInterface>(
-    () => CommandRepository(),
+    () => RoleAwareCommandRepository(
+      inner: CommandRepository(),
+      roleService: getIt<RoleService>(),
+    ),
   );
 
   // ============================================
@@ -188,6 +199,7 @@ void setupTestServiceLocator({
   AppUpdateManager? mockAppUpdateManager,
   CommandParameterStorageService? mockCommandParameterStorageService,
   CommandRepositoryInterface? mockCommandRepository,
+  RoleService? mockRoleService,
 }) {
   // Register mock services if provided, otherwise use defaults
   if (mockNetworkService != null) {
@@ -242,6 +254,10 @@ void setupTestServiceLocator({
 
   if (mockCommandRepository != null) {
     getIt.registerSingleton<CommandRepositoryInterface>(mockCommandRepository);
+  }
+
+  if (mockRoleService != null) {
+    getIt.registerSingleton<RoleService>(mockRoleService);
   }
 
   _isInitialized = true;

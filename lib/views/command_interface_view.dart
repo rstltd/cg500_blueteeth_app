@@ -350,6 +350,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
       commandManager: viewModel.commandManager,
       onSendCommand: viewModel.sendCommand,
       onNavigateHistory: viewModel.navigateHistory,
+      canManualInput: viewModel.canManualInput,
     );
   }
 

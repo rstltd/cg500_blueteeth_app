@@ -18,12 +18,18 @@ class CommandInputPanelWidget extends StatelessWidget {
     required this.commandManager,
     required this.onSendCommand,
     required this.onNavigateHistory,
+    this.canManualInput = true,
   });
 
   final BleControllerInterface controller;
   final CommandManager commandManager;
   final VoidCallback onSendCommand;
   final void Function(bool up) onNavigateHistory;
+
+  /// Whether manual command input is permitted for the current user role.
+  /// When false, the text field, send button, and history navigation are
+  /// fully disabled even if the device is connected.
+  final bool canManualInput;
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +55,23 @@ class CommandInputPanelWidget extends StatelessWidget {
           final isConnected =
               snapshot.hasData || controller.connectedDevice != null;
           final commandInfo = controller.getCommandInfo();
-          final canSendCommands =
-              isConnected && (commandInfo['hasCommandChannel'] ?? false);
+          final hasChannel = commandInfo['hasCommandChannel'] ?? false;
+          final canSendCommands = isConnected && hasChannel && canManualInput;
+
+          // Disabled-state hint depends on WHY input is blocked: connection
+          // first, then role.
+          final String disabledHint = !isConnected
+              ? AppStrings.connectToSendCommands
+              : !canManualInput
+                  ? AppStrings.needDeveloperMode
+                  : AppStrings.connectToSendCommands;
 
           return Column(
             children: [
               _CommandInputRow(
                 commandManager: commandManager,
                 canSendCommands: canSendCommands,
+                disabledHint: disabledHint,
                 onSendCommand: onSendCommand,
               ),
               if (commandManager.commandHistory.isNotEmpty) ...[
@@ -80,11 +95,13 @@ class _CommandInputRow extends StatelessWidget {
   const _CommandInputRow({
     required this.commandManager,
     required this.canSendCommands,
+    required this.disabledHint,
     required this.onSendCommand,
   });
 
   final CommandManager commandManager;
   final bool canSendCommands;
+  final String disabledHint;
   final VoidCallback onSendCommand;
 
   @override
@@ -95,6 +112,7 @@ class _CommandInputRow extends StatelessWidget {
           child: _CommandTextField(
             controller: commandManager.textController,
             canSendCommands: canSendCommands,
+            disabledHint: disabledHint,
             onSubmitted: onSendCommand,
           ),
         ),
@@ -113,11 +131,13 @@ class _CommandTextField extends StatelessWidget {
   const _CommandTextField({
     required this.controller,
     required this.canSendCommands,
+    required this.disabledHint,
     required this.onSubmitted,
   });
 
   final TextEditingController controller;
   final bool canSendCommands;
+  final String disabledHint;
   final VoidCallback onSubmitted;
 
   @override
@@ -136,9 +156,8 @@ class _CommandTextField extends StatelessWidget {
         controller: controller,
         enabled: canSendCommands,
         decoration: InputDecoration(
-          hintText: canSendCommands
-              ? AppStrings.enterCommand
-              : AppStrings.connectToSendCommands,
+          hintText:
+              canSendCommands ? AppStrings.enterCommand : disabledHint,
           hintStyle: TextStyle(
             color: Colors.grey.shade500,
           ),

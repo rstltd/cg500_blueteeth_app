@@ -190,6 +190,68 @@ abstract class AppStrings {
   /// Command input placeholder (disconnected)
   static const String connectToSendCommands = '連接裝置以發送指令';
 
+  /// Command input placeholder (connected but not in developer mode)
+  static const String needDeveloperMode = '需開啟開發者模式才能手動輸入指令';
+
+  // ============================================================
+  // Developer Mode (Role-based access control)
+  // ============================================================
+
+  /// Developer mode section title
+  static const String developerMode = '開發者模式';
+
+  /// Developer mode subtitle when enabled
+  static const String developerModeEnabled = '已啟用 — 顯示全部指令並開放手動輸入';
+
+  /// Developer mode subtitle when disabled
+  static const String developerModeDisabled = '一般模式 — 僅顯示基本設備指令';
+
+  /// Password dialog title
+  static const String enterDeveloperPassword = '輸入開發者密碼';
+
+  /// Password field hint
+  static const String passwordHint = '密碼';
+
+  /// Incorrect password error
+  static const String incorrectPassword = '密碼錯誤';
+
+  /// Forgot password link
+  static const String forgotPassword = '忘記密碼？';
+
+  /// Forgot password confirm dialog title
+  static const String forgotPasswordTitle = '重設為預設密碼？';
+
+  /// Forgot password confirm dialog body
+  static const String forgotPasswordBody =
+      '此動作會清除目前的自訂密碼，恢復成出廠預設密碼。其他設定不會被影響。';
+
+  /// Password reset success snackbar
+  static const String passwordResetSuccess = '已重設為預設密碼，請以預設密碼登入';
+
+  /// Change password menu item / dialog title
+  static const String changePasswordTitle = '修改開發者密碼';
+
+  /// Old password field hint
+  static const String oldPasswordHint = '舊密碼';
+
+  /// New password field hint
+  static const String newPasswordHint = '新密碼';
+
+  /// Confirm new password field hint
+  static const String confirmNewPasswordHint = '再次輸入新密碼';
+
+  /// New password too short error
+  static const String passwordTooShort = '密碼長度至少 4 字元';
+
+  /// New password mismatch error
+  static const String passwordMismatch = '兩次輸入的新密碼不一致';
+
+  /// Change password success
+  static const String changePasswordSuccess = '密碼已更新';
+
+  /// Confirm button text (generic)
+  static const String confirm = '確定';
+
   /// Previous command tooltip
   static const String previousCommand = '上一個指令';
 

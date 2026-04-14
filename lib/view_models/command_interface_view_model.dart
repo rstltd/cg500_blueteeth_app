@@ -6,6 +6,8 @@ import '../core/interfaces/command_repository_interface.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/command/command.dart';
+import '../models/role/user_role.dart';
+import '../services/role_service.dart';
 import '../utils/logger.dart';
 import '../widgets/message/message_filter_widget.dart';
 
@@ -164,7 +166,20 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
       _controller.commandResponseStream,
       _onCommandResponse,
     );
+
+    // Subscribe to role changes so the command list and input panel
+    // re-render whenever the user enters or leaves developer mode.
+    subscribe<UserRole>(
+      getIt<RoleService>().roleStream,
+      (_) => safeNotifyListeners(),
+    );
   }
+
+  /// Whether the user is allowed to type commands manually.
+  ///
+  /// Manual input is reserved for developer mode — field operators in
+  /// normal mode can only send the whitelisted commands via the menu.
+  bool get canManualInput => getIt<RoleService>().currentRole.isDeveloper;
 
   Future<void> _ensureControllerInitialized() async {
     if (!_controller.isInitialized) {

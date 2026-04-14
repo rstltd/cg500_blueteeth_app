@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
+import 'package:cg500_blueteeth_app/services/role_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/view_models/update_settings_view_model.dart';
 
@@ -53,6 +54,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         expect(viewModel.isInitialized, isFalse);
@@ -68,6 +70,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -83,6 +86,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -104,6 +108,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -119,6 +124,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -137,6 +143,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -154,6 +161,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -172,6 +180,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -190,6 +199,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -214,6 +224,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -235,6 +246,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -259,6 +271,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -288,6 +301,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -312,6 +326,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -336,6 +351,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -355,6 +371,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -368,6 +385,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
@@ -383,6 +401,7 @@ void main() {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
+          roleService: RoleService(),
         );
 
         await viewModel.initialize();
