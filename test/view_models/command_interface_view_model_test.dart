@@ -142,6 +142,72 @@ void main() {
       expect(vm.unreadCount, 0);
     });
 
+    test('addMessage suppresses near-simultaneous duplicate responses', () {
+      final vm = CommandInterfaceViewModel(
+        controller: mockController,
+        commandRepository: mockRepo,
+        parameterStorageService: mockStorage,
+      );
+
+      // Two identical responses within the 50ms dedup window → only one kept.
+      vm.addMessage(MessageData(
+        text: 'OK',
+        isCommand: false,
+        timestamp: DateTime.now(),
+      ));
+      vm.addMessage(MessageData(
+        text: 'OK',
+        isCommand: false,
+        timestamp: DateTime.now(),
+      ));
+      expect(vm.messageCount, 1);
+    });
+
+    test('addMessage does not dedup commands, only responses', () {
+      final vm = CommandInterfaceViewModel(
+        controller: mockController,
+        commandRepository: mockRepo,
+        parameterStorageService: mockStorage,
+      );
+
+      // Two identical *commands* (user input) must both be kept even if
+      // sent back-to-back — dedup is response-only defense.
+      vm.addMessage(MessageData(
+        text: r'$INFO',
+        isCommand: true,
+        timestamp: DateTime.now(),
+      ));
+      vm.addMessage(MessageData(
+        text: r'$INFO',
+        isCommand: true,
+        timestamp: DateTime.now(),
+      ));
+      expect(vm.messageCount, 2);
+    });
+
+    test('addMessage allows identical responses after dedup window elapses',
+        () async {
+      final vm = CommandInterfaceViewModel(
+        controller: mockController,
+        commandRepository: mockRepo,
+        parameterStorageService: mockStorage,
+      );
+
+      vm.addMessage(MessageData(
+        text: 'OK',
+        isCommand: false,
+        timestamp: DateTime.now(),
+      ));
+      // Wait past the 50ms dedup window.
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      vm.addMessage(MessageData(
+        text: 'OK',
+        isCommand: false,
+        timestamp: DateTime.now(),
+      ));
+      expect(vm.messageCount, 2);
+    });
+
     test('clearMessages resets scroll state', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,

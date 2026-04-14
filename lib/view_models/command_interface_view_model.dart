@@ -54,6 +54,14 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   int _unreadCount = 0;
   static const double _nearBottomThreshold = 50.0;
 
+  // Defense-in-depth dedup state: suppress near-simultaneous identical
+  // response messages, which would otherwise slip through if any upstream
+  // layer (e.g. orphaned BLE subscription) double-emits. The window is
+  // tight (50ms) so legitimate repeats stay visible.
+  MessageData? _lastResponseMessage;
+  DateTime? _lastResponseAt;
+  static const Duration _responseDedupWindow = Duration(milliseconds: 50);
+
   /// The BLE controller instance.
   BleControllerInterface get controller => _controller;
 
@@ -187,6 +195,21 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
 
   /// Add a message to the list.
   void addMessage(MessageData message) {
+    if (!message.isCommand &&
+        _lastResponseMessage != null &&
+        _lastResponseAt != null &&
+        _lastResponseMessage!.text == message.text &&
+        DateTime.now().difference(_lastResponseAt!) < _responseDedupWindow) {
+      Logger.diagnostic(
+        '[DEDUP] Suppressed near-simultaneous duplicate response: ${message.text}',
+      );
+      return;
+    }
+    if (!message.isCommand) {
+      _lastResponseMessage = message;
+      _lastResponseAt = DateTime.now();
+    }
+
     _messages.add(message);
     if (_isAutoScrollPaused) {
       _unreadCount++;

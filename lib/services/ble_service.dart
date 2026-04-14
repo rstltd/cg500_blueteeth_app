@@ -5,6 +5,7 @@ import '../models/ble_device.dart';
 import '../models/ble_service.dart';
 import '../models/connection_state.dart';
 import '../utils/logger.dart';
+import 'ble_message_assembler.dart';
 import 'notification_service.dart';
 import 'permission_service.dart';
 // import 'error_handling_service.dart'; // Reserved for future use
@@ -53,6 +54,7 @@ class BleService {
   BluetoothCharacteristic? _commandCharacteristic;
   BluetoothCharacteristic? _responseCharacteristic;
   StreamSubscription<List<int>>? _responseSubscription;
+  BleMessageAssembler? _assembler;
   static const int targetMtu = 517;
 
   Future<bool> initialize() async {
@@ -513,11 +515,20 @@ class BleService {
                   }
                 }
                 
-                // Subscribe to responses
-                _responseSubscription = characteristic.lastValueStream.listen((data) {
-                  String response = utf8.decode(data);
-                  Logger.command('Received Nordic UART response: $response');
-                  _commandResponseController.add(response);
+                // Subscribe to responses (cancel any stale subscription first
+                // to avoid orphaned listeners on reconnect / re-discover).
+                await _responseSubscription?.cancel();
+                _responseSubscription = null;
+                _assembler?.dispose();
+                _assembler = BleMessageAssembler(
+                  onMessage: (message) {
+                    Logger.command('Received Nordic UART response: $message');
+                    _commandResponseController.add(message);
+                  },
+                );
+                _responseSubscription =
+                    characteristic.lastValueStream.listen((data) {
+                  _assembler?.addChunk(data);
                 }, onError: (error) {
                   Logger.error('Error in response stream', error: error);
                 });
@@ -548,12 +559,21 @@ class BleService {
             if (characteristic.properties.notify && _responseCharacteristic == null) {
               _responseCharacteristic = characteristic;
               
-              // Subscribe to notifications
+              // Subscribe to notifications (cancel any stale subscription
+              // first to avoid orphaned listeners on reconnect).
               await characteristic.setNotifyValue(true);
-              _responseSubscription = characteristic.lastValueStream.listen((data) {
-                String response = utf8.decode(data);
-                Logger.command('Received response: $response');
-                _commandResponseController.add(response);
+              await _responseSubscription?.cancel();
+              _responseSubscription = null;
+              _assembler?.dispose();
+              _assembler = BleMessageAssembler(
+                onMessage: (message) {
+                  Logger.command('Received response: $message');
+                  _commandResponseController.add(message);
+                },
+              );
+              _responseSubscription =
+                  characteristic.lastValueStream.listen((data) {
+                _assembler?.addChunk(data);
               });
               
               Logger.ble('Generic response characteristic found: ${characteristic.uuid}');
@@ -632,6 +652,8 @@ class BleService {
   void _cleanupCommandCharacteristics() {
     _responseSubscription?.cancel();
     _responseSubscription = null;
+    _assembler?.dispose();
+    _assembler = null;
     _commandCharacteristic = null;
     _responseCharacteristic = null;
     Logger.debug('Command characteristics cleaned up');
@@ -641,6 +663,7 @@ class BleService {
     _adapterStateSubscription?.cancel();
     _scanResultsSubscription?.cancel();
     _responseSubscription?.cancel();
+    _assembler?.dispose();
     _devicesController.close();
     _scanningController.close();
     _connectedDeviceController.close();

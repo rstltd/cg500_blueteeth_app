@@ -13,7 +13,23 @@ class Logger {
   
   /// Current log level - can be adjusted based on build configuration
   static int _currentLogLevel = kDebugMode ? _debugLevel : _errorLevel;
-  
+
+  /// Diagnostic channel toggle — bypasses [_currentLogLevel].
+  /// Defaults to ON in debug builds, OFF in release. Can be flipped at
+  /// runtime (e.g. via a future settings toggle) to capture BLE raw bytes
+  /// and dedup events when reproducing user-reported issues on release builds.
+  static bool diagnosticEnabled = kDebugMode;
+
+  /// Diagnostic logging — always emits when [diagnosticEnabled] is true,
+  /// regardless of [_currentLogLevel]. Used for ad-hoc debugging traces
+  /// (raw BLE bytes, dedup suppression, etc.) that must remain visible in
+  /// release builds when the toggle is on.
+  static void diagnostic(String message, {String? tag}) {
+    if (diagnosticEnabled) {
+      debugPrint('$_tag[DIAG]${tag != null ? '[$tag]' : ''} $message');
+    }
+  }
+
   /// Debug level logging - only shown in debug builds
   static void debug(String message, {String? tag}) {
     if (_currentLogLevel <= _debugLevel) {
