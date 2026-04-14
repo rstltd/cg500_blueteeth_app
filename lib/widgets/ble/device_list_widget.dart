@@ -3,6 +3,7 @@ import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
+import '../../models/connection_state.dart';
 import '../common/animated_widgets.dart';
 
 /// A reusable widget for displaying BLE device list with animations.
@@ -234,60 +235,55 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
 
   /// Build individual device card
   Widget _buildDeviceCard(BuildContext context, BleDeviceModel device) {
-    return StreamBuilder<BleDeviceModel?>(
-      stream: widget.controller.connectedDeviceStream,
-      builder: (context, connectedSnapshot) {
-        bool isConnected = connectedSnapshot.data?.id == device.id;
+    final bool isConnected = device.connectionState.isConnected;
 
-        return Container(
-          margin: EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingM,
-            vertical: DesignTokens.spacingXS + 2, // 6dp
-          ),
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingM,
+        vertical: DesignTokens.spacingXS + 2, // 6dp
+      ),
+      decoration: BoxDecoration(
+        borderRadius: DesignTokens.borderRadiusL,
+        gradient: isConnected
+            ? LinearGradient(
+                colors: [
+                  AppColors.infoContainer(context),
+                  AppColors.successContainer(context),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        boxShadow: DesignTokens.cardShadow(context),
+      ),
+      child: Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: DesignTokens.borderRadiusL,
+          side: isConnected
+              ? BorderSide(color: AppColors.successBorder(context), width: 2)
+              : BorderSide.none,
+        ),
+        child: Container(
           decoration: BoxDecoration(
             borderRadius: DesignTokens.borderRadiusL,
-            gradient: isConnected
-                ? LinearGradient(
-                    colors: [
-                      AppColors.infoContainer(context),
-                      AppColors.successContainer(context),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            boxShadow: DesignTokens.cardShadow(context),
+            color: Theme.of(context).cardColor,
           ),
-          child: Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: DesignTokens.borderRadiusL,
-              side: isConnected
-                  ? BorderSide(color: AppColors.successBorder(context), width: 2)
-                  : BorderSide.none,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: DesignTokens.borderRadiusL,
-                color: Theme.of(context).cardColor,
-              ),
-              child: Padding(
-                padding: DesignTokens.paddingM,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDeviceHeader(context, device, isConnected),
-                    SizedBox(height: DesignTokens.spacingSM),
-                    _buildDeviceInfo(context, device),
-                    SizedBox(height: DesignTokens.spacingM),
-                    _buildDeviceActions(context, device, isConnected),
-                  ],
-                ),
-              ),
+          child: Padding(
+            padding: DesignTokens.paddingM,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDeviceHeader(context, device, isConnected),
+                SizedBox(height: DesignTokens.spacingSM),
+                _buildDeviceInfo(context, device),
+                SizedBox(height: DesignTokens.spacingM),
+                _buildDeviceActions(context, device, isConnected),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

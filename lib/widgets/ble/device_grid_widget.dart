@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
 import '../../models/ble_device.dart';
+import '../../models/connection_state.dart';
 
 /// Widget for displaying BLE devices in a responsive grid layout
 class DeviceGridWidget extends StatelessWidget {
@@ -44,62 +45,57 @@ class DeviceGridWidget extends StatelessWidget {
   }
 
   Widget _buildDeviceGridCard(BuildContext context, BleDeviceModel device) {
-    return StreamBuilder<BleDeviceModel?>(
-      stream: controller.connectedDeviceStream,
-      builder: (context, connectedSnapshot) {
-        bool isConnected = connectedSnapshot.data?.id == device.id;
-        
-        return ResponsiveCard(
-          child: InkWell(
-            onTap: () => onDeviceDetails?.call(device),
-            borderRadius: DesignTokens.borderRadiusL,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ResponsiveIcon(
-                  isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-                  size: 32,
-                  color: isConnected 
-                      ? AppColors.successColor(context)
-                      : AppColors.infoColor(context),
-                ),
-                SizedBox(height: DesignTokens.spacingSM),
-                ResponsiveText(
-                  device.displayName,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary(context),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-                SizedBox(height: DesignTokens.spacingS),
-                ResponsiveText(
-                  '${device.rssi} dBm',
-                  fontSize: 12,
-                  color: AppColors.textSecondary(context),
-                ),
-                SizedBox(height: DesignTokens.spacingSM),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isConnected 
-                        ? controller.disconnectDevice
-                        : () => controller.connectToDevice(device.id),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isConnected
-                          ? AppColors.errorColor(context)
-                          : AppColors.infoColor(context),
-                      foregroundColor: AppColors.onPrimaryColor(context),
-                    ),
-                    child: Text(isConnected ? '中斷連線' : '連線'),
-                  ),
-                ),
-              ],
+    final bool isConnected = device.connectionState.isConnected;
+
+    return ResponsiveCard(
+      child: InkWell(
+        onTap: () => onDeviceDetails?.call(device),
+        borderRadius: DesignTokens.borderRadiusL,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ResponsiveIcon(
+              isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
+              size: 32,
+              color: isConnected
+                  ? AppColors.successColor(context)
+                  : AppColors.infoColor(context),
             ),
-          ),
-        );
-      },
+            SizedBox(height: DesignTokens.spacingSM),
+            ResponsiveText(
+              device.displayName,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary(context),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
+            SizedBox(height: DesignTokens.spacingS),
+            ResponsiveText(
+              '${device.rssi} dBm',
+              fontSize: 12,
+              color: AppColors.textSecondary(context),
+            ),
+            SizedBox(height: DesignTokens.spacingSM),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isConnected
+                    ? controller.disconnectDevice
+                    : () => controller.connectToDevice(device.id),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isConnected
+                      ? AppColors.errorColor(context)
+                      : AppColors.infoColor(context),
+                  foregroundColor: AppColors.onPrimaryColor(context),
+                ),
+                child: Text(isConnected ? '中斷連線' : '連線'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
