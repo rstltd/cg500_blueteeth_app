@@ -6,5 +6,4 @@
 /// ```
 library;
 
-export 'notification_settings_dialog.dart';
 export 'responsive_layout.dart';

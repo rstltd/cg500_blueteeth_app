@@ -14,7 +14,6 @@ import '../services/notification_service.dart';
 import '../services/theme_service.dart';
 import '../view_models/simple_scanner_view_model.dart';
 import '../widgets/ble/device_list_widget.dart';
-import '../widgets/layout/notification_settings_dialog.dart';
 import '../widgets/update/update_notification_banner.dart';
 import '../widgets/ble/control_panel_widget.dart';
 import '../widgets/ble/scanning_indicator_widget.dart';
@@ -233,11 +232,6 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
     cb();
   }
 
-  /// Open notification settings dialog.
-  Future<void> _openNotificationSettings() async {
-    await showNotificationSettingsDialog(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     // Show loading state
@@ -296,13 +290,6 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
         DeviceSearchWidget(
           onSearchChanged: viewModel.setSearchQuery,
           onSearchClosed: viewModel.clearSearch,
-        ),
-
-        // Notification Settings Button
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: _openNotificationSettings,
-          tooltip: AppStrings.notificationSettingsTooltip,
         ),
 
         // More Settings Menu

@@ -558,110 +558,6 @@ abstract class AppStrings {
   static String error(String message) => '錯誤: $message';
 
   // ============================================================
-  // Notification Settings
-  // ============================================================
-
-  /// Notification settings title
-  static const String notificationSettings = '通知設定';
-
-  /// Notification settings subtitle
-  static const String notificationSettingsSubtitle = '設定通知的顯示時機和方式';
-
-  /// Loading settings
-  static const String loadingSettings = '正在載入設定...';
-
-  /// Notification level section
-  static const String notificationLevel = '通知等級';
-
-  /// Smart filtering section
-  static const String smartFiltering = '智慧過濾';
-
-  /// Notification categories section
-  static const String notificationCategories = '通知類別';
-
-  /// Statistics section
-  static const String statistics = '統計資料';
-
-  /// Control BLE notifications description
-  static const String controlBleNotifications = '控制產生多少 BLE 操作通知';
-
-  /// Errors only option
-  static const String errorsOnly = '僅錯誤';
-
-  /// Errors only description
-  static const String errorsOnlyDesc = '僅顯示錯誤通知（建議）';
-
-  /// Errors and warnings option
-  static const String errorsAndWarnings = '錯誤與警告';
-
-  /// Errors and warnings description
-  static const String errorsAndWarningsDesc = '顯示錯誤和警告';
-
-  /// All details option
-  static const String allDetails = '所有詳情';
-
-  /// All details description
-  static const String allDetailsDesc = '顯示所有通知，包括訊息和成功';
-
-  /// Silent option
-  static const String silent = '靜音';
-
-  /// Silent description
-  static const String silentDesc = '不產生任何 BLE 通知';
-
-  /// Enable smart filtering
-  static const String enableSmartFiltering = '啟用智慧過濾';
-
-  /// Smart filtering description
-  static const String smartFilteringDesc = '自動減少重複和騷擾通知';
-
-  /// Smart filtering explanation
-  static const String smartFilteringExplanation =
-      '智慧過濾可防止重複通知、減少連線狀態騷擾，並靜音內部操作。';
-
-  /// Connection events option
-  static const String connectionEvents = '連線事件';
-
-  /// Connection events description
-  static const String connectionEventsDesc = '裝置連線/斷線時顯示通知';
-
-  /// Scanning events option
-  static const String scanningEvents = '掃描事件';
-
-  /// Scanning events description
-  static const String scanningEventsDesc = '掃描裝置時顯示通知';
-
-  /// MTU configuration category
-  static const String mtuConfigurationCategory = 'MTU 配置';
-
-  /// MTU configuration option
-  static const String mtuConfiguration = '顯示 MTU 設定通知';
-
-  /// Command feedback option
-  static const String commandFeedback = '指令回饋';
-
-  /// Command feedback description
-  static const String commandFeedbackDesc = '顯示已發送指令的通知';
-
-  /// Total notifications stat
-  static const String totalNotifications = '總通知數';
-
-  /// Filtered notifications stat
-  static const String filteredNotifications = '已過濾通知';
-
-  /// Pending notifications stat
-  static const String pendingNotifications = '待處理通知';
-
-  /// Clear filters button
-  static const String clearFilters = '清除過濾器';
-
-  /// Notification filters cleared message
-  static const String notificationFiltersCleared = '通知過濾器已清除';
-
-  /// Notification settings saved message
-  static const String notificationSettingsSaved = '通知設定已儲存';
-
-  // ============================================================
   // Update System
   // ============================================================
 
@@ -924,9 +820,6 @@ abstract class AppStrings {
 
   /// Initializing Bluetooth controller
   static const String initializingBluetooth = '正在初始化藍牙控制器...';
-
-  /// Notification settings tooltip
-  static const String notificationSettingsTooltip = '通知設定';
 
   /// More settings tooltip
   static const String moreSettings = '更多設定';
