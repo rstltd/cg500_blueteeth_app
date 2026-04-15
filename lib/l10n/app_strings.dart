@@ -293,6 +293,58 @@ abstract class AppStrings {
   /// Empty state hint
   static const String customCommandsEmptyHint = '點右下角 + 新增第一個自訂指令';
 
+  /// Empty state — example command formats shown so new users know what to type
+  static const String customCommandsEmptyExamples =
+      '指令必須以 \$ 開頭，常見格式：\n\n'
+      '• \$INFO（無參數）\n'
+      '• \$APN,internet（單一參數）\n'
+      '• \$ADDR,192.168.1.1:8080（IP+Port）\n'
+      '• \$REBOOT,2（時間參數）';
+
+  /// Caption shown under the network status card to clarify scope —
+  /// reassures field operators that no network is needed for normal BLE work.
+  static const String bleCommandsWorkOffline =
+      'BLE 指令發送不需要網路，網路狀態僅影響韌體更新檢查';
+
+  /// Network row label in the update settings card
+  static const String networkLabel = '網路：';
+
+  /// Hint shown while update preferences are still loading
+  static const String loadingPreferences = '正在載入偏好設定...';
+
+  /// Warning shown when the current connection isn't WiFi but WiFi is required
+  static const String wifiRecommended = '建議使用 WiFi';
+
+  /// Estimated download time prefix
+  static String estimatedDownloadTime(String time) => '預估時間：$time';
+
+  /// Command history panel title
+  static const String commandHistory = '指令歷史';
+
+  /// Empty state for command history
+  static const String noCommandsYet = '尚無指令紀錄';
+
+  /// Tooltip on the "fill input" history button
+  static const String historyFillInputTooltip = '填入輸入框';
+
+  /// Tooltip on the "send now" history button
+  static const String historySendNowTooltip = '直接送出';
+
+  /// Tooltip on the mobile history opener icon
+  static const String commandHistoryTooltip = '指令歷史';
+
+  /// Bottom sheet title shown when picking a history command on mobile
+  static const String tapHistoryToSend = '點擊指令立即送出';
+
+  /// Application title shown on the splash screen and main scanner AppBar
+  static const String appTitle = 'CG500 藍牙掃描器';
+
+  /// First line of the splash screen
+  static const String initializingApp = '正在初始化 CG500 藍牙應用...';
+
+  /// Second line of the splash screen, explains what is being loaded
+  static const String loadingUpdateSystem = '載入更新系統中';
+
   /// Error: empty command string
   static const String customCommandEmptyError = '指令不可為空';
 
@@ -919,4 +971,156 @@ abstract class AppStrings {
 
   /// Confirm dangerous operation button
   static const String confirmDangerousOperation = '確認執行危險操作';
+
+  // ============================================================
+  // Error Handling — titles, messages, and recovery action labels.
+  // The codes referenced here mirror those in ErrorHandlingService.
+  // ============================================================
+
+  /// Title shown for ErrorCategory.bluetooth
+  static const String bluetoothErrorTitle = '藍牙錯誤';
+
+  /// Title shown for ErrorCategory.permission
+  static const String permissionErrorTitle = '需要權限';
+
+  /// Title shown for ErrorCategory.network
+  static const String networkErrorTitle = '網路錯誤';
+
+  /// Title shown for ErrorCategory.validation
+  static const String validationErrorTitle = '輸入錯誤';
+
+  /// Title shown for ErrorCategory.system
+  static const String systemErrorTitle = '系統錯誤';
+
+  /// Title shown for ErrorCategory.unknown
+  static const String unknownErrorTitle = '未預期的錯誤';
+
+  /// Bluetooth: BLE_DISABLED — adapter is off
+  static const String bleDisabledMessage =
+      '此裝置的藍牙目前未開啟，請開啟藍牙後再試。';
+
+  /// Bluetooth: BLE_UNAVAILABLE — hardware doesn't support BLE
+  static const String bleUnavailableMessage = '此裝置不支援 Bluetooth Low Energy。';
+
+  /// Bluetooth: DEVICE_NOT_FOUND
+  static const String deviceNotFoundMessage =
+      '找不到所選的裝置，可能已超出範圍或已關機。';
+
+  /// Bluetooth: CONNECTION_FAILED
+  static const String connectionFailedMessage =
+      '無法連線到裝置，請確認裝置在附近並重試。';
+
+  /// Bluetooth: CONNECTION_LOST
+  static const String connectionLostMessage = '與裝置的連線已中斷，可能已超出訊號範圍。';
+
+  /// Bluetooth: SERVICE_DISCOVERY_FAILED
+  static const String serviceDiscoveryFailedMessage = '無法探索裝置服務，裝置可能不相容。';
+
+  /// Bluetooth: CHARACTERISTIC_NOT_FOUND
+  static const String characteristicNotFoundMessage = '找不到裝置上必要的特徵值。';
+
+  /// Bluetooth: WRITE_FAILED
+  static const String writeFailedMessage = '無法將資料送到裝置，請檢查連線後再試。';
+
+  /// Bluetooth: READ_FAILED
+  static const String readFailedMessage = '無法從裝置讀取資料，請檢查連線。';
+
+  /// Permission: BLUETOOTH_PERMISSION_DENIED
+  static const String bluetoothPermissionDeniedMessage =
+      '需要藍牙權限才能搜尋與連線裝置，請至設定授予權限。';
+
+  /// Permission: LOCATION_PERMISSION_DENIED
+  static const String locationPermissionDeniedMessage =
+      'Android 上的藍牙搜尋需要位置權限，請至設定授予權限。';
+
+  /// Permission: LOCATION_SERVICE_DISABLED — OS-level location toggle off
+  static const String locationServiceDisabledMessage =
+      '系統位置服務未啟用，請在系統設定中開啟位置功能。';
+
+  /// Permission: NOTIFICATION_PERMISSION_DENIED
+  static const String notificationPermissionDeniedMessage =
+      '需要通知權限才能顯示連線狀態更新。';
+
+  /// Network: SocketException
+  static const String noInternetMessage = '無法連線到網路，請檢查網路設定後再試。';
+
+  /// Network: TimeoutException
+  static const String requestTimedOutMessage = '請求逾時，請檢查連線後再試。';
+
+  /// Validation: INVALID_COMMAND
+  static const String invalidCommandMessage = '指令格式不正確，請檢查輸入後再試。';
+
+  /// Validation: EMPTY_COMMAND
+  static const String emptyCommandMessage = '指令不可為空，請輸入有效的指令。';
+
+  /// Validation: COMMAND_TOO_LONG
+  static const String commandTooLongMessage = '指令過長，請使用較短的指令。';
+
+  /// System: INSUFFICIENT_MEMORY
+  static const String insufficientMemoryMessage =
+      '記憶體不足，無法完成操作，請關閉其他應用後再試。';
+
+  /// System: FILE_NOT_FOUND
+  static const String fileNotFoundMessage = '找不到必要的檔案，若問題持續請重新安裝應用。';
+
+  /// System: STORAGE_FULL
+  static const String storageFullMessage = '裝置儲存空間已滿，請清出空間後再試。';
+
+  /// Generic unexpected error fallback
+  static const String unexpectedErrorMessage = '發生未預期的錯誤，請再試一次。';
+
+  /// Recovery action: open Bluetooth settings / try to enable
+  static const String enableBluetoothAction = '開啟藍牙';
+
+  /// Recovery action: open OS app settings to grant permission
+  static const String openSettingsAction = '前往設定';
+
+  /// Recovery action: open OS location settings
+  static const String enableLocationServiceAction = '開啟位置服務';
+
+  /// Recovery action: retry the failed operation
+  static const String retryAction = '重試';
+
+  /// Caption shown above recovery actions on the blocking error screen
+  static const String howToFixCaption = '如何修復：';
+
+  /// Title shown above the error icon on the scanner blocking screen
+  static const String bluetoothNotReadyTitle = '藍牙尚未就緒';
+
+  /// Notification title when BLE service finishes initializing successfully
+  static const String bluetoothReadyTitle = '藍牙就緒';
+
+  /// Notification message when BLE service finishes initializing successfully
+  static const String bluetoothReadyMessage = 'BLE 服務初始化成功';
+
+  /// Notification title shown when the system Bluetooth adapter is off
+  /// before scan can start
+  static const String bluetoothDisabledScanTitle = '藍牙未開啟';
+
+  /// Notification message paired with [bluetoothDisabledScanTitle]
+  static const String bluetoothDisabledScanMessage = '請開啟藍牙後再進行搜尋';
+
+  /// Notification title for a connection success state
+  static const String connectedNotificationTitle = '已連線';
+
+  /// Notification message paired with [connectedNotificationTitle]
+  static String connectedNotificationMessage(String name) => '已成功連線到 $name';
+
+  /// Notification title for a disconnection state
+  static const String disconnectedNotificationTitle = '已斷線';
+
+  /// Notification message paired with [disconnectedNotificationTitle]
+  static const String disconnectedNotificationMessage = '已與裝置斷線';
+
+  /// Notification title shown when MTU negotiation falls short
+  static const String mtuWarningTitle = 'MTU 警告';
+
+  /// Notification message body for [mtuWarningTitle]
+  static String mtuWarningMessage(int mtu) => '無法將 MTU 設定為 $mtu';
+
+  /// Notification title for "Communication Ready" once UART characteristics are wired up
+  static const String communicationReadyTitle = '通訊就緒';
+
+  /// Notification message for [communicationReadyTitle]
+  static const String communicationReadyMessage = 'Nordic UART 服務設定成功';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import 'package:cg500_blueteeth_app/widgets/update/network_info_widget.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import '../mocks/mock_services.dart';
@@ -31,7 +32,7 @@ void main() {
       );
 
       expect(find.byType(NetworkInfoWidget), findsOneWidget);
-      expect(find.text('Network:'), findsOneWidget);
+      expect(find.text(AppStrings.networkLabel), findsOneWidget);
     });
 
     testWidgets('should render with mobile status', (WidgetTester tester) async {
@@ -185,8 +186,8 @@ void main() {
         ),
       );
 
-      // Should show "Est." text
-      expect(find.textContaining('Est.'), findsOneWidget);
+      // Should show estimated download time text
+      expect(find.textContaining('預估時間'), findsOneWidget);
     });
 
     testWidgets('should handle small download size', (WidgetTester tester) async {

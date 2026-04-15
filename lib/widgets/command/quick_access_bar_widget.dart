@@ -41,6 +41,10 @@ class QuickAccessBarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final quickCommands = repository.getQuickAccessCommands();
     final colorScheme = Theme.of(context).colorScheme;
+    // On mobile, hide labels and rely on icons + tooltip — gloved/sunlit
+    // field operators get a 48dp tap target instead of cramped text.
+    final bool isMobile = ResponsiveUtils.isMobile(context);
+    final bool buttonShowLabel = !isMobile;
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -71,6 +75,7 @@ class QuickAccessBarWidget extends StatelessWidget {
                         : null,
                     isLoading: executingCommand == command.command,
                     compact: compact,
+                    showLabel: buttonShowLabel,
                   ),
                 )),
 
@@ -83,15 +88,16 @@ class QuickAccessBarWidget extends StatelessWidget {
             ),
 
             // Command menu button
-            _buildMenuButton(context),
+            _buildMenuButton(context, showLabel: buttonShowLabel),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuButton(BuildContext context) {
+  Widget _buildMenuButton(BuildContext context, {required bool showLabel}) {
     final colorScheme = Theme.of(context).colorScheme;
+    final iconOnly = !showLabel;
 
     return Tooltip(
       message: '開啟指令選單',
@@ -103,15 +109,23 @@ class QuickAccessBarWidget extends StatelessWidget {
           child: AnimatedContainer(
             duration: DesignTokens.durationFast,
             curve: DesignTokens.curveStandard,
-            padding: compact
-                ? EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingS,
-                    vertical: DesignTokens.spacingXS,
+            constraints: iconOnly
+                ? const BoxConstraints(
+                    minWidth: DesignTokens.touchTargetStandard,
+                    minHeight: DesignTokens.touchTargetStandard,
                   )
-                : EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingSM,
-                    vertical: DesignTokens.spacingS,
-                  ),
+                : null,
+            padding: iconOnly
+                ? EdgeInsets.all(DesignTokens.spacingSM)
+                : compact
+                    ? EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spacingS,
+                        vertical: DesignTokens.spacingXS,
+                      )
+                    : EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spacingSM,
+                        vertical: DesignTokens.spacingS,
+                      ),
             decoration: BoxDecoration(
               color: isConnected
                   ? colorScheme.secondaryContainer
@@ -128,23 +142,29 @@ class QuickAccessBarWidget extends StatelessWidget {
               children: [
                 Icon(
                   Icons.apps,
-                  size: compact ? DesignTokens.iconXS : DesignTokens.iconS,
+                  size: iconOnly
+                      ? DesignTokens.iconM
+                      : compact
+                          ? DesignTokens.iconXS
+                          : DesignTokens.iconS,
                   color: isConnected
                       ? colorScheme.onSecondaryContainer
                       : colorScheme.onSurface.withValues(alpha: 0.38),
                 ),
-                SizedBox(width: DesignTokens.spacingXS),
-                Text(
-                  '更多',
-                  style: TextStyle(
-                    fontSize:
-                        compact ? DesignTokens.fontS : DesignTokens.fontM,
-                    fontWeight: FontWeight.w500,
-                    color: isConnected
-                        ? colorScheme.onSecondaryContainer
-                        : colorScheme.onSurface.withValues(alpha: 0.38),
+                if (showLabel) ...[
+                  SizedBox(width: DesignTokens.spacingXS),
+                  Text(
+                    '更多',
+                    style: TextStyle(
+                      fontSize:
+                          compact ? DesignTokens.fontS : DesignTokens.fontM,
+                      fontWeight: FontWeight.w500,
+                      color: isConnected
+                          ? colorScheme.onSecondaryContainer
+                          : colorScheme.onSurface.withValues(alpha: 0.38),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

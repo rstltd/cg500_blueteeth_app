@@ -1,20 +1,35 @@
 import 'package:flutter/material.dart';
 import '../../controllers/command_manager.dart';
+import '../../l10n/app_strings.dart';
 import '../layout/responsive_layout.dart';
 
-/// Widget displaying command history for larger screens (tablet/desktop).
+/// Widget displaying command history.
 ///
-/// Features:
-/// - Scrollable list of previous commands in reverse chronological order
-/// - Replay button to re-use previous commands
-/// - Responsive styling using app theme colors
+/// Sidebar mode (tablet/desktop): scrollable list with two action buttons per
+/// item — fill the input field, or send immediately.
+/// Single-tap mode (mobile bottom sheet): tap any row to send immediately.
 class CommandHistoryPanelWidget extends StatelessWidget {
   const CommandHistoryPanelWidget({
     super.key,
     required this.commandManager,
+    this.onSendNow,
+    this.singleTapMode = false,
+    this.height = 200,
   });
 
   final CommandManager commandManager;
+
+  /// Optional callback to send a history command immediately. When null,
+  /// only the fill-input action is shown (legacy behavior).
+  final Future<bool> Function(String command)? onSendNow;
+
+  /// When true, the whole row is tappable and dispatches [onSendNow]
+  /// instead of showing per-row buttons. Used for mobile bottom sheets
+  /// where horizontal space is tight.
+  final bool singleTapMode;
+
+  /// Visible height of the scrollable list area.
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +40,14 @@ class CommandHistoryPanelWidget extends StatelessWidget {
           _HistoryHeader(context: context),
           const SizedBox(height: 12),
           SizedBox(
-            height: 200,
+            height: height,
             child: commandManager.commandHistory.isEmpty
                 ? _EmptyHistoryMessage(context: context)
-                : _HistoryList(commandManager: commandManager),
+                : _HistoryList(
+                    commandManager: commandManager,
+                    onSendNow: onSendNow,
+                    singleTapMode: singleTapMode,
+                  ),
           ),
         ],
       ),
@@ -53,7 +72,7 @@ class _HistoryHeader extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         ResponsiveText(
-          'Command History',
+          AppStrings.commandHistory,
           fontSize: 16,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary(context),
@@ -73,7 +92,7 @@ class _EmptyHistoryMessage extends StatelessWidget {
   Widget build(BuildContext _) {
     return Center(
       child: ResponsiveText(
-        'No commands yet',
+        AppStrings.noCommandsYet,
         fontSize: 14,
         color: AppColors.textSecondary(context),
       ),
@@ -83,9 +102,15 @@ class _EmptyHistoryMessage extends StatelessWidget {
 
 /// Scrollable list of command history items.
 class _HistoryList extends StatelessWidget {
-  const _HistoryList({required this.commandManager});
+  const _HistoryList({
+    required this.commandManager,
+    required this.onSendNow,
+    required this.singleTapMode,
+  });
 
   final CommandManager commandManager;
+  final Future<bool> Function(String)? onSendNow;
+  final bool singleTapMode;
 
   @override
   Widget build(BuildContext context) {
@@ -97,32 +122,42 @@ class _HistoryList extends StatelessWidget {
         final command = commandManager.commandHistory[reversedIndex];
         return _HistoryItem(
           command: command,
-          onReplay: () {
+          onFillInput: () {
             commandManager.textController.text = command;
           },
+          onSendNow: onSendNow == null ? null : () => onSendNow!(command),
+          singleTapMode: singleTapMode,
         );
       },
     );
   }
 }
 
-/// Single command history item with replay button.
+/// Single command history item.
+///
+/// In dual-button mode (sidebar) shows separate "fill input" and "send now"
+/// buttons. In single-tap mode (mobile bottom sheet) the whole row is
+/// tappable and dispatches [onSendNow].
 class _HistoryItem extends StatelessWidget {
   const _HistoryItem({
     required this.command,
-    required this.onReplay,
+    required this.onFillInput,
+    required this.onSendNow,
+    required this.singleTapMode,
   });
 
   final String command;
-  final VoidCallback onReplay;
+  final VoidCallback onFillInput;
+  final VoidCallback? onSendNow;
+  final bool singleTapMode;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final row = Container(
       margin: const EdgeInsets.symmetric(vertical: 2),
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: 12,
-        vertical: 8,
+        vertical: singleTapMode ? 14 : 8,
       ),
       decoration: BoxDecoration(
         color: AppColors.backgroundGradientStart(context),
@@ -133,22 +168,54 @@ class _HistoryItem extends StatelessWidget {
           Expanded(
             child: ResponsiveText(
               command,
-              fontSize: 12,
-              color: AppColors.textSecondary(context),
+              fontSize: singleTapMode ? 14 : 12,
+              color: AppColors.textPrimary(context),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(
-            onPressed: onReplay,
-            icon: Icon(
-              Icons.replay,
-              size: 16,
+          if (singleTapMode)
+            Icon(
+              Icons.send,
+              size: 18,
               color: AppColors.infoColor(context),
+            )
+          else ...[
+            IconButton(
+              onPressed: onFillInput,
+              icon: Icon(
+                Icons.edit_note,
+                size: 18,
+                color: AppColors.textSecondary(context),
+              ),
+              tooltip: AppStrings.historyFillInputTooltip,
+              visualDensity: VisualDensity.compact,
             ),
-            tooltip: 'Use this command',
-          ),
+            if (onSendNow != null)
+              IconButton(
+                onPressed: onSendNow,
+                icon: Icon(
+                  Icons.send,
+                  size: 18,
+                  color: AppColors.infoColor(context),
+                ),
+                tooltip: AppStrings.historySendNowTooltip,
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
         ],
       ),
     );
+
+    if (singleTapMode && onSendNow != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onSendNow,
+          borderRadius: BorderRadius.circular(8),
+          child: row,
+        ),
+      );
+    }
+    return row;
   }
 }

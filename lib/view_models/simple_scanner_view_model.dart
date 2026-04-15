@@ -7,6 +7,7 @@ import '../controllers/app_update_manager.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/ble_device.dart';
+import '../services/error_handling_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
 
@@ -38,17 +39,21 @@ class SimpleScannerViewModel extends BaseViewModel {
     BleControllerInterface? controller,
     ThemeService? themeService,
     AppUpdateManager? updateManager,
+    ErrorHandlingService? errorHandlingService,
   })  : _injectedController = controller,
         _injectedThemeService = themeService,
-        _injectedUpdateManager = updateManager;
+        _injectedUpdateManager = updateManager,
+        _injectedErrorHandlingService = errorHandlingService;
 
   final BleControllerInterface? _injectedController;
   final ThemeService? _injectedThemeService;
   final AppUpdateManager? _injectedUpdateManager;
+  final ErrorHandlingService? _injectedErrorHandlingService;
 
   late final BleControllerInterface _controller;
   late final ThemeService _themeService;
   late final AppUpdateManager _updateManager;
+  late final ErrorHandlingService _errorHandlingService;
 
   // Local state
   List<BleDeviceModel> _devices = [];
@@ -56,6 +61,33 @@ class SimpleScannerViewModel extends BaseViewModel {
   BleDeviceModel? _connectedDevice;
   AppThemeMode _themeMode = AppThemeMode.system;
   String _searchQuery = '';
+
+  /// The most recent **blocking** error from the BLE pipeline, or null when
+  /// the scanner can run normally. Only environment/permission failures
+  /// during initialize/scanning are routed here so the View can replace its
+  /// content with a structured recovery screen — transient post-connect
+  /// errors still flow via the standard notification SnackBar.
+  AppError? _currentError;
+  AppError? get currentError => _currentError;
+  bool get hasBlockingError => _currentError != null;
+  List<UserAction> get errorActions => _currentError == null
+      ? const []
+      : _errorHandlingService.getErrorRecoveryActions(_currentError!);
+  String get errorMessageText => _currentError == null
+      ? ''
+      : _errorHandlingService.getErrorMessage(_currentError!);
+
+  /// Codes considered blocking — reaching one means the user can't continue
+  /// without recovering, so we swap in the error scaffold instead of just
+  /// flashing a SnackBar.
+  static const Set<String> _blockingErrorCodes = {
+    'BLE_DISABLED',
+    'BLE_UNAVAILABLE',
+    'BLUETOOTH_PERMISSION_DENIED',
+    'LOCATION_PERMISSION_DENIED',
+    'LOCATION_SERVICE_DISABLED',
+    'INIT_FAILED',
+  };
 
   /// Emits the device whenever a connection is newly established
   /// (transition from no-device to connected). Used by the View to
@@ -136,6 +168,12 @@ class SimpleScannerViewModel extends BaseViewModel {
     _controller = _injectedController ?? getIt<BleControllerInterface>();
     _themeService = _injectedThemeService ?? getIt<ThemeService>();
     _updateManager = _injectedUpdateManager ?? getIt<AppUpdateManager>();
+    _errorHandlingService =
+        _injectedErrorHandlingService ?? getIt<ErrorHandlingService>();
+
+    // Subscribe to AppError stream BEFORE initialize() so we can capture
+    // any blocking error raised during startup.
+    subscribe<AppError>(_errorHandlingService.errorStream, _onAppError);
 
     // Initialize controller
     await _controller.initialize();
@@ -184,8 +222,31 @@ class SimpleScannerViewModel extends BaseViewModel {
     _connectedDevice = device;
     if (device != null && !wasConnected && !_justConnectedController.isClosed) {
       _justConnectedController.add(device);
+      // A successful connection means the environment is healthy — clear
+      // any leftover blocking error so the View can return to normal.
+      if (_currentError != null) {
+        _currentError = null;
+      }
     }
     safeNotifyListeners();
+  }
+
+  void _onAppError(AppError error) {
+    if (_blockingErrorCodes.contains(error.code)) {
+      _currentError = error;
+      safeNotifyListeners();
+    }
+  }
+
+  /// Clear the current blocking error (called after the user runs the
+  /// recovery action or chooses to dismiss).
+  @override
+  void clearError() {
+    super.clearError();
+    if (_currentError != null) {
+      _currentError = null;
+      safeNotifyListeners();
+    }
   }
 
   void _onThemeModeChanged(AppThemeMode mode) {

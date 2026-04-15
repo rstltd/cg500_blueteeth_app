@@ -9,6 +9,7 @@ import '../design/design_system.dart';
 import '../l10n/app_strings.dart';
 import '../models/ble_device.dart';
 import '../services/animation_service.dart';
+import '../services/error_handling_service.dart' show UserAction;
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
 import '../view_models/simple_scanner_view_model.dart';
@@ -129,6 +130,105 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
     );
   }
 
+  /// Build the blocking-error scaffold shown when the BLE environment
+  /// isn't ready (Bluetooth off, permission denied, location service off).
+  Widget _buildBlockingErrorScaffold(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final error = viewModel.currentError!;
+    final actions = viewModel.errorActions;
+    final message = viewModel.errorMessageText;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppStrings.appTitle),
+        backgroundColor: colorScheme.inversePrimary,
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: EdgeInsets.all(DesignTokens.spacingL),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.bluetooth_disabled,
+                  size: 72,
+                  color: colorScheme.error,
+                ),
+                SizedBox(height: DesignTokens.spacingM),
+                Text(
+                  AppStrings.bluetoothNotReadyTitle,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: DesignTokens.spacingM),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: DesignTokens.spacingS),
+                Text(
+                  '(${error.code})',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.6),
+                        fontFamily: 'monospace',
+                      ),
+                ),
+                SizedBox(height: DesignTokens.spacingL),
+                if (actions.isNotEmpty) ...[
+                  Text(
+                    AppStrings.howToFixCaption,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  SizedBox(height: DesignTokens.spacingS),
+                  ...actions.map(
+                    (action) => Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: DesignTokens.spacingXS,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: action.isPrimary
+                            ? FilledButton(
+                                onPressed: () => _runRecoveryAction(action),
+                                child: Text(action.label),
+                              )
+                            : OutlinedButton(
+                                onPressed: () => _runRecoveryAction(action),
+                                child: Text(action.label),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
+                SizedBox(height: DesignTokens.spacingM),
+                TextButton(
+                  onPressed: () => viewModel.clearError(),
+                  child: const Text(AppStrings.cancel),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _runRecoveryAction(UserAction action) {
+    final cb = action.action;
+    if (cb != null) cb();
+    // Don't auto-clear — wait for the underlying state (BleService init)
+    // to publish a fresh non-blocking signal via _onConnectedDeviceChanged
+    // or successful re-init. The user can also tap "取消" to dismiss manually.
+  }
+
   /// Open notification settings dialog.
   Future<void> _openNotificationSettings() async {
     await showNotificationSettingsDialog(context);
@@ -140,7 +240,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
     if (!viewModel.isInitialized) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('CG500 藍牙掃描器'),
+          title: const Text(AppStrings.appTitle),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         ),
         body: Center(
@@ -154,6 +254,11 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
           ),
         ),
       );
+    }
+
+    // Blocking error state — show recovery actions instead of the scanner.
+    if (viewModel.hasBlockingError) {
+      return _buildBlockingErrorScaffold(context);
     }
 
     return Scaffold(
@@ -180,7 +285,7 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
-      title: const Text('CG500 BLE Scanner'),
+      title: const Text(AppStrings.appTitle),
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       actions: [
         // Search Button

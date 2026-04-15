@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import 'package:cg500_blueteeth_app/widgets/message/command_history_panel_widget.dart';
 import 'package:cg500_blueteeth_app/controllers/command_manager.dart';
 import '../mocks/mock_services.dart';
@@ -40,21 +41,21 @@ void main() {
         await tester.pump();
 
         expect(find.byIcon(Icons.history), findsOneWidget);
-        expect(find.text('Command History'), findsOneWidget);
+        expect(find.text(AppStrings.commandHistory), findsOneWidget);
       });
 
       testWidgets('should show empty message', (tester) async {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('No commands yet'), findsOneWidget);
+        expect(find.text(AppStrings.noCommandsYet), findsOneWidget);
       });
 
       testWidgets('should not show any command items', (tester) async {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.byIcon(Icons.replay), findsNothing);
+        expect(find.byIcon(Icons.edit_note), findsNothing);
       });
     });
 
@@ -87,14 +88,14 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('No commands yet'), findsNothing);
+        expect(find.text(AppStrings.noCommandsYet), findsNothing);
       });
 
       testWidgets('should show replay button for each command', (tester) async {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.byIcon(Icons.replay), findsNWidgets(3));
+        expect(find.byIcon(Icons.edit_note), findsNWidgets(3));
       });
 
       testWidgets('replay button should populate text field', (tester) async {
@@ -102,7 +103,7 @@ void main() {
         await tester.pump();
 
         // Find first replay button and tap it
-        final replayButtons = find.byIcon(Icons.replay);
+        final replayButtons = find.byIcon(Icons.edit_note);
         await tester.tap(replayButtons.first);
         await tester.pump();
 
@@ -119,16 +120,16 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        // Find IconButton with replay icon
-        final replayButton = find.ancestor(
-          of: find.byIcon(Icons.replay),
+        // Find IconButton with fill-input icon
+        final fillButton = find.ancestor(
+          of: find.byIcon(Icons.edit_note),
           matching: find.byType(IconButton),
         );
-        expect(replayButton, findsWidgets);
+        expect(fillButton, findsWidgets);
 
         // Check tooltip
-        final iconButton = tester.widget<IconButton>(replayButton.first);
-        expect(iconButton.tooltip, 'Use this command');
+        final iconButton = tester.widget<IconButton>(fillButton.first);
+        expect(iconButton.tooltip, AppStrings.historyFillInputTooltip);
       });
     });
 
@@ -251,7 +252,7 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pump();
 
-        expect(find.text('No commands yet'), findsOneWidget);
+        expect(find.text(AppStrings.noCommandsYet), findsOneWidget);
 
         // Add a command
         mockController.simulateConnected(createTestDevice(
@@ -266,7 +267,7 @@ void main() {
         await tester.pump();
 
         expect(find.text('NEW_COMMAND'), findsOneWidget);
-        expect(find.text('No commands yet'), findsNothing);
+        expect(find.text(AppStrings.noCommandsYet), findsNothing);
       });
     });
   });

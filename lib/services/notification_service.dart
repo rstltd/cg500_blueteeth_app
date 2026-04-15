@@ -7,6 +7,20 @@ enum NotificationType {
   error,
 }
 
+/// A tappable action attached to a notification — the View layer renders it
+/// as a SnackBar action button so the user can recover without opening
+/// settings. Kept as a small typed class instead of stuffing callbacks into
+/// `metadata` so the contract is explicit.
+class NotificationAction {
+  const NotificationAction({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final void Function() onPressed;
+}
+
 class NotificationModel {
   final String id;
   final String title;
@@ -16,6 +30,9 @@ class NotificationModel {
   final Duration? duration;
   final Map<String, dynamic> metadata;
 
+  /// Optional recovery action surfaced as a SnackBar action button.
+  final NotificationAction? action;
+
   const NotificationModel({
     required this.id,
     required this.title,
@@ -24,6 +41,7 @@ class NotificationModel {
     required this.timestamp,
     this.duration,
     this.metadata = const {},
+    this.action,
   });
 
   factory NotificationModel.info({
@@ -31,6 +49,7 @@ class NotificationModel {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     return NotificationModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -40,6 +59,7 @@ class NotificationModel {
       timestamp: DateTime.now(),
       duration: duration ?? const Duration(seconds: 3),
       metadata: metadata,
+      action: action,
     );
   }
 
@@ -48,6 +68,7 @@ class NotificationModel {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     return NotificationModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -57,6 +78,7 @@ class NotificationModel {
       timestamp: DateTime.now(),
       duration: duration ?? const Duration(seconds: 3),
       metadata: metadata,
+      action: action,
     );
   }
 
@@ -65,6 +87,7 @@ class NotificationModel {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     return NotificationModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -74,6 +97,7 @@ class NotificationModel {
       timestamp: DateTime.now(),
       duration: duration ?? const Duration(seconds: 5),
       metadata: metadata,
+      action: action,
     );
   }
 
@@ -82,6 +106,7 @@ class NotificationModel {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     return NotificationModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -91,6 +116,7 @@ class NotificationModel {
       timestamp: DateTime.now(),
       duration: duration ?? const Duration(seconds: 7),
       metadata: metadata,
+      action: action,
     );
   }
 }
@@ -121,12 +147,14 @@ class NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     final notification = NotificationModel.info(
       title: title,
       message: message,
       duration: duration,
       metadata: metadata,
+      action: action,
     );
     _addNotification(notification);
   }
@@ -136,12 +164,14 @@ class NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     final notification = NotificationModel.success(
       title: title,
       message: message,
       duration: duration,
       metadata: metadata,
+      action: action,
     );
     _addNotification(notification);
   }
@@ -151,12 +181,14 @@ class NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     final notification = NotificationModel.warning(
       title: title,
       message: message,
       duration: duration,
       metadata: metadata,
+      action: action,
     );
     _addNotification(notification);
   }
@@ -166,12 +198,14 @@ class NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {
     final notification = NotificationModel.error(
       title: title,
       message: message,
       duration: duration,
       metadata: metadata,
+      action: action,
     );
     _addNotification(notification);
   }

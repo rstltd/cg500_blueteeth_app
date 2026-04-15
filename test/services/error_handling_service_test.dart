@@ -670,13 +670,14 @@ void main() {
     test('should return user-friendly message for BLE_DISABLED', () {
       final error = AppError.bluetooth('BLE_DISABLED', 'BT disabled');
       final message = service.getErrorMessage(error);
-      expect(message, contains('Bluetooth is disabled'));
+      expect(message, contains('藍牙'));
+      expect(message, contains('未開啟'));
     });
 
     test('should return user-friendly message for CONNECTION_FAILED', () {
       final error = AppError.bluetooth('CONNECTION_FAILED', 'Failed');
       final message = service.getErrorMessage(error);
-      expect(message, contains('Failed to connect'));
+      expect(message, contains('無法連線'));
     });
 
     test('should return user-friendly message for SocketException', () {
@@ -686,7 +687,7 @@ void main() {
         originalError: const SocketException('unreachable'),
       );
       final message = service.getErrorMessage(error);
-      expect(message, contains('No internet connection'));
+      expect(message, contains('無法連線到網路'));
     });
 
     test('should return user-friendly message for TimeoutException', () {
@@ -696,19 +697,19 @@ void main() {
         originalError: TimeoutException('timeout'),
       );
       final message = service.getErrorMessage(error);
-      expect(message, contains('timed out'));
+      expect(message, contains('逾時'));
     });
 
     test('should return user-friendly message for INVALID_COMMAND', () {
       final error = AppError.validation('INVALID_COMMAND', 'Invalid');
       final message = service.getErrorMessage(error);
-      expect(message, contains('command format is invalid'));
+      expect(message, contains('指令格式不正確'));
     });
 
     test('should return user-friendly message for INSUFFICIENT_MEMORY', () {
       final error = AppError.system('INSUFFICIENT_MEMORY', 'OOM');
       final message = service.getErrorMessage(error);
-      expect(message, contains('Insufficient memory'));
+      expect(message, contains('記憶體不足'));
     });
 
     test('should return generic message for unknown errors', () {
@@ -718,7 +719,7 @@ void main() {
         category: ErrorCategory.unknown,
       );
       final message = service.getErrorMessage(error);
-      expect(message, contains('unexpected error'));
+      expect(message, contains('未預期的錯誤'));
     });
   });
 
@@ -742,7 +743,7 @@ void main() {
       final error = AppError.bluetooth('BLE_DISABLED', 'Disabled', retryAction: () {});
       final actions = service.getErrorRecoveryActions(error);
       expect(actions.length, 1);
-      expect(actions.first.label, 'Enable Bluetooth');
+      expect(actions.first.label, '開啟藍牙');
       expect(actions.first.isPrimary, true);
     });
 
@@ -750,21 +751,21 @@ void main() {
       final error = AppError.bluetooth('CONNECTION_FAILED', 'Failed', retryAction: () {});
       final actions = service.getErrorRecoveryActions(error);
       expect(actions.length, 1);
-      expect(actions.first.label, 'Retry');
+      expect(actions.first.label, '重試');
     });
 
-    test('should return Grant Permission action for permission errors', () {
+    test('should return open settings action for permission errors', () {
       final error = AppError.permission('BLUETOOTH_PERMISSION_DENIED', 'Denied', retryAction: () {});
       final actions = service.getErrorRecoveryActions(error);
       expect(actions.length, 1);
-      expect(actions.first.label, 'Grant Permission');
+      expect(actions.first.label, '前往設定');
     });
 
     test('should return Retry action for network errors', () {
       final error = AppError.network('NETWORK_ERROR', 'Error', retryAction: () {});
       final actions = service.getErrorRecoveryActions(error);
       expect(actions.length, 1);
-      expect(actions.first.label, 'Retry');
+      expect(actions.first.label, '重試');
     });
 
     test('should return empty list for validation errors', () {
@@ -777,11 +778,24 @@ void main() {
       final error = AppError.system('SYSTEM_ERROR', 'Error', retryAction: () {});
       final actions = service.getErrorRecoveryActions(error);
       expect(actions.length, 1);
-      expect(actions.first.label, 'Retry');
+      expect(actions.first.label, '重試');
     });
 
     test('should return empty list for system errors without retryAction', () {
       final error = AppError.system('SYSTEM_ERROR', 'Error');
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions, isEmpty);
+    });
+
+    test('should return enable location service action for LOCATION_SERVICE_DISABLED', () {
+      final error = AppError.permission('LOCATION_SERVICE_DISABLED', 'Disabled', retryAction: () {});
+      final actions = service.getErrorRecoveryActions(error);
+      expect(actions.length, 1);
+      expect(actions.first.label, '開啟位置服務');
+    });
+
+    test('should return empty list for BLE_UNAVAILABLE (no recovery)', () {
+      final error = AppError.bluetooth('BLE_UNAVAILABLE', 'No BLE');
       final actions = service.getErrorRecoveryActions(error);
       expect(actions, isEmpty);
     });

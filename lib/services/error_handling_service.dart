@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import '../l10n/app_strings.dart';
 import 'notification_service.dart';
 import '../utils/logger.dart';
 
@@ -191,16 +192,43 @@ class ErrorHandlingService {
     final message = getErrorMessage(error);
     final title = _getErrorTitle(error);
 
+    // If the error has at least one recovery action, surface the primary
+    // one as a SnackBar action button so transient errors can be recovered
+    // inline without opening settings.
+    final recoveryActions = getErrorRecoveryActions(error);
+    NotificationAction? snackbarAction;
+    if (recoveryActions.isNotEmpty) {
+      final primary = recoveryActions.firstWhere(
+        (a) => a.isPrimary,
+        orElse: () => recoveryActions.first,
+      );
+      final cb = primary.action;
+      if (cb != null) {
+        snackbarAction = NotificationAction(
+          label: primary.label,
+          onPressed: cb,
+        );
+      }
+    }
+
     switch (error.category) {
       case ErrorCategory.bluetooth:
       case ErrorCategory.network:
       case ErrorCategory.system:
       case ErrorCategory.unknown:
-        _notificationService.showError(title: title, message: message);
+        _notificationService.showError(
+          title: title,
+          message: message,
+          action: snackbarAction,
+        );
         break;
       case ErrorCategory.permission:
       case ErrorCategory.validation:
-        _notificationService.showWarning(title: title, message: message);
+        _notificationService.showWarning(
+          title: title,
+          message: message,
+          action: snackbarAction,
+        );
         break;
     }
   }
@@ -209,17 +237,17 @@ class ErrorHandlingService {
   String _getErrorTitle(AppError error) {
     switch (error.category) {
       case ErrorCategory.bluetooth:
-        return 'Bluetooth Error';
+        return AppStrings.bluetoothErrorTitle;
       case ErrorCategory.permission:
-        return 'Permission Required';
+        return AppStrings.permissionErrorTitle;
       case ErrorCategory.network:
-        return 'Network Error';
+        return AppStrings.networkErrorTitle;
       case ErrorCategory.validation:
-        return 'Validation Error';
+        return AppStrings.validationErrorTitle;
       case ErrorCategory.system:
-        return 'System Error';
+        return AppStrings.systemErrorTitle;
       case ErrorCategory.unknown:
-        return 'Unexpected Error';
+        return AppStrings.unknownErrorTitle;
     }
   }
 
@@ -236,7 +264,7 @@ class ErrorHandlingService {
       case ErrorCategory.system:
         return _getSystemErrorMessage(error);
       case ErrorCategory.unknown:
-        return 'An unexpected error occurred. Please try again.';
+        return AppStrings.unexpectedErrorMessage;
     }
   }
 
@@ -261,23 +289,23 @@ class ErrorHandlingService {
   String _getBluetoothErrorMessage(AppError error) {
     switch (error.code) {
       case 'BLE_DISABLED':
-        return 'Bluetooth is disabled on this device. Please enable Bluetooth to continue.';
+        return AppStrings.bleDisabledMessage;
       case 'BLE_UNAVAILABLE':
-        return 'Bluetooth Low Energy is not available on this device.';
+        return AppStrings.bleUnavailableMessage;
       case 'DEVICE_NOT_FOUND':
-        return 'The selected device could not be found. It may be out of range or turned off.';
+        return AppStrings.deviceNotFoundMessage;
       case 'CONNECTION_FAILED':
-        return 'Failed to connect to the device. Please ensure the device is nearby and try again.';
+        return AppStrings.connectionFailedMessage;
       case 'CONNECTION_LOST':
-        return 'Connection to the device was lost. The device may have moved out of range.';
+        return AppStrings.connectionLostMessage;
       case 'SERVICE_DISCOVERY_FAILED':
-        return 'Failed to discover device services. The device may not be compatible.';
+        return AppStrings.serviceDiscoveryFailedMessage;
       case 'CHARACTERISTIC_NOT_FOUND':
-        return 'Required characteristic not found on the device.';
+        return AppStrings.characteristicNotFoundMessage;
       case 'WRITE_FAILED':
-        return 'Failed to send data to the device. Please check the connection and try again.';
+        return AppStrings.writeFailedMessage;
       case 'READ_FAILED':
-        return 'Failed to read data from the device. Please check the connection.';
+        return AppStrings.readFailedMessage;
       default:
         return error.message;
     }
@@ -287,11 +315,13 @@ class ErrorHandlingService {
   String _getPermissionErrorMessage(AppError error) {
     switch (error.code) {
       case 'BLUETOOTH_PERMISSION_DENIED':
-        return 'Bluetooth permission is required to scan for and connect to devices.';
+        return AppStrings.bluetoothPermissionDeniedMessage;
       case 'LOCATION_PERMISSION_DENIED':
-        return 'Location permission is required for Bluetooth scanning on Android devices.';
+        return AppStrings.locationPermissionDeniedMessage;
+      case 'LOCATION_SERVICE_DISABLED':
+        return AppStrings.locationServiceDisabledMessage;
       case 'NOTIFICATION_PERMISSION_DENIED':
-        return 'Notification permission is required to show connection status updates.';
+        return AppStrings.notificationPermissionDeniedMessage;
       default:
         return error.message;
     }
@@ -300,10 +330,10 @@ class ErrorHandlingService {
   /// Get network-specific error messages
   String _getNetworkErrorMessage(AppError error) {
     if (error.originalError is SocketException) {
-      return 'No internet connection. Please check your network settings and try again.';
+      return AppStrings.noInternetMessage;
     }
     if (error.originalError is TimeoutException) {
-      return 'The request timed out. Please check your connection and try again.';
+      return AppStrings.requestTimedOutMessage;
     }
     return error.message;
   }
@@ -312,11 +342,11 @@ class ErrorHandlingService {
   String _getValidationErrorMessage(AppError error) {
     switch (error.code) {
       case 'INVALID_COMMAND':
-        return 'The command format is invalid. Please check your input and try again.';
+        return AppStrings.invalidCommandMessage;
       case 'EMPTY_COMMAND':
-        return 'Command cannot be empty. Please enter a valid command.';
+        return AppStrings.emptyCommandMessage;
       case 'COMMAND_TOO_LONG':
-        return 'Command is too long. Please use a shorter command.';
+        return AppStrings.commandTooLongMessage;
       default:
         return error.message;
     }
@@ -326,11 +356,11 @@ class ErrorHandlingService {
   String _getSystemErrorMessage(AppError error) {
     switch (error.code) {
       case 'INSUFFICIENT_MEMORY':
-        return 'Insufficient memory to complete the operation. Please close other apps and try again.';
+        return AppStrings.insufficientMemoryMessage;
       case 'FILE_NOT_FOUND':
-        return 'A required file was not found. Please reinstall the app if the problem persists.';
+        return AppStrings.fileNotFoundMessage;
       case 'STORAGE_FULL':
-        return 'Device storage is full. Please free up space and try again.';
+        return AppStrings.storageFullMessage;
       default:
         return error.message;
     }
@@ -342,16 +372,19 @@ class ErrorHandlingService {
       case 'BLE_DISABLED':
         return [
           UserAction(
-            label: 'Enable Bluetooth',
+            label: AppStrings.enableBluetoothAction,
             action: error.retryAction,
             isPrimary: true,
           ),
         ];
+      case 'BLE_UNAVAILABLE':
+        // Hardware can't be fixed at runtime — no actionable recovery.
+        return const [];
       case 'CONNECTION_FAILED':
       case 'CONNECTION_LOST':
         return [
           UserAction(
-            label: 'Retry',
+            label: AppStrings.retryAction,
             action: error.retryAction,
             isPrimary: true,
           ),
@@ -360,32 +393,43 @@ class ErrorHandlingService {
         if (error.retryAction != null) {
           return [
             UserAction(
-              label: 'Retry',
+              label: AppStrings.retryAction,
               action: error.retryAction,
               isPrimary: true,
             ),
           ];
         }
-        return [];
+        return const [];
     }
   }
 
   /// Get permission error actions
   List<UserAction> _getPermissionErrorActions(AppError error) {
-    return [
-      UserAction(
-        label: 'Grant Permission',
-        action: error.retryAction,
-        isPrimary: true,
-      ),
-    ];
+    switch (error.code) {
+      case 'LOCATION_SERVICE_DISABLED':
+        return [
+          UserAction(
+            label: AppStrings.enableLocationServiceAction,
+            action: error.retryAction,
+            isPrimary: true,
+          ),
+        ];
+      default:
+        return [
+          UserAction(
+            label: AppStrings.openSettingsAction,
+            action: error.retryAction,
+            isPrimary: true,
+          ),
+        ];
+    }
   }
 
   /// Get network error actions
   List<UserAction> _getNetworkErrorActions(AppError error) {
     return [
       UserAction(
-        label: 'Retry',
+        label: AppStrings.retryAction,
         action: error.retryAction,
         isPrimary: true,
       ),
@@ -397,13 +441,13 @@ class ErrorHandlingService {
     if (error.retryAction != null) {
       return [
         UserAction(
-          label: 'Retry',
+          label: AppStrings.retryAction,
           action: error.retryAction,
           isPrimary: true,
         ),
       ];
     }
-    return [];
+    return const [];
   }
 
   /// Get unknown error actions
@@ -411,7 +455,7 @@ class ErrorHandlingService {
     final actions = <UserAction>[];
     if (error.retryAction != null) {
       actions.add(UserAction(
-        label: 'Retry',
+        label: AppStrings.retryAction,
         action: error.retryAction,
         isPrimary: true,
       ));

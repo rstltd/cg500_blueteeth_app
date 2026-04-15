@@ -344,13 +344,53 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     );
   }
 
-  Widget _buildCommandInput() {
+  Widget _buildCommandInput({bool showHistoryOpener = false}) {
     return CommandInputPanelWidget(
       controller: viewModel.controller,
       commandManager: viewModel.commandManager,
       onSendCommand: viewModel.sendCommand,
       onNavigateHistory: viewModel.navigateHistory,
       canManualInput: viewModel.canManualInput,
+      onOpenHistorySheet: showHistoryOpener ? _openHistoryBottomSheet : null,
+    );
+  }
+
+  /// Send a history command, surface success/failure feedback,
+  /// and return the result so the panel can decide whether to close.
+  Future<bool> _sendHistoryCommand(String command) async {
+    final success =
+        await viewModel.commandManager.sendPredefinedCommand(command);
+    if (mounted) _showCommandFeedback(success, command);
+    return success;
+  }
+
+  /// Open a bottom sheet showing command history for mobile users.
+  /// Tapping any row sends the command and closes the sheet.
+  void _openHistoryBottomSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetCtx) {
+        final maxHeight = MediaQuery.of(sheetCtx).size.height * 0.6;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: CommandHistoryPanelWidget(
+                commandManager: viewModel.commandManager,
+                singleTapMode: true,
+                height: maxHeight - 80,
+                onSendNow: (command) async {
+                  Navigator.of(sheetCtx).pop();
+                  return _sendHistoryCommand(command);
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -360,7 +400,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
         _buildStatusPanel(),
         _buildQuickAccessBar(compact: true),
         Expanded(child: _buildResponseArea(compact: true)),
-        _buildCommandInput(),
+        _buildCommandInput(showHistoryOpener: true),
       ],
     );
   }
@@ -501,6 +541,9 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
   }
 
   Widget _buildCommandHistoryPanel() {
-    return CommandHistoryPanelWidget(commandManager: viewModel.commandManager);
+    return CommandHistoryPanelWidget(
+      commandManager: viewModel.commandManager,
+      onSendNow: _sendHistoryCommand,
+    );
   }
 }

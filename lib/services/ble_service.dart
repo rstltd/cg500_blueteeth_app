@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import '../l10n/app_strings.dart';
 import '../models/ble_device.dart';
 import '../models/ble_service.dart';
 import '../models/connection_state.dart';
 import '../utils/logger.dart';
 import 'ble_message_assembler.dart';
+import 'error_handling_service.dart';
 import 'notification_service.dart';
 import 'permission_service.dart';
-// import 'error_handling_service.dart'; // Reserved for future use
 
 /// Bluetooth Low Energy service for device scanning, connection, and communication.
 ///
@@ -20,12 +21,14 @@ class BleService {
   BleService.withDependencies({
     required PermissionService permissionService,
     required NotificationService notificationService,
+    required ErrorHandlingService errorHandlingService,
   })  : _permissionService = permissionService,
-        _notificationService = notificationService;
+        _notificationService = notificationService,
+        _errorHandlingService = errorHandlingService;
 
   final PermissionService _permissionService;
   final NotificationService _notificationService;
-  // final ErrorHandlingService _errorHandlingService = ErrorHandlingService(); // Reserved for future use
+  final ErrorHandlingService _errorHandlingService;
 
   final StreamController<List<BleDeviceModel>> _devicesController = 
       StreamController<List<BleDeviceModel>>.broadcast();
@@ -61,24 +64,32 @@ class BleService {
     if (_isInitialized) return true;
 
     try {
-      if (await FlutterBluePlus.isSupported == false) {
-        _notificationService.showError(
-          title: 'Bluetooth Not Supported',
-          message: 'This device does not support Bluetooth',
-        );
-        return false;
+      // Probe hardware/permission/adapter together so we can produce one
+      // structured AppError instead of a sequence of opaque bools.
+      final bleSupported = await FlutterBluePlus.isSupported;
+      var adapterOn = false;
+      if (bleSupported) {
+        final adapterState = await FlutterBluePlus.adapterState.first;
+        adapterOn = adapterState == BluetoothAdapterState.on;
       }
 
-      bool hasPermissions = await _permissionService.hasBluetoothPermissions();
-      if (!hasPermissions) {
-        hasPermissions = await _permissionService.requestBluetoothPermissions();
-        if (!hasPermissions) {
-          _notificationService.showError(
-            title: 'Permissions Required',
-            message: 'Bluetooth permissions are required to use this app',
-          );
-          return false;
-        }
+      // First permission request flow — we still trigger the system prompt
+      // when nothing is granted yet, so the user has a chance before we
+      // surface an error.
+      if (bleSupported &&
+          !await _permissionService.hasBluetoothPermissions()) {
+        await _permissionService.requestBluetoothPermissions();
+      }
+
+      final status = await _permissionService.getDetailedStatus(
+        bleSupported: bleSupported,
+        adapterOn: adapterOn,
+      );
+
+      final blocking = status.blockingReason;
+      if (blocking != null) {
+        await _dispatchEnvironmentError(blocking);
+        return false;
       }
 
       _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
@@ -89,21 +100,65 @@ class BleService {
       });
 
       _isInitialized = true;
-      // Only show initialization success on first run
       _notificationService.showSuccess(
-        title: 'Bluetooth Ready',
-        message: 'BLE service initialized successfully',
+        title: AppStrings.bluetoothReadyTitle,
+        message: AppStrings.bluetoothReadyMessage,
       );
       return true;
-
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Failed to initialize BLE service', error: e);
-      _notificationService.showError(
-        title: 'Initialization Failed',
-        message: 'Failed to initialize BLE service: $e',
-      );
+      await _errorHandlingService.handleError(AppError(
+        code: 'INIT_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.system,
+        originalError: e,
+        stackTrace: stack,
+        retryAction: () => initialize(),
+      ));
       return false;
     }
+  }
+
+  /// Dispatch a structured environment-blocker AppError so the View can
+  /// show actionable recovery buttons (open settings, enable BT, ...).
+  Future<void> _dispatchEnvironmentError(String code) async {
+    Future<void> retryAction() async => await initialize();
+    final AppError error;
+    if (code == 'BLE_DISABLED') {
+      error = AppError.bluetooth(
+        code,
+        '',
+        retryAction: () async {
+          try {
+            await FlutterBluePlus.turnOn();
+          } catch (e) {
+            Logger.error('Could not turn on Bluetooth', error: e);
+          }
+          await retryAction();
+        },
+      );
+    } else if (code == 'BLE_UNAVAILABLE') {
+      // Hardware can't be fixed, no retry action.
+      error = AppError.bluetooth(code, '');
+    } else if (code == 'LOCATION_SERVICE_DISABLED') {
+      error = AppError.permission(
+        code,
+        '',
+        retryAction: () async {
+          await _permissionService.openLocationSettings();
+        },
+      );
+    } else {
+      // BLUETOOTH_PERMISSION_DENIED / LOCATION_PERMISSION_DENIED
+      error = AppError.permission(
+        code,
+        '',
+        retryAction: () async {
+          await _permissionService.openAppSettingsPage();
+        },
+      );
+    }
+    await _errorHandlingService.handleError(error);
   }
 
   Future<bool> isBluetoothEnabled() async {
@@ -115,10 +170,12 @@ class BleService {
       await FlutterBluePlus.turnOn();
     } catch (e) {
       Logger.error('Error turning on Bluetooth', error: e);
-      _notificationService.showError(
-        title: 'Bluetooth Error',
-        message: 'Could not turn on Bluetooth automatically',
-      );
+      await _errorHandlingService.handleError(AppError.bluetooth(
+        'BLE_DISABLED',
+        '',
+        originalError: e,
+        retryAction: () => initialize(),
+      ));
     }
   }
 
@@ -133,12 +190,16 @@ class BleService {
     }
 
     if (!await isBluetoothEnabled()) {
-      _notificationService.showScanningStatus(
-        title: 'Bluetooth Disabled',
-        message: 'Please enable Bluetooth to scan for devices',
-        isScanning: false,
-      );
-      await turnOnBluetooth();
+      // Surface as a structured AppError so the View can offer "Enable
+      // Bluetooth" and recover, instead of a fire-and-forget banner.
+      await _errorHandlingService.handleError(AppError.bluetooth(
+        'BLE_DISABLED',
+        '',
+        retryAction: () async {
+          await turnOnBluetooth();
+          await startScanning(timeout: timeout);
+        },
+      ));
       return false;
     }
 
@@ -165,12 +226,16 @@ class BleService {
 
       return true;
 
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Error starting scan', error: e);
-      _notificationService.showError(
-        title: 'Scan Failed',
-        message: 'Failed to start scanning: $e',
-      );
+      await _errorHandlingService.handleError(AppError(
+        code: 'SCAN_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.bluetooth,
+        originalError: e,
+        stackTrace: stack,
+        retryAction: () => startScanning(timeout: timeout),
+      ));
       await _stopScanningInternal();
       return false;
     }
@@ -219,10 +284,12 @@ class BleService {
   Future<bool> connectToDevice(String deviceId) async {
     BleDeviceModel? device = _scannedDevices[deviceId];
     if (device == null) {
-      _notificationService.showError(
-        title: 'Device Not Found',
-        message: 'Cannot find device with ID: $deviceId',
-      );
+      await _errorHandlingService.handleError(AppError.bluetooth(
+        'DEVICE_NOT_FOUND',
+        '',
+        metadata: {'deviceId': deviceId},
+        retryAction: () => connectToDevice(deviceId),
+      ));
       return false;
     }
 
@@ -259,8 +326,8 @@ class BleService {
       } catch (e) {
         Logger.error('Failed to set MTU', error: e);
         _notificationService.showWarning(
-          title: 'MTU Warning',
-          message: 'Could not set MTU to $targetMtu: $e',
+          title: AppStrings.mtuWarningTitle,
+          message: AppStrings.mtuWarningMessage(targetMtu),
         );
       }
 
@@ -283,27 +350,32 @@ class BleService {
       });
 
       _notificationService.showConnectionStatus(
-        title: 'Connected',
-        message: 'Successfully connected to ${device.displayName}',
+        title: AppStrings.connectedNotificationTitle,
+        message: AppStrings.connectedNotificationMessage(device.displayName),
         isConnected: true,
       );
 
       return true;
 
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Error connecting to device', error: e);
-      
+
       // Update connection state back to disconnected
       BleDeviceModel failedDevice = device.updateConnectionState(BleConnectionState.disconnected);
       _scannedDevices[deviceId] = failedDevice;
       _devicesController.add(_scannedDevices.values.toList());
       _connectedDeviceController.add(null);
 
-      _notificationService.showError(
-        title: 'Connection Failed',
-        message: 'Failed to connect to ${device.displayName}: $e',
-      );
-      
+      await _errorHandlingService.handleError(AppError(
+        code: 'CONNECTION_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.bluetooth,
+        originalError: e,
+        stackTrace: stack,
+        metadata: {'deviceId': deviceId, 'deviceName': device.displayName},
+        retryAction: () => connectToDevice(deviceId),
+      ));
+
       return false;
     }
   }
@@ -396,27 +468,31 @@ class BleService {
       _cleanupCommandCharacteristics();
 
       _notificationService.showConnectionStatus(
-        title: 'Disconnected',
-        message: 'Disconnected from device',
+        title: AppStrings.disconnectedNotificationTitle,
+        message: AppStrings.disconnectedNotificationMessage,
         isConnected: false,
       );
 
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Error disconnecting device', error: e);
-      _notificationService.showError(
-        title: 'Disconnect Failed',
-        message: 'Failed to disconnect device: $e',
-      );
+      await _errorHandlingService.handleError(AppError(
+        code: 'DISCONNECT_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.bluetooth,
+        originalError: e,
+        stackTrace: stack,
+      ));
     }
   }
 
   Future<List<BleServiceModel>> discoverServices(String deviceId) async {
     BleDeviceModel? device = _scannedDevices[deviceId];
     if (device == null || !device.connectionState.isConnected) {
-      _notificationService.showError(
-        title: 'Device Not Connected',
-        message: 'Device must be connected to discover services',
-      );
+      await _errorHandlingService.handleError(AppError.bluetooth(
+        'DEVICE_NOT_FOUND',
+        '',
+        metadata: {'deviceId': deviceId},
+      ));
       return [];
     }
 
@@ -446,12 +522,16 @@ class BleService {
 
       return serviceModels;
 
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Error discovering services', error: e);
-      _notificationService.showError(
-        title: 'Service Discovery Failed',
-        message: 'Failed to discover services: $e',
-      );
+      await _errorHandlingService.handleError(AppError(
+        code: 'SERVICE_DISCOVERY_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.bluetooth,
+        originalError: e,
+        stackTrace: stack,
+        retryAction: () => discoverServices(deviceId),
+      ));
       return [];
     }
   }
@@ -584,55 +664,62 @@ class BleService {
 
       if (_commandCharacteristic != null && _responseCharacteristic != null) {
         _notificationService.showSuccess(
-          title: 'Communication Ready',
-          message: 'Nordic UART Service configured successfully',
+          title: AppStrings.communicationReadyTitle,
+          message: AppStrings.communicationReadyMessage,
         );
         Logger.ble('Command channel: ${_commandCharacteristic?.uuid}');
         Logger.ble('Response channel: ${_responseCharacteristic?.uuid}');
       } else {
-        List<String> missing = [];
-        if (_commandCharacteristic == null) missing.add('RX (command)');
-        if (_responseCharacteristic == null) missing.add('TX (response)');
-        
-        _notificationService.showWarning(
-          title: 'Partial Setup',
-          message: 'Missing characteristics: ${missing.join(", ")}',
-        );
+        await _errorHandlingService.handleError(AppError.bluetooth(
+          'CHARACTERISTIC_NOT_FOUND',
+          '',
+          metadata: {
+            'missingCommandChannel': _commandCharacteristic == null,
+            'missingResponseChannel': _responseCharacteristic == null,
+          },
+        ));
       }
 
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Error setting up Nordic UART characteristics', error: e);
-      _notificationService.showError(
-        title: 'Communication Setup Failed',
-        message: 'Failed to setup Nordic UART communication: $e',
-      );
+      await _errorHandlingService.handleError(AppError(
+        code: 'SERVICE_DISCOVERY_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.bluetooth,
+        originalError: e,
+        stackTrace: stack,
+      ));
     }
   }
 
   // Send text command to device
   Future<bool> sendCommand(String command) async {
     if (_commandCharacteristic == null) {
-      _notificationService.showError(
-        title: 'No Command Channel',
-        message: 'Command characteristic not available',
-      );
+      await _errorHandlingService.handleError(AppError.bluetooth(
+        'CHARACTERISTIC_NOT_FOUND',
+        '',
+      ));
       return false;
     }
 
     try {
       List<int> commandBytes = utf8.encode(command);
       await _commandCharacteristic!.write(commandBytes, withoutResponse: false);
-      
+
       // Silent operation - command sending feedback shown in UI
       Logger.command('Command sent: $command');
       return true;
 
-    } catch (e) {
+    } catch (e, stack) {
       Logger.error('Error sending command', error: e);
-      _notificationService.showError(
-        title: 'Send Failed',
-        message: 'Failed to send command: $e',
-      );
+      await _errorHandlingService.handleError(AppError(
+        code: 'WRITE_FAILED',
+        message: e.toString(),
+        category: ErrorCategory.bluetooth,
+        originalError: e,
+        stackTrace: stack,
+        metadata: {'command': command},
+      ));
       return false;
     }
   }

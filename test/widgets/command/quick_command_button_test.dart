@@ -59,7 +59,7 @@ void main() {
         expect(find.text('INFO'), findsNothing);
       });
 
-      testWidgets('shows tooltip with command description', (tester) async {
+      testWidgets('shows tooltip with command name', (tester) async {
         await tester.pumpWidget(buildTestWidget(onPressed: () {}));
 
         // Find the tooltip widget
@@ -67,7 +67,10 @@ void main() {
         expect(tooltipFinder, findsOneWidget);
 
         final tooltip = tester.widget<Tooltip>(tooltipFinder);
-        expect(tooltip.message, testCommand.description);
+        // Tooltip is "name（command）" so users see the actionable name
+        // instead of long descriptions on small mobile buttons.
+        expect(tooltip.message, contains(testCommand.name));
+        expect(tooltip.message, contains(testCommand.command));
       });
 
       testWidgets('uses compact sizing when compact is true', (tester) async {

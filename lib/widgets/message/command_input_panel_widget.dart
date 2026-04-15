@@ -19,6 +19,7 @@ class CommandInputPanelWidget extends StatelessWidget {
     required this.onSendCommand,
     required this.onNavigateHistory,
     this.canManualInput = true,
+    this.onOpenHistorySheet,
   });
 
   final BleControllerInterface controller;
@@ -30,6 +31,10 @@ class CommandInputPanelWidget extends StatelessWidget {
   /// When false, the text field, send button, and history navigation are
   /// fully disabled even if the device is connected.
   final bool canManualInput;
+
+  /// Optional callback that opens a history bottom sheet. Only passed in
+  /// on mobile layouts where the history sidebar is not visible.
+  final VoidCallback? onOpenHistorySheet;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +78,8 @@ class CommandInputPanelWidget extends StatelessWidget {
                 canSendCommands: canSendCommands,
                 disabledHint: disabledHint,
                 onSendCommand: onSendCommand,
+                onOpenHistorySheet: onOpenHistorySheet,
+                hasHistory: commandManager.commandHistory.isNotEmpty,
               ),
               if (commandManager.commandHistory.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -97,17 +104,30 @@ class _CommandInputRow extends StatelessWidget {
     required this.canSendCommands,
     required this.disabledHint,
     required this.onSendCommand,
+    required this.onOpenHistorySheet,
+    required this.hasHistory,
   });
 
   final CommandManager commandManager;
   final bool canSendCommands;
   final String disabledHint;
   final VoidCallback onSendCommand;
+  final VoidCallback? onOpenHistorySheet;
+  final bool hasHistory;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        if (onOpenHistorySheet != null) ...[
+          IconButton(
+            onPressed: hasHistory ? onOpenHistorySheet : null,
+            icon: const Icon(Icons.history),
+            tooltip: AppStrings.commandHistoryTooltip,
+            color: hasHistory ? Colors.blue.shade600 : Colors.grey.shade400,
+          ),
+          const SizedBox(width: 4),
+        ],
         Expanded(
           child: _CommandTextField(
             controller: commandManager.textController,

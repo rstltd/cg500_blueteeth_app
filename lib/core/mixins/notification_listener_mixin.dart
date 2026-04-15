@@ -81,6 +81,16 @@ mixin NotificationListenerMixin<T extends StatefulWidget> on State<T> {
     // Clear any existing SnackBars to prevent queue buildup
     ScaffoldMessenger.of(context).clearSnackBars();
 
+    // Render an inline recovery action when the source supplied one.
+    final notificationAction = notification.action;
+    SnackBarAction? snackBarAction;
+    if (notificationAction != null) {
+      snackBarAction = SnackBarAction(
+        label: notificationAction.label,
+        onPressed: notificationAction.onPressed,
+      );
+    }
+
     // Show the new notification
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -92,6 +102,7 @@ mixin NotificationListenerMixin<T extends StatefulWidget> on State<T> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
+        action: snackBarAction,
       ),
     );
   }

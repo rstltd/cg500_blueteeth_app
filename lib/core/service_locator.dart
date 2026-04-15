@@ -121,6 +121,7 @@ Future<void> setupServiceLocator() async {
     () => BleService.withDependencies(
       permissionService: getIt<PermissionService>(),
       notificationService: getIt<NotificationService>(),
+      errorHandlingService: getIt<ErrorHandlingService>(),
     ),
   );
 

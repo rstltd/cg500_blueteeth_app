@@ -4,6 +4,7 @@ import '../core/view_model/view_model.dart';
 import '../l10n/app_strings.dart';
 import '../models/command/custom_command.dart';
 import '../view_models/custom_commands_view_model.dart';
+import '../widgets/common/app_empty_state.dart';
 import '../widgets/dev_mode/custom_command_form_dialog.dart';
 
 /// Management screen for user-defined BLE commands.
@@ -23,7 +24,10 @@ class CustomCommandsView extends StatelessWidget {
           appBar: AppBar(
             title: const Text(AppStrings.customCommands),
           ),
-          body: _CustomCommandsBody(viewModel: viewModel),
+          body: _CustomCommandsBody(
+            viewModel: viewModel,
+            onAdd: () => _onAdd(context, viewModel),
+          ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _onAdd(context, viewModel),
             icon: const Icon(Icons.add),
@@ -46,9 +50,13 @@ class CustomCommandsView extends StatelessWidget {
 }
 
 class _CustomCommandsBody extends StatelessWidget {
-  const _CustomCommandsBody({required this.viewModel});
+  const _CustomCommandsBody({
+    required this.viewModel,
+    required this.onAdd,
+  });
 
   final CustomCommandsViewModel viewModel;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +65,7 @@ class _CustomCommandsBody extends StatelessWidget {
         if (viewModel.hasConflicts) _ConflictsBanner(viewModel: viewModel),
         Expanded(
           child: viewModel.isEmpty
-              ? const _EmptyState()
+              ? _EmptyState(onAdd: onAdd)
               : ListView.separated(
                   padding: const EdgeInsets.only(
                       top: 8, bottom: 96, left: 8, right: 8),
@@ -178,35 +186,18 @@ class _ConflictsBanner extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onAdd});
+
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.edit_note,
-            size: 72,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            AppStrings.customCommandsEmpty,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppStrings.customCommandsEmptyHint,
-            style: TextStyle(color: Colors.grey.shade500),
-          ),
-        ],
-      ),
+    return AppEmptyState(
+      icon: Icons.edit_note,
+      title: AppStrings.customCommandsEmpty,
+      message: AppStrings.customCommandsEmptyExamples,
+      actionLabel: AppStrings.addCustomCommand,
+      onAction: onAdd,
     );
   }
 }

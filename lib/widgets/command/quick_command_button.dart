@@ -35,6 +35,7 @@ class QuickCommandButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isEnabled = onPressed != null && !isLoading;
+    final iconOnly = !showLabel;
 
     return Semantics(
       button: true,
@@ -42,7 +43,7 @@ class QuickCommandButton extends StatelessWidget {
       label: '${command.name}. ${command.description}',
       hint: isLoading ? '執行中' : (isEnabled ? '點擊執行指令' : '目前無法使用'),
       child: Tooltip(
-        message: command.description,
+        message: '${command.name}（${command.command}）',
         child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -51,15 +52,23 @@ class QuickCommandButton extends StatelessWidget {
           child: AnimatedContainer(
             duration: DesignTokens.durationFast,
             curve: DesignTokens.curveStandard,
-            padding: compact
-                ? EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingS,
-                    vertical: DesignTokens.spacingXS,
+            constraints: iconOnly
+                ? const BoxConstraints(
+                    minWidth: DesignTokens.touchTargetStandard,
+                    minHeight: DesignTokens.touchTargetStandard,
                   )
-                : EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingSM,
-                    vertical: DesignTokens.spacingS,
-                  ),
+                : null,
+            padding: iconOnly
+                ? EdgeInsets.all(DesignTokens.spacingSM)
+                : compact
+                    ? EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spacingS,
+                        vertical: DesignTokens.spacingXS,
+                      )
+                    : EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spacingSM,
+                        vertical: DesignTokens.spacingS,
+                      ),
             decoration: BoxDecoration(
               color: isEnabled
                   ? colorScheme.primaryContainer
@@ -74,7 +83,7 @@ class QuickCommandButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildIcon(context, isEnabled),
+                _buildIcon(context, isEnabled, iconOnly),
                 if (showLabel) ...[
                   SizedBox(width: DesignTokens.spacingXS),
                   _buildLabel(context, isEnabled),
@@ -88,13 +97,20 @@ class QuickCommandButton extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(BuildContext context, bool isEnabled) {
+  Widget _buildIcon(BuildContext context, bool isEnabled, bool iconOnly) {
     final colorScheme = Theme.of(context).colorScheme;
+    // Icon-only mode (mobile) uses a larger icon to fill the touch target;
+    // compact-with-label keeps the smaller icon to fit beside the text.
+    final iconSize = iconOnly
+        ? DesignTokens.iconM
+        : compact
+            ? DesignTokens.iconXS
+            : DesignTokens.iconS;
 
     if (isLoading) {
       return SizedBox(
-        width: compact ? DesignTokens.iconXS : DesignTokens.iconS,
-        height: compact ? DesignTokens.iconXS : DesignTokens.iconS,
+        width: iconSize,
+        height: iconSize,
         child: CircularProgressIndicator(
           strokeWidth: 2,
           valueColor: AlwaysStoppedAnimation<Color>(
@@ -106,7 +122,7 @@ class QuickCommandButton extends StatelessWidget {
 
     return Icon(
       command.icon,
-      size: compact ? DesignTokens.iconXS : DesignTokens.iconS,
+      size: iconSize,
       color: isEnabled
           ? colorScheme.onPrimaryContainer
           : colorScheme.onSurface.withValues(alpha: 0.38),

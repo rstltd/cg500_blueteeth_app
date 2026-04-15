@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'views/simple_scanner_view.dart';
+import 'l10n/app_strings.dart';
 import 'services/theme_service.dart';
 import 'controllers/app_update_manager.dart';
 import 'services/command_parameter_storage_service.dart';
@@ -121,7 +122,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CG500 Bluetooth App',
+      title: AppStrings.appTitle,
       theme: ThemeService.lightTheme,
       darkTheme: ThemeService.darkTheme,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
@@ -148,12 +149,12 @@ class AppLoadingScreen extends StatelessWidget {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Initializing CG500 Bluetooth App...',
+              AppStrings.initializingApp,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Loading enhanced update system',
+              AppStrings.loadingUpdateSystem,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),

@@ -66,6 +66,7 @@ class SmartNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
     bool force = false,
   }) {
     if (_shouldShowNotification(title, message, NotificationType.info, force)) {
@@ -74,6 +75,7 @@ class SmartNotificationService extends NotificationService {
         message: message,
         duration: duration,
         metadata: metadata,
+        action: action,
       );
       _recordNotification(title, message);
     }
@@ -86,6 +88,7 @@ class SmartNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
     bool force = false,
   }) {
     if (_shouldShowNotification(title, message, NotificationType.success, force)) {
@@ -94,6 +97,7 @@ class SmartNotificationService extends NotificationService {
         message: message,
         duration: duration,
         metadata: metadata,
+        action: action,
       );
       _recordNotification(title, message);
     }
@@ -106,6 +110,7 @@ class SmartNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
     bool force = false,
   }) {
     if (_shouldShowNotification(title, message, NotificationType.warning, force)) {
@@ -114,6 +119,7 @@ class SmartNotificationService extends NotificationService {
         message: message,
         duration: duration,
         metadata: metadata,
+        action: action,
       );
       _recordNotification(title, message);
     }
@@ -126,6 +132,7 @@ class SmartNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
     bool force = false,
   }) {
     if (_shouldShowNotification(title, message, NotificationType.error, force)) {
@@ -134,6 +141,7 @@ class SmartNotificationService extends NotificationService {
         message: message,
         duration: duration,
         metadata: metadata,
+        action: action,
       );
       _recordNotification(title, message);
     }

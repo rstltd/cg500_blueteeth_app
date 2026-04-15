@@ -6,6 +6,7 @@ import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
+import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/theme_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
@@ -20,16 +21,28 @@ void main() {
     late _MockBleController mockController;
     late _MockThemeService mockThemeService;
     late _MockAppUpdateManager mockUpdateManager;
+    late ErrorHandlingService errorHandlingService;
+
+    SimpleScannerViewModel buildViewModel() => SimpleScannerViewModel(
+          controller: mockController,
+          themeService: mockThemeService,
+          updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
+        );
 
     setUp(() {
       mockController = _MockBleController();
       mockThemeService = _MockThemeService();
       mockUpdateManager = _MockAppUpdateManager();
+      errorHandlingService = ErrorHandlingService.forTesting(
+        notificationService: _MockNotificationService(),
+      );
     });
 
     tearDown(() {
       mockController.dispose();
       mockThemeService.dispose();
+      errorHandlingService.dispose();
     });
 
     group('initialization', () {
@@ -38,6 +51,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         expect(viewModel.isInitialized, isFalse);
@@ -55,6 +69,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -72,6 +87,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -96,6 +112,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -120,6 +137,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -147,6 +165,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -168,6 +187,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -185,6 +205,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -201,6 +222,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -219,6 +241,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -235,6 +258,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -251,6 +275,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -276,6 +301,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -292,6 +318,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -308,6 +335,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -326,6 +354,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -344,6 +373,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -358,6 +388,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -372,6 +403,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -386,6 +418,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -400,6 +433,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -416,6 +450,7 @@ void main() {
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
         );
 
         await viewModel.initialize();
@@ -736,6 +771,7 @@ class _MockNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {}
 
   @override
@@ -744,6 +780,7 @@ class _MockNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {}
 
   @override
@@ -752,6 +789,7 @@ class _MockNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {}
 
   @override
@@ -760,6 +798,7 @@ class _MockNotificationService extends NotificationService {
     required String message,
     Duration? duration,
     Map<String, dynamic> metadata = const {},
+    NotificationAction? action,
   }) {}
 
   @override
