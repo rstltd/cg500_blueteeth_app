@@ -23,6 +23,8 @@ class MockBleController implements BleControllerInterface {
       StreamController<String>.broadcast();
   final StreamController<NotificationModel> _notificationController =
       StreamController<NotificationModel>.broadcast();
+  final StreamController<bool> _adapterOnController =
+      StreamController<bool>.broadcast();
 
   // Public streams - same interface as SimpleBleController
   @override
@@ -35,6 +37,8 @@ class MockBleController implements BleControllerInterface {
   Stream<String> get commandResponseStream => _commandResponseController.stream;
   @override
   Stream<NotificationModel> get notificationStream => _notificationController.stream;
+  @override
+  Stream<bool> get adapterOnStream => _adapterOnController.stream;
 
   // Internal state
   List<BleDeviceModel> _devices = [];
@@ -245,6 +249,7 @@ class MockBleController implements BleControllerInterface {
     _connectedDeviceController.close();
     _commandResponseController.close();
     _notificationController.close();
+    _adapterOnController.close();
   }
 
   // ============== Notification Verbosity Methods ==============

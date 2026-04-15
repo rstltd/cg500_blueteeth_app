@@ -23,13 +23,6 @@ void main() {
     late _MockAppUpdateManager mockUpdateManager;
     late ErrorHandlingService errorHandlingService;
 
-    SimpleScannerViewModel buildViewModel() => SimpleScannerViewModel(
-          controller: mockController,
-          themeService: mockThemeService,
-          updateManager: mockUpdateManager,
-          errorHandlingService: errorHandlingService,
-        );
-
     setUp(() {
       mockController = _MockBleController();
       mockThemeService = _MockThemeService();
@@ -475,6 +468,7 @@ class _MockBleController implements BleControllerInterface {
   final _connectedDeviceController = StreamController<BleDeviceModel?>.broadcast();
   final _commandResponseController = StreamController<String>.broadcast();
   final _notificationController = StreamController<NotificationModel>.broadcast();
+  final _adapterOnController = StreamController<bool>.broadcast();
 
   List<BleDeviceModel> _devices = [];
   bool _isScanning = false;
@@ -517,6 +511,9 @@ class _MockBleController implements BleControllerInterface {
 
   @override
   Stream<NotificationModel> get notificationStream => _notificationController.stream;
+
+  @override
+  Stream<bool> get adapterOnStream => _adapterOnController.stream;
 
   @override
   bool get isScanning => _isScanning;
@@ -594,6 +591,7 @@ class _MockBleController implements BleControllerInterface {
     _connectedDeviceController.close();
     _commandResponseController.close();
     _notificationController.close();
+    _adapterOnController.close();
   }
 
   BleNotificationVerbosity _notificationVerbosity = BleNotificationVerbosity.minimal;

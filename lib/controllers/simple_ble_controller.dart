@@ -54,6 +54,8 @@ class SimpleBleController implements BleControllerInterface {
   Stream<BleDeviceModel?> get connectedDeviceStream => _bleService.connectedDeviceStream;
   @override
   Stream<String> get commandResponseStream => _bleService.commandResponseStream;
+  @override
+  Stream<bool> get adapterOnStream => _bleService.adapterOnStream;
 
   // Expose notification stream for UI
   @override

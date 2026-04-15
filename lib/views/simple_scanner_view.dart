@@ -223,10 +223,14 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
 
   void _runRecoveryAction(UserAction action) {
     final cb = action.action;
-    if (cb != null) cb();
-    // Don't auto-clear — wait for the underlying state (BleService init)
-    // to publish a fresh non-blocking signal via _onConnectedDeviceChanged
-    // or successful re-init. The user can also tap "取消" to dismiss manually.
+    if (cb == null) return;
+    // Optimistically dismiss the error screen so the user immediately sees
+    // the scanner again while the recovery runs (e.g. FlutterBluePlus.turnOn
+    // is fire-and-forget async and won't notify us on success). If recovery
+    // ultimately fails, BleService re-emits an AppError via errorStream and
+    // this scaffold comes back automatically.
+    viewModel.clearError();
+    cb();
   }
 
   /// Open notification settings dialog.

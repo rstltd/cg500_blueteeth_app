@@ -30,19 +30,26 @@ class BleService {
   final NotificationService _notificationService;
   final ErrorHandlingService _errorHandlingService;
 
-  final StreamController<List<BleDeviceModel>> _devicesController = 
+  final StreamController<List<BleDeviceModel>> _devicesController =
       StreamController<List<BleDeviceModel>>.broadcast();
-  final StreamController<bool> _scanningController = 
+  final StreamController<bool> _scanningController =
       StreamController<bool>.broadcast();
-  final StreamController<BleDeviceModel?> _connectedDeviceController = 
+  final StreamController<BleDeviceModel?> _connectedDeviceController =
       StreamController<BleDeviceModel?>.broadcast();
-  final StreamController<String> _commandResponseController = 
+  final StreamController<String> _commandResponseController =
       StreamController<String>.broadcast();
+  final StreamController<bool> _adapterOnController =
+      StreamController<bool>.broadcast();
 
   Stream<List<BleDeviceModel>> get devicesStream => _devicesController.stream;
   Stream<bool> get scanningStream => _scanningController.stream;
   Stream<BleDeviceModel?> get connectedDeviceStream => _connectedDeviceController.stream;
   Stream<String> get commandResponseStream => _commandResponseController.stream;
+
+  /// Emits true whenever the Bluetooth adapter transitions to ON. Downstream
+  /// ViewModels use this to auto-dismiss a BLE_DISABLED error scaffold when
+  /// the user re-enables Bluetooth from the system tray (no in-app action).
+  Stream<bool> get adapterOnStream => _adapterOnController.stream;
 
   final Map<String, BleDeviceModel> _scannedDevices = {};
   final Map<String, BluetoothDevice> _bluetoothDevicesCache = {};
@@ -73,6 +80,12 @@ class BleService {
         adapterOn = adapterState == BluetoothAdapterState.on;
       }
 
+      // Start listening to adapter state BEFORE the blocking check so that
+      // when the user re-enables Bluetooth externally (system settings,
+      // quick tile) we can auto-recover. The listener is idempotent because
+      // initialize() short-circuits when _isInitialized is already true.
+      _ensureAdapterStateSubscription();
+
       // First permission request flow — we still trigger the system prompt
       // when nothing is granted yet, so the user has a chance before we
       // surface an error.
@@ -92,13 +105,6 @@ class BleService {
         return false;
       }
 
-      _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
-        Logger.ble('Bluetooth adapter state: $state');
-        if (state != BluetoothAdapterState.on) {
-          stopScanning();
-        }
-      });
-
       _isInitialized = true;
       _notificationService.showSuccess(
         title: AppStrings.bluetoothReadyTitle,
@@ -117,6 +123,30 @@ class BleService {
       ));
       return false;
     }
+  }
+
+  /// Lazily start a single long-lived subscription to the BLE adapter state.
+  /// Used to (a) stop scanning when adapter goes off, and (b) publish a
+  /// recovery signal on [adapterOnStream] when it comes back so ViewModels
+  /// can dismiss any blocking error screen.
+  void _ensureAdapterStateSubscription() {
+    if (_adapterStateSubscription != null) return;
+    _adapterStateSubscription = FlutterBluePlus.adapterState.listen((state) {
+      Logger.ble('Bluetooth adapter state: $state');
+      final isOn = state == BluetoothAdapterState.on;
+      if (!isOn) {
+        stopScanning();
+      } else {
+        // If we failed to initialize earlier (because the adapter was off),
+        // retry now so the service is actually ready for the next action.
+        if (!_isInitialized) {
+          initialize();
+        }
+      }
+      if (!_adapterOnController.isClosed) {
+        _adapterOnController.add(isOn);
+      }
+    });
   }
 
   /// Dispatch a structured environment-blocker AppError so the View can
@@ -755,5 +785,6 @@ class BleService {
     _scanningController.close();
     _connectedDeviceController.close();
     _commandResponseController.close();
+    _adapterOnController.close();
   }
 }

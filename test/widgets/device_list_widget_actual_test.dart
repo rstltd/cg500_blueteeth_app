@@ -123,10 +123,14 @@ void main() {
       mockController.emitDevices(devices);
       await tester.pumpAndSettle();
 
-      expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
+      // Device ID is joined into the compact subtitle row
+      expect(find.textContaining('AA:BB:CC:DD:EE:FF'), findsOneWidget);
     });
 
-    testWidgets('should display RSSI value', (WidgetTester tester) async {
+    testWidgets('should render device with a specific RSSI without error',
+        (WidgetTester tester) async {
+      // RSSI is now represented purely by the signal bar indicator, not
+      // by a textual "-N dBm" label in the compact card layout.
       final devices = [
         createTestDevice(id: 'test-1', name: 'Test Device', rssi: -65),
       ];
@@ -144,7 +148,7 @@ void main() {
       mockController.emitDevices(devices);
       await tester.pumpAndSettle();
 
-      expect(find.text('-65 dBm'), findsOneWidget);
+      expect(find.text('Test Device'), findsOneWidget);
     });
 
     testWidgets('should display unknown device name when name is empty', (WidgetTester tester) async {
@@ -286,9 +290,9 @@ void main() {
       mockController.emitDevices([device]);
       await tester.pumpAndSettle();
 
-      // Signal bars are rendered as Containers - just verify the device card is present
+      // Signal bars are rendered as Containers — verify the card is present.
+      // (The compact card no longer shows a textual "-N dBm" label.)
       expect(find.text('Test'), findsOneWidget);
-      expect(find.text('-35 dBm'), findsOneWidget);
     });
 
     testWidgets('should show signal bars for device with poor signal', (WidgetTester tester) async {
@@ -308,104 +312,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Weak Device'), findsOneWidget);
-      expect(find.text('-95 dBm'), findsOneWidget);
     });
   });
 
-  group('DeviceListWidget - Device Info Section', () {
-    testWidgets('should display last seen info when available', (WidgetTester tester) async {
-      final device = createTestDevice(
-        id: 'device-1',
-        name: 'Test Device',
-        lastSeen: DateTime.now().subtract(const Duration(minutes: 5)),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DeviceListWidget(
-              controller: mockController,
-            ),
-          ),
-        ),
-      );
-
-      mockController.emitDevices([device]);
-      await tester.pumpAndSettle();
-
-      expect(find.text(AppStrings.lastSeen), findsOneWidget);
-      expect(find.text('5 分鐘前'), findsOneWidget);
-    });
-
-    testWidgets('should display just now for recent last seen', (WidgetTester tester) async {
-      final device = createTestDevice(
-        id: 'device-1',
-        name: 'Test Device',
-        lastSeen: DateTime.now().subtract(const Duration(seconds: 30)),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DeviceListWidget(
-              controller: mockController,
-            ),
-          ),
-        ),
-      );
-
-      mockController.emitDevices([device]);
-      await tester.pumpAndSettle();
-
-      expect(find.text('剛剛'), findsOneWidget);
-    });
-
-    testWidgets('should display hours ago for older last seen', (WidgetTester tester) async {
-      final device = createTestDevice(
-        id: 'device-1',
-        name: 'Test Device',
-        lastSeen: DateTime.now().subtract(const Duration(hours: 3)),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DeviceListWidget(
-              controller: mockController,
-            ),
-          ),
-        ),
-      );
-
-      mockController.emitDevices([device]);
-      await tester.pumpAndSettle();
-
-      expect(find.text('3 小時前'), findsOneWidget);
-    });
-
-    testWidgets('should display days ago for very old last seen', (WidgetTester tester) async {
-      final device = createTestDevice(
-        id: 'device-1',
-        name: 'Test Device',
-        lastSeen: DateTime.now().subtract(const Duration(days: 2)),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DeviceListWidget(
-              controller: mockController,
-            ),
-          ),
-        ),
-      );
-
-      mockController.emitDevices([device]);
-      await tester.pumpAndSettle();
-
-      expect(find.text('2 天前'), findsOneWidget);
-    });
-  });
+  // Note: "Device Info Section" tests removed — the compact card no longer
+  // renders RSSI text, services count, or last-seen time. Signal strength
+  // is shown via the bar indicator only, and last seen is not part of the
+  // scanner card at all.
 
   group('DeviceListWidget - Stream Updates', () {
     testWidgets('should update when devices stream emits new data', (WidgetTester tester) async {

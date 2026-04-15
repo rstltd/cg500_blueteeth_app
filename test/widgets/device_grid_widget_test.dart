@@ -36,6 +36,9 @@ class MockBleService implements BleService {
   Stream<String> get commandResponseStream => _commandResponseController.stream;
 
   @override
+  Stream<bool> get adapterOnStream => const Stream<bool>.empty();
+
+  @override
   BleDeviceModel? get connectedDevice => _connectedDevice;
 
   @override

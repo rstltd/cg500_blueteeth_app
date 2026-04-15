@@ -14,6 +14,11 @@ abstract class BleControllerInterface {
   Stream<String> get commandResponseStream;
   Stream<NotificationModel> get notificationStream;
 
+  /// Emits the current BLE adapter on/off state whenever it changes. Used by
+  /// ViewModels to auto-clear a BLE_DISABLED blocking error screen when the
+  /// user re-enables Bluetooth from the system settings.
+  Stream<bool> get adapterOnStream;
+
   // State getters
   bool get isScanning;
   BleDeviceModel? get connectedDevice;

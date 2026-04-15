@@ -3,7 +3,7 @@ import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
-import '../../models/connection_state.dart';
+import '../../models/connection_state.dart' as model;
 import '../common/animated_widgets.dart';
 
 /// A reusable widget for displaying BLE device list with animations.
@@ -233,135 +233,194 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
     );
   }
 
-  /// Build individual device card
+  /// Build individual device card.
+  ///
+  /// Compact single-row layout: leading Bluetooth icon, device name with
+  /// MAC (ID) subtitle, trailing signal bars + favorite + action area.
+  /// The action area swaps between a connect/disconnect button and a
+  /// "connecting..." status indicator based on [model.BleConnectionState].
   Widget _buildDeviceCard(BuildContext context, BleDeviceModel device) {
-    final bool isConnected = device.connectionState.isConnected;
+    final connectionState = device.connectionState;
+    final bool isConnected = connectionState.isConnected;
+    final bool isTransitioning = connectionState.isTransitioning;
 
     return Container(
       margin: EdgeInsets.symmetric(
         horizontal: DesignTokens.spacingM,
-        vertical: DesignTokens.spacingXS + 2, // 6dp
+        vertical: DesignTokens.spacingXS,
       ),
       decoration: BoxDecoration(
-        borderRadius: DesignTokens.borderRadiusL,
-        gradient: isConnected
-            ? LinearGradient(
-                colors: [
-                  AppColors.infoContainer(context),
-                  AppColors.successContainer(context),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        boxShadow: DesignTokens.cardShadow(context),
-      ),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: DesignTokens.borderRadiusL,
-          side: isConnected
-              ? BorderSide(color: AppColors.successBorder(context), width: 2)
-              : BorderSide.none,
+        borderRadius: DesignTokens.borderRadiusM,
+        color: Theme.of(context).cardColor,
+        border: Border.all(
+          color: isConnected
+              ? AppColors.successBorder(context)
+              : AppColors.neutralBorder(context).withValues(alpha: 0.5),
+          width: isConnected ? 1.5 : 1,
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: DesignTokens.borderRadiusL,
-            color: Theme.of(context).cardColor,
-          ),
-          child: Padding(
-            padding: DesignTokens.paddingM,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDeviceHeader(context, device, isConnected),
-                SizedBox(height: DesignTokens.spacingSM),
-                _buildDeviceInfo(context, device),
-                SizedBox(height: DesignTokens.spacingM),
-                _buildDeviceActions(context, device, isConnected),
-              ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingM,
+          vertical: DesignTokens.spacingSM,
+        ),
+        child: Row(
+          children: [
+            // Leading Bluetooth icon
+            Icon(
+              isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
+              color: isConnected
+                  ? AppColors.successColor(context)
+                  : AppColors.infoColor(context),
+              size: DesignTokens.iconM,
+            ),
+            SizedBox(width: DesignTokens.spacingSM),
+            // Name + MAC subtitle
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    device.name.isNotEmpty
+                        ? device.name
+                        : AppStrings.unknownDevice,
+                    style: AppTextStyles.titleSmall(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    device.id,
+                    style: AppTextStyles.caption(context).copyWith(
+                      color: AppColors.textSecondary(context),
+                      fontFamily: 'monospace',
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: DesignTokens.spacingS),
+            // Signal bars
+            _buildSignalStrengthIndicator(context, device),
+            SizedBox(width: DesignTokens.spacingXS),
+            // Favorite toggle
+            IconButton(
+              onPressed: () => widget.onDeviceFavorite?.call(device),
+              icon: Icon(
+                device.isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: device.isFavorite
+                    ? AppColors.errorColor(context)
+                    : AppColors.neutralColor(context),
+                size: DesignTokens.iconS,
+              ),
+              tooltip: device.isFavorite
+                  ? AppStrings.removeFromFavorites
+                  : AppStrings.addToFavorites,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 36,
+                minHeight: 36,
+              ),
+              visualDensity: VisualDensity.compact,
+            ),
+            // Connect / disconnect button, or a transient status chip
+            // while the link is still being established / torn down.
+            if (isTransitioning)
+              _buildConnectingIndicator(context, connectionState)
+            else
+              _buildConnectButton(context, device, isConnected),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Small pill-style connect / disconnect button suitable for a row layout.
+  Widget _buildConnectButton(
+    BuildContext context,
+    BleDeviceModel device,
+    bool isConnected,
+  ) {
+    return TextButton(
+      onPressed: () {
+        if (isConnected) {
+          widget.onDeviceDisconnect?.call(device);
+        } else {
+          widget.onDeviceConnect?.call(device);
+        }
+      },
+      style: TextButton.styleFrom(
+        backgroundColor: isConnected
+            ? AppColors.errorColor(context)
+            : AppColors.infoColor(context),
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingSM,
+          vertical: 6,
+        ),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: DesignTokens.borderRadiusS,
+        ),
+      ),
+      child: Text(
+        isConnected ? AppStrings.disconnect : AppStrings.connect,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  /// Non-interactive status chip shown while a device is transitioning
+  /// between connected / disconnected states. Prevents the user from
+  /// mashing the connect button during an in-flight handshake.
+  Widget _buildConnectingIndicator(
+    BuildContext context,
+    model.BleConnectionState state,
+  ) {
+    final label = state == model.BleConnectionState.connecting
+        ? AppStrings.connecting
+        : AppStrings.disconnecting;
+    final color = AppColors.infoColor(context);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingSM,
+        vertical: 6,
+      ),
+      constraints: const BoxConstraints(minHeight: 32),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: DesignTokens.borderRadiusS,
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
-        ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
-    );
-  }
-
-  /// Build device card header with name and signal strength
-  Widget _buildDeviceHeader(BuildContext context, BleDeviceModel device, bool isConnected) {
-    return Row(
-      children: [
-        Container(
-          padding: DesignTokens.paddingS,
-          decoration: BoxDecoration(
-            color: isConnected
-                ? AppColors.successContainer(context)
-                : AppColors.infoContainer(context),
-            borderRadius: DesignTokens.borderRadiusS,
-          ),
-          child: Icon(
-            isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-            color: isConnected
-                ? AppColors.successColor(context)
-                : AppColors.infoColor(context),
-            size: DesignTokens.iconS,
-          ),
-        ),
-        SizedBox(width: DesignTokens.spacingSM),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                device.name.isNotEmpty ? device.name : AppStrings.unknownDevice,
-                style: AppTextStyles.titleSmall(context),
-              ),
-              SizedBox(height: DesignTokens.spacingXS / 2), // 2dp
-              Text(
-                device.id,
-                style: AppTextStyles.monospace(context).copyWith(
-                  color: AppColors.textSecondary(context),
-                ),
-              ),
-            ],
-          ),
-        ),
-        _buildSignalStrengthIndicator(context, device),
-      ],
-    );
-  }
-
-  /// Build device information section
-  Widget _buildDeviceInfo(BuildContext context, BleDeviceModel device) {
-    return Column(
-      children: [
-        _buildInfoRow(context, 'RSSI', '${device.rssi} dBm'),
-        if (device.services.isNotEmpty) ...[
-          SizedBox(height: DesignTokens.spacingXS),
-          _buildInfoRow(context, AppStrings.services, AppStrings.servicesCount(device.services.length)),
-        ],
-        if (device.lastSeen != null) ...[
-          SizedBox(height: DesignTokens.spacingXS),
-          _buildInfoRow(context, AppStrings.lastSeen, _formatLastSeen(device.lastSeen!)),
-        ],
-      ],
-    );
-  }
-
-  /// Build info row helper
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.caption(context),
-        ),
-        Text(
-          value,
-          style: AppTextStyles.labelMedium(context),
-        ),
-      ],
     );
   }
 
@@ -404,73 +463,4 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
     );
   }
 
-  /// Build device action buttons
-  Widget _buildDeviceActions(BuildContext context, BleDeviceModel device, bool isConnected) {
-    return Row(
-      children: [
-        // Favorite button
-        IconButton(
-          onPressed: () => widget.onDeviceFavorite?.call(device),
-          icon: Icon(
-            device.isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: device.isFavorite
-                ? AppColors.errorColor(context)
-                : AppColors.neutralColor(context),
-            size: DesignTokens.iconS,
-          ),
-          tooltip: device.isFavorite ? AppStrings.removeFromFavorites : AppStrings.addToFavorites,
-        ),
-
-        const Spacer(),
-
-        // Connect/Disconnect button
-        ElevatedButton.icon(
-          onPressed: () {
-            if (isConnected) {
-              widget.onDeviceDisconnect?.call(device);
-            } else {
-              widget.onDeviceConnect?.call(device);
-            }
-          },
-          icon: Icon(
-            isConnected ? Icons.link_off : Icons.link,
-            size: DesignTokens.iconXS,
-          ),
-          label: Text(
-            isConnected ? '中斷連線' : '連線',
-            style: AppTextStyles.buttonSmall(context).copyWith(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isConnected
-                ? AppColors.errorColor(context)
-                : AppColors.infoColor(context),
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingSM,
-              vertical: DesignTokens.spacingS,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: DesignTokens.borderRadiusS,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Format last seen time
-  String _formatLastSeen(DateTime lastSeen) {
-    final now = DateTime.now();
-    final difference = now.difference(lastSeen);
-    
-    if (difference.inMinutes < 1) {
-      return '剛剛';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes} 分鐘前';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours} 小時前';
-    } else {
-      return '${difference.inDays} 天前';
-    }
-  }
 }

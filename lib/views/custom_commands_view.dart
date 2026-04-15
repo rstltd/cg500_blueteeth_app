@@ -24,10 +24,7 @@ class CustomCommandsView extends StatelessWidget {
           appBar: AppBar(
             title: const Text(AppStrings.customCommands),
           ),
-          body: _CustomCommandsBody(
-            viewModel: viewModel,
-            onAdd: () => _onAdd(context, viewModel),
-          ),
+          body: _CustomCommandsBody(viewModel: viewModel),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _onAdd(context, viewModel),
             icon: const Icon(Icons.add),
@@ -50,13 +47,9 @@ class CustomCommandsView extends StatelessWidget {
 }
 
 class _CustomCommandsBody extends StatelessWidget {
-  const _CustomCommandsBody({
-    required this.viewModel,
-    required this.onAdd,
-  });
+  const _CustomCommandsBody({required this.viewModel});
 
   final CustomCommandsViewModel viewModel;
-  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +58,7 @@ class _CustomCommandsBody extends StatelessWidget {
         if (viewModel.hasConflicts) _ConflictsBanner(viewModel: viewModel),
         Expanded(
           child: viewModel.isEmpty
-              ? _EmptyState(onAdd: onAdd)
+              ? const _EmptyState()
               : ListView.separated(
                   padding: const EdgeInsets.only(
                       top: 8, bottom: 96, left: 8, right: 8),
@@ -186,18 +179,16 @@ class _ConflictsBanner extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onAdd});
-
-  final VoidCallback onAdd;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
+    // FAB already provides the "add" affordance; keeping it here too would
+    // give the screen two primary actions for the same thing.
     return AppEmptyState(
       icon: Icons.edit_note,
       title: AppStrings.customCommandsEmpty,
       message: AppStrings.customCommandsEmptyExamples,
-      actionLabel: AppStrings.addCustomCommand,
-      onAction: onAdd,
     );
   }
 }

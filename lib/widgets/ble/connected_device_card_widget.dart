@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
-import '../../views/command_interface_view.dart';
 
-/// Widget for displaying connected device information in a card format
+/// Status card for a connected device. Pure information — the entry point
+/// to the command interface lives on the scanner AppBar (filled chat icon)
+/// to avoid offering two different paths for the same action.
 class ConnectedDeviceCardWidget extends StatelessWidget {
   final BleDeviceModel device;
 
@@ -44,32 +45,11 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary(context),
           ),
-          SizedBox(height: DesignTokens.spacingS),
+          SizedBox(height: DesignTokens.spacingXS),
           ResponsiveText(
-            'RSSI: ${device.rssi} dBm',
-            fontSize: 14,
+            device.id,
+            fontSize: 12,
             color: AppColors.textSecondary(context),
-          ),
-          if (device.services.isNotEmpty) ...[
-            SizedBox(height: DesignTokens.spacingS),
-            ResponsiveText(
-              '${AppStrings.services}: ${device.services.length}',
-              fontSize: 14,
-              color: AppColors.textSecondary(context),
-            ),
-          ],
-          SizedBox(height: DesignTokens.spacingM),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const CommandInterfaceView(),
-                ),
-              ),
-              icon: const Icon(Icons.chat),
-              label: const Text(AppStrings.openCommandInterface),
-            ),
           ),
         ],
       ),

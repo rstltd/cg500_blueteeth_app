@@ -175,6 +175,10 @@ class SimpleScannerViewModel extends BaseViewModel {
     // any blocking error raised during startup.
     subscribe<AppError>(_errorHandlingService.errorStream, _onAppError);
 
+    // Auto-dismiss BLE_DISABLED errors when the user re-enables Bluetooth
+    // from the system tray (an action that never flows through our UI).
+    subscribe<bool>(_controller.adapterOnStream, _onAdapterOn);
+
     // Initialize controller
     await _controller.initialize();
 
@@ -234,6 +238,16 @@ class SimpleScannerViewModel extends BaseViewModel {
   void _onAppError(AppError error) {
     if (_blockingErrorCodes.contains(error.code)) {
       _currentError = error;
+      safeNotifyListeners();
+    }
+  }
+
+  void _onAdapterOn(bool isOn) {
+    // Clear a lingering BLE_DISABLED error as soon as the adapter reports ON
+    // again — whether the user toggled it from the in-app recovery button or
+    // the system quick settings tile.
+    if (isOn && _currentError?.code == 'BLE_DISABLED') {
+      _currentError = null;
       safeNotifyListeners();
     }
   }
