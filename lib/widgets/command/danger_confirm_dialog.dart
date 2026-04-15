@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/command/command.dart';
 
 /// A danger confirmation dialog for dangerous commands.
@@ -79,20 +80,31 @@ class DangerConfirmDialog extends StatelessWidget {
                     : colorScheme.errorContainer.withValues(alpha: 0.3),
                 borderRadius: DesignTokens.borderRadiusS,
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: DesignTokens.iconS,
-                    color: iconColor,
-                  ),
-                  SizedBox(width: DesignTokens.spacingS),
-                  Expanded(
-                    child: Text(
-                      command.warningMessage!,
-                      style: TextStyle(
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event_note,
+                        size: DesignTokens.iconS,
                         color: iconColor,
                       ),
+                      SizedBox(width: DesignTokens.spacingS),
+                      Text(
+                        AppStrings.dangerConsequencesTitle,
+                        style: TextStyle(
+                          color: iconColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: DesignTokens.spacingXS),
+                  Text(
+                    command.warningMessage!,
+                    style: TextStyle(
+                      color: iconColor,
                     ),
                   ),
                 ],

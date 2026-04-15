@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../controllers/app_update_manager.dart';
@@ -81,6 +83,8 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
     with NotificationListenerMixin<_SimpleScannerContent> {
   SimpleScannerViewModel get viewModel => widget.viewModel;
 
+  StreamSubscription<BleDeviceModel>? _justConnectedSubscription;
+
   @override
   Stream<NotificationModel> get notificationStream => viewModel.notificationStream;
 
@@ -88,12 +92,41 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
   void initState() {
     super.initState();
     initializeNotificationListener();
+    _justConnectedSubscription =
+        viewModel.justConnectedStream.listen(_onJustConnected);
   }
 
   @override
   void dispose() {
+    _justConnectedSubscription?.cancel();
     disposeNotificationListener();
     super.dispose();
+  }
+
+  void _onJustConnected(BleDeviceModel device) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(AppStrings.justConnectedSnackBar(device.displayName)),
+        duration: const Duration(seconds: 6),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: AppStrings.justConnectedSnackBarAction,
+          onPressed: _openCommandInterface,
+        ),
+      ),
+    );
+  }
+
+  void _openCommandInterface() {
+    Navigator.of(context).push(
+      AnimationService.createPageTransition(
+        page: const CommandInterfaceView(),
+        type: PageTransitionType.slideFromBottom,
+      ),
+    );
   }
 
   /// Open notification settings dialog.
@@ -240,18 +273,21 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
       stream: viewModel.connectedDeviceStream,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
+          final colorScheme = Theme.of(context).colorScheme;
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Icon(Icons.chat),
-                onPressed: () => Navigator.of(context).push(
-                  AnimationService.createPageTransition(
-                    page: const CommandInterfaceView(),
-                    type: PageTransitionType.slideFromBottom,
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacingXS),
+                child: IconButton.filled(
+                  icon: const Icon(Icons.chat),
+                  onPressed: _openCommandInterface,
+                  tooltip: AppStrings.commandInterface,
+                  style: IconButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                   ),
                 ),
-                tooltip: AppStrings.commandInterface,
               ),
               IconButton(
                 icon: const Icon(Icons.bluetooth_connected),
@@ -305,6 +341,21 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
       children: [
         _buildControlPanel(),
         _buildScanningIndicator(),
+        StreamBuilder<BleDeviceModel?>(
+          stream: viewModel.connectedDeviceStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingM,
+                  vertical: DesignTokens.spacingS,
+                ),
+                child: _buildConnectedDeviceCard(snapshot.data!),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
         Expanded(child: _buildDeviceList()),
       ],
     );

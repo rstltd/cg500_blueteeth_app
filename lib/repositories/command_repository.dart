@@ -230,7 +230,7 @@ class CommandRepository implements CommandRepositoryInterface {
       const DeviceCommand(
         command: '\$TCPX',
         name: '重啟 TCP',
-        description: '重新啟動 TCP 連線流程',
+        description: '重新啟動 TCP 連線流程（短暫離線約 5-10 秒，BLE 連線不受影響）',
         category: CommandCategory.control,
         icon: Icons.refresh,
         example: '\$TCPX',
@@ -245,7 +245,8 @@ class CommandRepository implements CommandRepositoryInterface {
         warningMessage: '此操作將重新啟動設備\n\n'
             '• 所有連線將中斷\n'
             '• 設備需要約 30 秒重新啟動\n'
-            '• 未保存的設定可能丟失',
+            '• 未保存的設定可能丟失\n'
+            '• 重啟期間請勿操作或斷電',
         example: '\$STARTX',
       ),
 

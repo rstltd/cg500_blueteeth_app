@@ -61,20 +61,57 @@ class _DevModePasswordDialogState extends State<DevModePasswordDialog> {
   Future<void> _onForgotPassword() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.forgotPasswordTitle),
-        content: const Text(AppStrings.forgotPasswordBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(AppStrings.cancel),
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          icon: const Icon(
+            Icons.warning_amber_rounded,
+            size: 48,
+            color: Colors.orange,
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(AppStrings.confirm),
+          title: const Text(AppStrings.forgotPasswordTitle),
+          content: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.orange.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBullet(
+                  context: ctx,
+                  text: AppStrings.forgotPasswordBullet1,
+                  color: colorScheme.onSurface,
+                ),
+                const SizedBox(height: 8),
+                _buildBullet(
+                  context: ctx,
+                  text: AppStrings.forgotPasswordBullet2,
+                  color: colorScheme.onSurface,
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(AppStrings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.orange,
+              ),
+              child: const Text(AppStrings.forgotPasswordResetButton),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
     await getIt<RoleService>().resetPasswordToDefault();
@@ -85,6 +122,35 @@ class _DevModePasswordDialogState extends State<DevModePasswordDialog> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text(AppStrings.passwordResetSuccess)),
+    );
+  }
+
+  Widget _buildBullet({
+    required BuildContext context,
+    required String text,
+    required Color color,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 6, right: 8),
+          child: Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: color, fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 

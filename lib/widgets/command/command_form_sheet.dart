@@ -192,6 +192,12 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
                   ),
                   SizedBox(height: DesignTokens.spacingL),
 
+                  // Offline edit hint — let users prefill parameters before connecting
+                  if (!widget.isConnected) ...[
+                    _buildOfflineHint(context),
+                    SizedBox(height: DesignTokens.spacingM),
+                  ],
+
                   // Saved parameters indicator
                   if (_hasSavedParameters) ...[
                     _buildSavedParametersIndicator(context),
@@ -297,7 +303,6 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
 
       case ParameterType.ipPort:
@@ -305,7 +310,6 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
 
       case ParameterType.hostPort:
@@ -313,7 +317,6 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
 
       case ParameterType.number:
@@ -321,7 +324,6 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
 
       case ParameterType.hourPicker:
@@ -329,7 +331,6 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
 
       case ParameterType.bitFlags:
@@ -337,7 +338,6 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
 
       case ParameterType.dropdown:
@@ -345,9 +345,45 @@ class _CommandFormSheetState extends State<CommandFormSheet> {
           parameter: parameter,
           onChanged: (value) => _onParameterChanged(parameter.id, value),
           initialValue: initialValue,
-          enabled: widget.isConnected,
         );
     }
+  }
+
+  Widget _buildOfflineHint(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingM,
+        vertical: DesignTokens.spacingSM,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+        borderRadius: DesignTokens.borderRadiusS,
+        border: Border.all(
+          color: colorScheme.tertiary.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.bluetooth_disabled,
+            size: DesignTokens.iconS,
+            color: colorScheme.tertiary,
+          ),
+          SizedBox(width: DesignTokens.spacingS),
+          Expanded(
+            child: Text(
+              AppStrings.offlineEditHint,
+              style: TextStyle(
+                fontSize: DesignTokens.fontS,
+                color: colorScheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSavedParametersIndicator(BuildContext context) {

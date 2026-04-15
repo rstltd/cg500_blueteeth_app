@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' show IconData;
 
 import '../controllers/ble_controller_interface.dart';
@@ -54,6 +56,16 @@ class SimpleScannerViewModel extends BaseViewModel {
   BleDeviceModel? _connectedDevice;
   AppThemeMode _themeMode = AppThemeMode.system;
   String _searchQuery = '';
+
+  /// Emits the device whenever a connection is newly established
+  /// (transition from no-device to connected). Used by the View to
+  /// surface a one-shot guidance SnackBar — bypasses the notification
+  /// verbosity filter so it always reaches the user.
+  final StreamController<BleDeviceModel> _justConnectedController =
+      StreamController<BleDeviceModel>.broadcast();
+
+  Stream<BleDeviceModel> get justConnectedStream =>
+      _justConnectedController.stream;
 
   // --- Getters ---
 
@@ -168,7 +180,11 @@ class SimpleScannerViewModel extends BaseViewModel {
   }
 
   void _onConnectedDeviceChanged(BleDeviceModel? device) {
+    final wasConnected = _connectedDevice != null;
     _connectedDevice = device;
+    if (device != null && !wasConnected && !_justConnectedController.isClosed) {
+      _justConnectedController.add(device);
+    }
     safeNotifyListeners();
   }
 
@@ -240,5 +256,11 @@ class SimpleScannerViewModel extends BaseViewModel {
   /// Check for updates with UI feedback.
   Future<void> checkForUpdates({bool force = false}) async {
     await _updateManager.checkForUpdatesWithUI(force: force);
+  }
+
+  @override
+  void onDispose() {
+    _justConnectedController.close();
+    super.onDispose();
   }
 }

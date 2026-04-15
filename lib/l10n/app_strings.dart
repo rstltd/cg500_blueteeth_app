@@ -221,9 +221,19 @@ abstract class AppStrings {
   /// Forgot password confirm dialog title
   static const String forgotPasswordTitle = '重設為預設密碼？';
 
-  /// Forgot password confirm dialog body
+  /// Forgot password confirm dialog body — emphasizes security implication
   static const String forgotPasswordBody =
-      '此動作會清除目前的自訂密碼，恢復成出廠預設密碼。其他設定不會被影響。';
+      '密碼將回到出廠預設值，自訂密碼會被清除，但自訂指令與其他設定不受影響。';
+
+  /// Forgot password warning bullet 1
+  static const String forgotPasswordBullet1 = '密碼將回到出廠預設值';
+
+  /// Forgot password warning bullet 2 (security implication)
+  static const String forgotPasswordBullet2 =
+      '任何知道預設密碼的人都能進入開發者模式，請僅在無法恢復密碼時使用';
+
+  /// Forgot password destructive action button label
+  static const String forgotPasswordResetButton = '重設密碼';
 
   /// Password reset success snackbar
   static const String passwordResetSuccess = '已重設為預設密碼，請以預設密碼登入';
@@ -390,6 +400,19 @@ abstract class AppStrings {
 
   /// Last used parameters loaded
   static const String lastParametersLoaded = '已載入上次使用的參數';
+
+  /// Hint shown in command form when device is offline — user can prefill before connecting
+  static const String offlineEditHint = '目前未連線，可預先填寫參數，連線後再送出';
+
+  /// Section title shown above warningMessage in DangerConfirmDialog
+  static const String dangerConsequencesTitle = '執行後會發生：';
+
+  /// SnackBar shown right after a device connects — guides user to command interface
+  static String justConnectedSnackBar(String deviceName) =>
+      '已連線到 $deviceName，可開啟指令介面開始操作';
+
+  /// SnackBar action label that opens the command interface
+  static const String justConnectedSnackBarAction = '開啟';
 
   /// Reset button
   static const String reset = '重設';
