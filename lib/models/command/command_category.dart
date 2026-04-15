@@ -17,6 +17,10 @@ enum CommandCategory {
   /// Debug commands - for development and troubleshooting
   /// Examples: $DEBUG
   debug,
+
+  /// User-defined custom commands persisted in SharedPreferences.
+  /// Only visible in developer mode.
+  custom,
 }
 
 /// Extension methods for [CommandCategory].
@@ -32,6 +36,8 @@ extension CommandCategoryExtension on CommandCategory {
         return '控制';
       case CommandCategory.debug:
         return '除錯';
+      case CommandCategory.custom:
+        return '自訂';
     }
   }
 
@@ -46,6 +52,8 @@ extension CommandCategoryExtension on CommandCategory {
         return 'sync';
       case CommandCategory.debug:
         return 'bug_report';
+      case CommandCategory.custom:
+        return 'edit_note';
     }
   }
 
@@ -60,6 +68,8 @@ extension CommandCategoryExtension on CommandCategory {
         return '控制設備行為';
       case CommandCategory.debug:
         return '開發和除錯用途';
+      case CommandCategory.custom:
+        return '使用者自行新增的指令';
     }
   }
 
@@ -74,6 +84,8 @@ extension CommandCategoryExtension on CommandCategory {
         return 2;
       case CommandCategory.debug:
         return 3;
+      case CommandCategory.custom:
+        return 4;
     }
   }
 }

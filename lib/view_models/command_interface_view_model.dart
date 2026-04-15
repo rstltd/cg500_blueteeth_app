@@ -6,7 +6,9 @@ import '../core/interfaces/command_repository_interface.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/command/command.dart';
+import '../models/command/custom_command.dart';
 import '../models/role/user_role.dart';
+import '../services/custom_command_service.dart';
 import '../services/role_service.dart';
 import '../utils/logger.dart';
 import '../widgets/message/message_filter_widget.dart';
@@ -171,6 +173,14 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     // re-render whenever the user enters or leaves developer mode.
     subscribe<UserRole>(
       getIt<RoleService>().roleStream,
+      (_) => safeNotifyListeners(),
+    );
+
+    // Subscribe to custom-command changes so the command menu / quick
+    // access bar reflect additions, edits, and deletions immediately
+    // without waiting for a rebuild from another state change.
+    subscribe<List<CustomCommand>>(
+      getIt<CustomCommandService>().changeStream,
       (_) => safeNotifyListeners(),
     );
   }

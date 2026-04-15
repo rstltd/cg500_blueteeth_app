@@ -17,8 +17,10 @@ import '../services/install_manager.dart';
 import '../services/theme_service.dart';
 import '../services/error_handling_service.dart';
 import '../services/command_parameter_storage_service.dart';
+import '../services/custom_command_service.dart';
 import '../services/role_service.dart';
 import '../repositories/command_repository.dart';
+import '../repositories/custom_command_repository.dart';
 import '../repositories/role_aware_command_repository.dart';
 import '../controllers/simple_ble_controller.dart';
 import '../controllers/app_update_manager.dart';
@@ -76,11 +78,29 @@ Future<void> setupServiceLocator() async {
     () => RoleService(),
   );
 
-  // CommandRepository - device command definitions, wrapped with role-aware
-  // filtering. Field operators (normal mode) only see the whitelist.
+  // CustomCommandService - persists user-defined BLE commands
+  getIt.registerLazySingleton<CustomCommandService>(
+    () => CustomCommandService(),
+  );
+
+  // Built-in CommandRepository is also exposed as a concrete type so
+  // components that need to query the canonical command list (e.g. the
+  // custom-command ViewModel checking for built-in collisions) can get
+  // it without going through the role- and custom-aware decorator chain.
+  getIt.registerLazySingleton<CommandRepository>(
+    () => CommandRepository(),
+  );
+
+  // CommandRepositoryInterface decorator chain:
+  //   built-in -> custom (merges user commands) -> role-aware (filters
+  //   by whitelist in normal mode). All UI consumers see only the
+  //   outermost wrapper.
   getIt.registerLazySingleton<CommandRepositoryInterface>(
     () => RoleAwareCommandRepository(
-      inner: CommandRepository(),
+      inner: CustomCommandRepository(
+        inner: getIt<CommandRepository>(),
+        customService: getIt<CustomCommandService>(),
+      ),
       roleService: getIt<RoleService>(),
     ),
   );
@@ -200,6 +220,7 @@ void setupTestServiceLocator({
   CommandParameterStorageService? mockCommandParameterStorageService,
   CommandRepositoryInterface? mockCommandRepository,
   RoleService? mockRoleService,
+  CustomCommandService? mockCustomCommandService,
 }) {
   // Register mock services if provided, otherwise use defaults
   if (mockNetworkService != null) {
@@ -258,6 +279,10 @@ void setupTestServiceLocator({
 
   if (mockRoleService != null) {
     getIt.registerSingleton<RoleService>(mockRoleService);
+  }
+
+  if (mockCustomCommandService != null) {
+    getIt.registerSingleton<CustomCommandService>(mockCustomCommandService);
   }
 
   _isInitialized = true;

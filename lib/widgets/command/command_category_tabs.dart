@@ -83,6 +83,8 @@ class CommandCategoryTabs extends StatelessWidget {
         return Icons.sync;
       case CommandCategory.debug:
         return Icons.bug_report;
+      case CommandCategory.custom:
+        return Icons.edit_note;
     }
   }
 
@@ -98,6 +100,8 @@ class CommandCategoryTabs extends StatelessWidget {
         return Colors.orange;
       case CommandCategory.debug:
         return colorScheme.secondary;
+      case CommandCategory.custom:
+        return Colors.deepOrange;
     }
   }
 }
@@ -276,6 +280,8 @@ class CommandCategorySidebar extends StatelessWidget {
         return Icons.sync;
       case CommandCategory.debug:
         return Icons.bug_report;
+      case CommandCategory.custom:
+        return Icons.edit_note;
     }
   }
 
@@ -291,6 +297,8 @@ class CommandCategorySidebar extends StatelessWidget {
         return Colors.orange;
       case CommandCategory.debug:
         return colorScheme.secondary;
+      case CommandCategory.custom:
+        return Colors.deepOrange;
     }
   }
 }

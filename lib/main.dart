@@ -4,6 +4,7 @@ import 'views/simple_scanner_view.dart';
 import 'services/theme_service.dart';
 import 'controllers/app_update_manager.dart';
 import 'services/command_parameter_storage_service.dart';
+import 'services/custom_command_service.dart';
 import 'core/service_locator.dart';
 import 'utils/logger.dart';
 
@@ -59,6 +60,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         Logger.info('Command parameter storage initialized');
       } catch (e) {
         Logger.warning('Failed to initialize command parameter storage: $e');
+      }
+
+      // Initialize custom command service (user-defined commands)
+      try {
+        final customCommandService = getIt<CustomCommandService>();
+        await customCommandService.initialize();
+        Logger.info('Custom command service initialized');
+      } catch (e) {
+        Logger.warning('Failed to initialize custom command service: $e');
       }
 
       // Listen to theme changes

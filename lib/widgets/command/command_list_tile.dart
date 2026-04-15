@@ -297,6 +297,8 @@ class CommandListTile extends StatelessWidget {
         return Colors.orange;
       case CommandCategory.debug:
         return colorScheme.secondary;
+      case CommandCategory.custom:
+        return Colors.deepOrange;
     }
   }
 }

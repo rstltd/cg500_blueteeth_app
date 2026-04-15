@@ -9,6 +9,7 @@ import '../utils/formatting_utils.dart';
 import '../view_models/update_settings_view_model.dart';
 import '../widgets/dev_mode/change_password_dialog.dart';
 import '../widgets/dev_mode/dev_mode_password_dialog.dart';
+import 'custom_commands_view.dart';
 
 /// Update Settings View using ViewModelProvider pattern.
 ///
@@ -387,12 +388,22 @@ class _DeveloperModeCard extends StatelessWidget {
             }
           },
         ),
-        if (isDev)
+        if (isDev) ...[
           ListTile(
             leading: const Icon(Icons.lock_reset),
             title: const Text(AppStrings.changePasswordTitle),
             onTap: () => ChangePasswordDialog.show(context: context),
           ),
+          ListTile(
+            leading: const Icon(Icons.edit_note),
+            title: const Text(AppStrings.manageCustomCommands),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const CustomCommandsView(),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

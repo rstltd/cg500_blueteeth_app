@@ -4,8 +4,8 @@ import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 
 void main() {
   group('CommandCategory', () {
-    test('should have 4 categories', () {
-      expect(CommandCategory.values.length, 4);
+    test('should have 5 categories', () {
+      expect(CommandCategory.values.length, 5);
     });
 
     test('should contain expected categories', () {
@@ -13,6 +13,7 @@ void main() {
       expect(CommandCategory.values, contains(CommandCategory.config));
       expect(CommandCategory.values, contains(CommandCategory.control));
       expect(CommandCategory.values, contains(CommandCategory.debug));
+      expect(CommandCategory.values, contains(CommandCategory.custom));
     });
   });
 
@@ -64,8 +65,12 @@ void main() {
         expect(CommandCategory.control.sortOrder, 2);
       });
 
-      test('debug should be last (3)', () {
+      test('debug should be fourth (3)', () {
         expect(CommandCategory.debug.sortOrder, 3);
+      });
+
+      test('custom should be last (4)', () {
+        expect(CommandCategory.custom.sortOrder, 4);
       });
 
       test('sortOrder should produce correct ordering', () {
@@ -77,6 +82,7 @@ void main() {
           CommandCategory.config,
           CommandCategory.control,
           CommandCategory.debug,
+          CommandCategory.custom,
         ]);
       });
     });

@@ -252,6 +252,74 @@ abstract class AppStrings {
   /// Confirm button text (generic)
   static const String confirm = '確定';
 
+  // ============================================================
+  // Custom Commands (Dev Mode)
+  // ============================================================
+
+  /// Management view title
+  static const String customCommands = '自訂指令';
+
+  /// Settings list tile title
+  static const String manageCustomCommands = '管理自訂指令';
+
+  /// FAB / add button label
+  static const String addCustomCommand = '新增自訂指令';
+
+  /// Edit dialog title
+  static const String editCustomCommand = '編輯自訂指令';
+
+  /// Command string text field hint
+  static const String customCommandStringHint = '指令字串（例如 \$MAC,CN001）';
+
+  /// Name text field hint
+  static const String customCommandNameHint = '顯示名稱';
+
+  /// Description text field hint
+  static const String customCommandDescriptionHint = '說明（可選）';
+
+  /// Empty state title
+  static const String customCommandsEmpty = '尚未新增任何自訂指令';
+
+  /// Empty state hint
+  static const String customCommandsEmptyHint = '點右下角 + 新增第一個自訂指令';
+
+  /// Error: empty command string
+  static const String customCommandEmptyError = '指令不可為空';
+
+  /// Error: missing $ prefix
+  static const String customCommandMustStartWithDollar = '指令必須以 \$ 開頭';
+
+  /// Error: empty name
+  static const String customCommandNameEmptyError = '請輸入顯示名稱';
+
+  /// Error: duplicate among custom commands
+  static const String customCommandDuplicateInCustom =
+      '此指令已存在於自訂指令中';
+
+  /// Error: collision with built-in
+  static const String customCommandDuplicateInBuiltIn =
+      '此指令與內建指令相同';
+
+  /// Delete confirmation title
+  static const String customCommandDeleteTitle = '刪除自訂指令';
+
+  /// Delete confirmation body
+  static String customCommandDeleteBody(String command) =>
+      '確定要刪除「$command」嗎？此動作無法復原。';
+
+  /// Delete button
+  static const String delete = '刪除';
+
+  /// Save button
+  static const String save = '儲存';
+
+  /// Conflict banner title
+  static const String customCommandConflictsTitle = '偵測到指令衝突';
+
+  /// Conflict banner body
+  static const String customCommandConflictsBody =
+      '以下自訂指令與 app 更新後的內建指令重複，目前已自動隱藏。請重新命名或刪除。';
+
   /// Previous command tooltip
   static const String previousCommand = '上一個指令';
 
@@ -351,6 +419,9 @@ abstract class AppStrings {
   /// Debug category label
   static const String categoryDebug = '除錯';
 
+  /// Custom category label
+  static const String categoryCustom = '自訂';
+
   /// Query category description
   static const String categoryQueryDesc = '查詢設備資訊和狀態';
 
@@ -362,6 +433,9 @@ abstract class AppStrings {
 
   /// Debug category description
   static const String categoryDebugDesc = '開發和除錯用途';
+
+  /// Custom category description
+  static const String categoryCustomDesc = '使用者自行新增的指令';
 
   // ============================================================
   // Validation
