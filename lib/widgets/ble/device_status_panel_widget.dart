@@ -13,9 +13,13 @@ class DeviceStatusPanelWidget extends StatelessWidget {
   const DeviceStatusPanelWidget({
     super.key,
     required this.controller,
+    this.firmwareName,
   });
 
   final BleControllerInterface controller;
+
+  /// Firmware name parsed from the last $INFO response, or null.
+  final String? firmwareName;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +35,7 @@ class DeviceStatusPanelWidget extends StatelessWidget {
               return _DeviceStatusContent(
                 device: currentDevice,
                 commandInfo: controller.getCommandInfo(),
+                firmwareName: firmwareName,
               );
             }
 
@@ -40,6 +45,7 @@ class DeviceStatusPanelWidget extends StatelessWidget {
           return _DeviceStatusContent(
             device: snapshot.data!,
             commandInfo: controller.getCommandInfo(),
+            firmwareName: firmwareName,
           );
         },
       ),
@@ -52,10 +58,12 @@ class _DeviceStatusContent extends StatelessWidget {
   const _DeviceStatusContent({
     required this.device,
     required this.commandInfo,
+    this.firmwareName,
   });
 
   final BleDeviceModel device;
   final Map<String, dynamic> commandInfo;
+  final String? firmwareName;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +85,10 @@ class _DeviceStatusContent extends StatelessWidget {
         children: [
           _DeviceHeader(device: device),
           const SizedBox(height: 12),
-          _StatusChipRow(commandInfo: commandInfo),
+          _StatusChipRow(
+            commandInfo: commandInfo,
+            firmwareName: firmwareName,
+          ),
         ],
       ),
     );
@@ -138,33 +149,43 @@ class _DeviceHeader extends StatelessWidget {
   }
 }
 
-/// Row of status chips showing TX, RX, and MTU status.
+/// Row of status chips showing TX, RX, MTU, and firmware name.
 class _StatusChipRow extends StatelessWidget {
-  const _StatusChipRow({required this.commandInfo});
+  const _StatusChipRow({
+    required this.commandInfo,
+    this.firmwareName,
+  });
 
   final Map<String, dynamic> commandInfo;
+  final String? firmwareName;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
       children: [
         _StatusChip(
           label: 'TX',
           isAvailable: commandInfo['hasCommandChannel'] ?? false,
           icon: Icons.upload,
         ),
-        const SizedBox(width: 6),
         _StatusChip(
           label: 'RX',
           isAvailable: commandInfo['hasResponseChannel'] ?? false,
           icon: Icons.download,
         ),
-        const SizedBox(width: 6),
         _InfoChip(
           label: 'MTU',
           value: '${commandInfo['mtu']}',
           icon: Icons.data_usage,
         ),
+        if (firmwareName != null)
+          _InfoChip(
+            label: 'FW',
+            value: firmwareName!,
+            icon: Icons.memory,
+          ),
       ],
     );
   }

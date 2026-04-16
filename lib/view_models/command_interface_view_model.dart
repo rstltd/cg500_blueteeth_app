@@ -66,6 +66,16 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   DateTime? _lastResponseAt;
   static const Duration _responseDedupWindow = Duration(milliseconds: 50);
 
+  /// Firmware name extracted from the last $INFO response, or null if no
+  /// $INFO has been received yet. Updated every time a response line
+  /// matches the `FW:...` pattern.
+  String? _firmwareName;
+
+  /// Pattern to extract the firmware name from a $INFO response line.
+  /// Matches: FW:value, FW Name:value, Firmware:value, FW=value, etc.
+  static final RegExp _fwNamePattern =
+      RegExp(r'(?:FW|Firmware)\s*(?:name\s*)?[:=]\s*(.+)', caseSensitive: false);
+
   /// The BLE controller instance.
   BleControllerInterface get controller => _controller;
 
@@ -87,6 +97,9 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
 
   /// Number of new messages since auto-scroll was paused.
   int get unreadCount => _unreadCount;
+
+  /// Firmware name parsed from device $INFO response, or null when unknown.
+  String? get firmwareName => _firmwareName;
 
   /// Scroll controller for the message list.
   ScrollController get scrollController => _scrollController;
@@ -207,6 +220,16 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   }
 
   void _onCommandResponse(String response) {
+    // Try to extract the firmware name from any $INFO response line.
+    final match = _fwNamePattern.firstMatch(response);
+    if (match != null) {
+      final name = match.group(1)?.trim();
+      if (name != null && name.isNotEmpty && name != _firmwareName) {
+        _firmwareName = name;
+        // notify will fire below via addMessage, no double-fire needed.
+      }
+    }
+
     addMessage(MessageData(
       text: response,
       isCommand: false,

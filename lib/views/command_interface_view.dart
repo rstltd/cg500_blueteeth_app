@@ -154,7 +154,20 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
   }
 
   Widget _buildStatusPanel() {
-    return DeviceStatusPanelWidget(controller: viewModel.controller);
+    return DeviceStatusPanelWidget(
+      controller: viewModel.controller,
+      firmwareName: viewModel.firmwareName,
+    );
+  }
+
+  /// Builds the command bar appropriate for the current user role.
+  /// Normal mode → all 5 commands as direct buttons (no "more" menu).
+  /// Developer mode → quick-access bar with "more" for the full menu.
+  Widget _buildCommandBar({bool compact = false}) {
+    if (!viewModel.canManualInput) {
+      return _buildNormalModeCommandBar(compact: compact);
+    }
+    return _buildQuickAccessBar(compact: compact);
   }
 
   Widget _buildQuickAccessBar({bool compact = false}) {
@@ -166,6 +179,49 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
       executingCommand: viewModel.executingCommand,
       isConnected: isConnected,
       compact: compact,
+    );
+  }
+
+  /// Normal-mode bar: shows ALL role-visible commands (5) as named buttons.
+  /// Parameterized commands open the form sheet directly on tap; param-less
+  /// commands execute immediately. No "更多" menu is needed.
+  Widget _buildNormalModeCommandBar({bool compact = false}) {
+    final isConnected = viewModel.controller.connectedDevice != null;
+    final commands = viewModel.commandRepository.getAllCommands();
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingSM,
+        vertical: DesignTokens.spacingS,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: DesignTokens.dividerThickness,
+          ),
+        ),
+      ),
+      child: Wrap(
+        spacing: DesignTokens.spacingS,
+        runSpacing: DesignTokens.spacingS,
+        children: commands.map((command) {
+          final isLoading = viewModel.executingCommand == command.command;
+          return QuickCommandButton(
+            command: command,
+            onPressed: isConnected && !isLoading
+                ? () => _executeCommand(command)
+                : null,
+            isLoading: isLoading,
+            compact: compact,
+            // Show label for all — normal users benefit from seeing the
+            // Chinese name next to each icon so they don't guess.
+            showLabel: true,
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -404,7 +460,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     return Column(
       children: [
         _buildStatusPanel(),
-        _buildQuickAccessBar(compact: true),
+        _buildCommandBar(compact: true),
         Expanded(child: _buildResponseArea(compact: true)),
         _buildCommandInput(showHistoryOpener: true),
       ],
@@ -422,7 +478,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
       child: Column(
         children: [
           _buildStatusPanel(),
-          _buildQuickAccessBar(),
+          _buildCommandBar(),
           Expanded(
             child: Center(
               child: ConstrainedBox(
@@ -478,7 +534,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           Expanded(
             child: Column(
               children: [
-                _buildQuickAccessBar(),
+                _buildCommandBar(),
                 Expanded(child: _buildResponseArea()),
                 _buildCommandInput(),
               ],
@@ -535,7 +591,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
                     ],
                   ),
                 ),
-                _buildQuickAccessBar(),
+                _buildCommandBar(),
                 Expanded(child: _buildResponseArea()),
                 _buildCommandInput(),
               ],
