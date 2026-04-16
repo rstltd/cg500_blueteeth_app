@@ -76,7 +76,7 @@ class UpdateHeaderWidget extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Version ${updateInfo.latestVersion}',
+            '版本 ${updateInfo.latestVersion}',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
               fontSize: 16,

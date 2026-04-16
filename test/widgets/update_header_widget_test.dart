@@ -38,7 +38,7 @@ void main() {
       );
 
       expect(find.text(AppStrings.updateAvailable), findsOneWidget);
-      expect(find.text('Version 2.0.0'), findsOneWidget);
+      expect(find.text('版本 2.0.0'), findsOneWidget);
       expect(find.byIcon(Icons.system_update_alt), findsOneWidget);
     });
 
@@ -98,7 +98,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Version 3.5.1'), findsOneWidget);
+      expect(find.text('版本 3.5.1'), findsOneWidget);
     });
 
     testWidgets('should have gradient decoration', (WidgetTester tester) async {
@@ -175,7 +175,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Version 3.0.0'), findsOneWidget);
+      expect(find.text('版本 3.0.0'), findsOneWidget);
     });
 
     testWidgets('should display minor version update', (WidgetTester tester) async {
@@ -192,7 +192,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Version 2.1.0'), findsOneWidget);
+      expect(find.text('版本 2.1.0'), findsOneWidget);
     });
 
     testWidgets('should display patch version update', (WidgetTester tester) async {
@@ -209,7 +209,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Version 2.0.1'), findsOneWidget);
+      expect(find.text('版本 2.0.1'), findsOneWidget);
     });
   });
 
@@ -232,7 +232,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Version '), findsOneWidget);
+      expect(find.text('版本 '), findsOneWidget);
     });
 
     testWidgets('should handle long version string', (WidgetTester tester) async {
@@ -246,7 +246,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Version 10.20.30-beta.1+build.1234'), findsOneWidget);
+      expect(find.text('版本 10.20.30-beta.1+build.1234'), findsOneWidget);
     });
   });
 }

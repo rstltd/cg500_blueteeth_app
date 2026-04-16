@@ -21,7 +21,7 @@ class UpdateProgressWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Downloading...',
+              '下載中...',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary(context),

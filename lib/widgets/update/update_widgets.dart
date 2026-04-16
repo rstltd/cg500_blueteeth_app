@@ -6,8 +6,6 @@
 /// ```
 library;
 
-export 'install_guide_dialog.dart';
-export 'legacy_update_banner.dart';
 export 'network_info_widget.dart';
 export 'update_actions_widget.dart';
 export 'update_dialog.dart';

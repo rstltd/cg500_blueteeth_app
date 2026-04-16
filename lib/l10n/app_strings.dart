@@ -688,24 +688,15 @@ abstract class AppStrings {
   /// Build number label
   static const String buildNumber = '建置編號';
 
-  // Version Info Widget labels (English for compatibility)
-  /// Current version label (English)
-  static const String currentVersionLabel = 'Current Version';
+  // Version Info Widget labels
+  /// Current version label
+  static const String currentVersionLabel = '當前版本';
 
-  /// New version label (English)
-  static const String newVersionLabel = 'New Version';
+  /// New version label
+  static const String newVersionLabel = '新版本';
 
-  /// Download size label (English)
-  static const String downloadSizeLabel = 'Download Size';
-
-  /// Release date label (English)
-  static const String releaseDateLabel = 'Release Date';
-
-  /// What's new label (English)
-  static const String whatsNew = 'What\'s New';
-
-  /// Default release notes
-  static const String defaultReleaseNotes = 'Bug fixes and performance improvements';
+  /// Download size label
+  static const String downloadSizeLabel = '下載大小';
 
   /// Reset section
   static const String resetSection = '重設';
@@ -768,78 +759,9 @@ abstract class AppStrings {
   /// Installation guide title
   static const String installationGuide = '安裝指南';
 
-  /// Step progress
-  static String stepProgress(int current, int total) => '步驟 $current / $total';
-
-  /// Instructions label
-  static const String instructions = '操作說明:';
-
-  /// Previous button
-  static const String previous = '上一步';
-
-  /// Next button
-  static const String next = '下一步';
-
-  /// Install now button
-  static const String installNow = '立即安裝';
-
-  /// Skip guide button
-  static const String skipGuide = '跳過指南';
-
-  // Installation steps
-  /// Start installation step title
-  static const String startInstallation = '開始安裝';
-
-  /// Start installation description
-  static const String startInstallationDesc = '正在準備更新安裝。';
-
-  /// Start installation instruction
-  static const String startInstallationInstruction = '若沒有動作，請點擊下方「立即安裝」';
-
-  /// Enable unknown sources step title
-  static const String enableUnknownSources = '啟用未知來源';
-
-  /// Enable unknown sources description
-  static const String enableUnknownSourcesDesc = '允許安裝來自未知來源的應用程式。';
-
-  /// Enable unknown sources instructions
-  static const List<String> enableUnknownSourcesInstructions = [
-    '如有提示，請在安全性對話框中點擊「設定」',
-    '開啟「允許此來源」或「未知來源」',
-    '返回安裝畫面',
-  ];
-
-  /// Install update step title
-  static const String installUpdate = '安裝更新';
-
-  /// Install update description
-  static const String installUpdateDesc = '進行安裝程序。';
-
-  /// Install update instructions
-  static const List<String> installUpdateInstructions = [
-    '如有顯示，請檢視應用程式權限',
-    '點擊「安裝」繼續',
-    '等待安裝完成',
-  ];
-
-  /// Installation complete step title
-  static const String installationComplete = '安裝完成';
-
-  /// Installation complete description
-  static const String installationCompleteDesc = '更新已成功安裝。';
-
-  /// Installation complete instructions
-  static const List<String> installationCompleteInstructions = [
-    '應用程式將自動重新啟動',
-    '您將在應用程式中看到新版本',
-    '所有資料和設定都已保留',
-  ];
-
-  /// Cannot start installation error
-  static const String cannotStartInstallation = '無法啟動安裝。請手動安裝。';
-
-  /// Installation error message
-  static String installationError(String error) => '安裝錯誤: $error';
+  // Installation guide constants removed — the 4-step install wizard was
+  // over-engineered. APK installation is now triggered directly after
+  // download completes with a single-line hint in the dialog.
 
   // ============================================================
   // Scanner View
@@ -1064,4 +986,5 @@ abstract class AppStrings {
   static const String previousStep = '上一步';
   static const String nextStep = '下一步';
   static const String finish = '完成';
+
 }

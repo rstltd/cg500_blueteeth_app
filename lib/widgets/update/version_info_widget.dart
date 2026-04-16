@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/update_service.dart';
 import '../../services/theme_service.dart';
 
-/// Widget for displaying version information and release notes
+/// Simplified version info widget for the update dialog.
+///
+/// Shows only the three pieces of information a field operator needs:
+/// current version, new version, and download size. All other details
+/// (SHA256, release date, raw release notes) have been removed.
 class VersionInfoWidget extends StatelessWidget {
   final UpdateInfo updateInfo;
 
@@ -16,52 +21,20 @@ class VersionInfoWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Version info
-        _buildInfoRow(context, 'Current Version', updateInfo.currentVersion),
-        _buildInfoRow(context, 'New Version', updateInfo.latestVersion),
         _buildInfoRow(
           context,
-          'Download Size',
+          AppStrings.currentVersionLabel,
+          updateInfo.currentVersion,
+        ),
+        _buildInfoRow(
+          context,
+          AppStrings.newVersionLabel,
+          updateInfo.latestVersion,
+        ),
+        _buildInfoRow(
+          context,
+          AppStrings.downloadSizeLabel,
           '${(updateInfo.downloadSize / (1024 * 1024)).toStringAsFixed(1)} MB',
-        ),
-        _buildInfoRow(
-          context,
-          'Release Date',
-          _formatDate(updateInfo.releaseDate),
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // Release notes
-        Text(
-          'What\'s New:',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary(context),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.backgroundGradientStart(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.borderColor(context),
-            ),
-          ),
-          child: Text(
-            updateInfo.releaseNotes.isNotEmpty
-                ? updateInfo.releaseNotes
-                : 'Bug fixes and performance improvements',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary(context),
-              height: 1.5,
-            ),
-          ),
         ),
       ],
     );
@@ -75,7 +48,7 @@ class VersionInfoWidget extends StatelessWidget {
           SizedBox(
             width: 120,
             child: Text(
-              '$label:',
+              '$label：',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
                 color: AppColors.textSecondary(context),
@@ -87,15 +60,12 @@ class VersionInfoWidget extends StatelessWidget {
               value,
               style: TextStyle(
                 color: AppColors.textPrimary(context),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

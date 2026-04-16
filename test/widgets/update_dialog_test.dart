@@ -100,26 +100,8 @@ void main() {
       expect(find.textContaining('2.0.0'), findsWidgets);
     });
 
-    testWidgets('should show release notes', (WidgetTester tester) async {
-      final updateInfo = createTestUpdateInfo(
-        releaseNotes: 'New features and bug fixes',
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UpdateDialog(
-              updateInfo: updateInfo,
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Should show "What's New:" label
-      expect(find.textContaining("What's New"), findsOneWidget);
-    });
+    // Release notes test removed — simplified dialog no longer shows
+    // raw release notes.
 
     testWidgets('should have scrollable content', (WidgetTester tester) async {
       final updateInfo = createTestUpdateInfo();
@@ -408,69 +390,8 @@ void main() {
     });
   });
 
-  group('UpdateDialog release notes', () {
-    testWidgets('should handle empty release notes', (WidgetTester tester) async {
-      final updateInfo = createTestUpdateInfo(
-        releaseNotes: '',
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UpdateDialog(
-              updateInfo: updateInfo,
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Should show default text for empty notes
-      expect(find.textContaining('Bug fixes and performance improvements'), findsOneWidget);
-    });
-
-    testWidgets('should handle long release notes', (WidgetTester tester) async {
-      final longNotes = 'A' * 500;
-      final updateInfo = createTestUpdateInfo(
-        releaseNotes: longNotes,
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UpdateDialog(
-              updateInfo: updateInfo,
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(find.byType(UpdateDialog), findsOneWidget);
-    });
-
-    testWidgets('should handle unicode in release notes', (WidgetTester tester) async {
-      final updateInfo = createTestUpdateInfo(
-        releaseNotes: 'New features: 中文更新 日本語 한국어',
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UpdateDialog(
-              updateInfo: updateInfo,
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      expect(find.byType(UpdateDialog), findsOneWidget);
-    });
-  });
+  // Release notes test group removed — simplified dialog no longer shows
+  // raw release notes.
 
   group('UpdateDialog state', () {
     testWidgets('should maintain state during animation', (WidgetTester tester) async {

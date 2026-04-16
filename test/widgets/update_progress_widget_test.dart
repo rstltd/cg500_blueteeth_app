@@ -18,7 +18,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Downloading...'), findsOneWidget);
+      expect(find.text('下載中...'), findsOneWidget);
       expect(find.text('0 MB / 10 MB'), findsOneWidget);
       expect(find.text('0% complete'), findsOneWidget);
     });
@@ -214,13 +214,13 @@ void main() {
           home: Scaffold(
             body: UpdateProgressWidget(
               progress: 0.5,
-              statusText: '下載中... 5 MB / 10 MB',
+              statusText: '進度 5 MB / 10 MB',
             ),
           ),
         ),
       );
 
-      expect(find.textContaining('下載中'), findsOneWidget);
+      expect(find.textContaining('5 MB / 10 MB'), findsOneWidget);
     });
   });
 }
