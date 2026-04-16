@@ -8,6 +8,7 @@ import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
 import '../l10n/app_strings.dart';
 import '../models/ble_device.dart';
+import '../models/connection_state.dart';
 import '../services/animation_service.dart';
 import '../services/error_handling_service.dart' show UserAction;
 import '../services/notification_service.dart';
@@ -422,7 +423,8 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
         StreamBuilder<BleDeviceModel?>(
           stream: viewModel.connectedDeviceStream,
           builder: (context, snapshot) {
-            if (snapshot.hasData) {
+            if (snapshot.hasData &&
+                snapshot.data!.connectionState.isConnected) {
               return Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: DesignTokens.spacingM,

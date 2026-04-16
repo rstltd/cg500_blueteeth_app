@@ -7,6 +7,7 @@ import '../controllers/app_update_manager.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/ble_device.dart';
+import '../models/connection_state.dart';
 import '../services/error_handling_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
@@ -222,10 +223,21 @@ class SimpleScannerViewModel extends BaseViewModel {
   }
 
   void _onConnectedDeviceChanged(BleDeviceModel? device) {
-    final wasConnected = _connectedDevice != null;
+    // Track whether we were ACTUALLY connected (not just connecting) so
+    // the guidance SnackBar fires at the right moment — after the
+    // handshake completes, not when BleService first sets the connecting
+    // state.
+    final wasActuallyConnected =
+        _connectedDevice?.connectionState.isConnected ?? false;
     _connectedDevice = device;
-    if (device != null && !wasConnected && !_justConnectedController.isClosed) {
-      _justConnectedController.add(device);
+
+    final isNowConnected =
+        device != null && device.connectionState.isConnected;
+
+    if (isNowConnected && !wasActuallyConnected) {
+      if (!_justConnectedController.isClosed) {
+        _justConnectedController.add(device);
+      }
       // A successful connection means the environment is healthy — clear
       // any leftover blocking error so the View can return to normal.
       if (_currentError != null) {

@@ -5,8 +5,10 @@ import '../services/command_parameter_storage_service.dart';
 import '../core/interfaces/command_repository_interface.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
+import '../models/ble_device.dart';
 import '../models/command/command.dart';
 import '../models/command/custom_command.dart';
+import '../models/connection_state.dart';
 import '../models/role/user_role.dart';
 import '../services/custom_command_service.dart';
 import '../services/role_service.dart';
@@ -196,6 +198,39 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
       getIt<CustomCommandService>().changeStream,
       (_) => safeNotifyListeners(),
     );
+
+    // Auto-send $INFO on new connections so the FW chip appears without
+    // the user needing to press the button manually.
+    subscribe<BleDeviceModel?>(
+      _controller.connectedDeviceStream,
+      _onConnectionChanged,
+    );
+
+    // If a device is already connected when the view opens, try
+    // auto-querying immediately.
+    _autoSendInfoIfReady();
+  }
+
+  /// React to connection state changes and auto-query $INFO once the
+  /// UART channel is set up after service discovery.
+  void _onConnectionChanged(BleDeviceModel? device) {
+    if (device != null && device.connectionState.isConnected) {
+      // Service discovery + UART setup runs right after the connected
+      // state is emitted, so wait a short beat for the command channel
+      // to become available before sending.
+      Future.delayed(const Duration(seconds: 2), _autoSendInfoIfReady);
+    }
+  }
+
+  /// Send $INFO silently if we haven't already parsed a FW name and the
+  /// command channel is available. Uses [sendPredefinedCommand] so both the
+  /// command and the response appear in the chat log naturally.
+  void _autoSendInfoIfReady() {
+    if (_firmwareName != null) return;
+    final info = _controller.getCommandInfo();
+    if (info['hasCommandChannel'] != true) return;
+    if (_controller.connectedDevice == null) return;
+    _commandManager.sendPredefinedCommand(r'$INFO');
   }
 
   /// Whether the user is allowed to type commands manually.
