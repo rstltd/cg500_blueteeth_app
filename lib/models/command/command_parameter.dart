@@ -95,15 +95,15 @@ class CommandParameter {
     required String id,
     required String label,
     String? defaultHost,
-    String? defaultPort,
+    String defaultPort = '80',
     bool required = true,
   }) {
     return CommandParameter(
       id: id,
       label: label,
       type: ParameterType.hostPort,
-      hint: '例如: update.example.com 或 192.168.1.1:80',
-      defaultValue: defaultHost != null && defaultPort != null
+      hint: '例如: update.example.com:80 或 192.168.1.1:80',
+      defaultValue: defaultHost != null
           ? '$defaultHost:$defaultPort'
           : null,
       required: required,
@@ -324,12 +324,14 @@ class CommandParameter {
       }
     }
 
-    // Validate port (optional — only check when provided)
-    if (port != null && port.isNotEmpty) {
-      final portNum = int.tryParse(port);
-      if (portNum == null || portNum < 1 || portNum > 65535) {
-        return 'Port 必須在 1-65535 之間';
-      }
+    // Port is required — the device needs an explicit port even for the
+    // HTTP default (80).
+    if (port == null || port.isEmpty) {
+      return 'Port 不可為空（HTTP 預設為 80）';
+    }
+    final portNum = int.tryParse(port);
+    if (portNum == null || portNum < 1 || portNum > 65535) {
+      return 'Port 必須在 1-65535 之間';
     }
 
     return null;

@@ -105,12 +105,10 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
       return '';
     }
 
-    // Port is optional — omit the colon when no port is provided
-    if (port.isEmpty) {
-      return host;
-    }
-
-    return '$host:$port';
+    // Device requires an explicit port — default to 80 (HTTP) when the
+    // user leaves the field empty.
+    final effectivePort = port.isEmpty ? '80' : port;
+    return '$host:$effectivePort';
   }
 
   @override
@@ -160,9 +158,9 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
 
         SizedBox(height: DesignTokens.spacingM),
 
-        // Port section (optional)
+        // Port section — defaults to 80 when left empty
         Text(
-          'Port（選填）',
+          'Port（預設 80）',
           style: TextStyle(
             fontSize: DesignTokens.fontS,
             color: colorScheme.onSurfaceVariant,

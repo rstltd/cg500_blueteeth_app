@@ -198,13 +198,14 @@ void main() {
           expect(param.validate('sub.domain.example.com:443'), isNull);
         });
 
-        test('accepts host without port (port is optional)', () {
-          expect(param.validate('192.168.1.1'), isNull);
-          expect(param.validate('example.com'), isNull);
+        test('rejects missing port', () {
+          // Device requires explicit port — host-only values are invalid
+          // at the model level (the widget auto-fills 80 before submitting)
+          expect(param.validate('192.168.1.1'), isNotNull);
+          expect(param.validate('example.com'), isNotNull);
         });
 
         test('rejects invalid format', () {
-          // Empty host with only port is still invalid
           expect(param.validate(':8080'), isNotNull);
         });
 
