@@ -162,7 +162,8 @@ class QuickSetupViewModel extends BaseViewModel {
 
   void backToForm() {
     _phase = WizardPhase.form;
-    _currentStep = totalFormSteps - 1;
+    // Go to step 0 so the user can review from the beginning.
+    _currentStep = 0;
     safeNotifyListeners();
   }
 

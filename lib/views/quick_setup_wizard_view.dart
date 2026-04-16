@@ -78,17 +78,18 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
     if (!mounted) return;
     setState(() {});
 
-    // Sync PageController with viewModel step (for form steps only)
+    // Sync PageController with viewModel step (for form steps only).
+    // Use a post-frame callback because the PageView may be re-mounted
+    // (e.g. returning from summary → form) and won't have clients yet
+    // within the same build frame.
     if (_viewModel.phase == WizardPhase.form) {
-      final targetPage = _viewModel.currentStep;
-      if (_pageController.hasClients &&
-          _pageController.page?.round() != targetPage) {
-        _pageController.animateToPage(
-          targetPage,
-          duration: DesignTokens.durationNormal,
-          curve: DesignTokens.curveStandard,
-        );
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        final targetPage = _viewModel.currentStep;
+        if (_pageController.page?.round() != targetPage) {
+          _pageController.jumpToPage(targetPage);
+        }
+      });
     }
   }
 
