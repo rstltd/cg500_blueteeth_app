@@ -202,12 +202,12 @@ class CommandRepository implements CommandRepositoryInterface {
         category: CommandCategory.config,
         icon: Icons.system_update_outlined,
         parameters: [
-          CommandParameter.ipPort(
+          CommandParameter.hostPort(
             id: 'ftpAddr',
             label: '更新位址',
           ),
         ],
-        example: '\$FTPADDR,211.72.53.102:80',
+        example: '\$FTPADDR,update.example.com 或 \$FTPADDR,211.72.53.102:80',
       ),
 
       // ==================== Control Commands ====================

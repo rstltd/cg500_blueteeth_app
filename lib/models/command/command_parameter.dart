@@ -102,7 +102,7 @@ class CommandParameter {
       id: id,
       label: label,
       type: ParameterType.hostPort,
-      hint: '例如: rmdgnss.com:8080 或 192.168.1.1:8080',
+      hint: '例如: update.example.com 或 192.168.1.1:80',
       defaultValue: defaultHost != null && defaultPort != null
           ? '$defaultHost:$defaultPort'
           : null,
@@ -292,13 +292,18 @@ class CommandParameter {
   }
 
   String? _validateHostPort(String value) {
-    final parts = value.split(':');
-    if (parts.length != 2) {
-      return '格式錯誤，請使用 主機:Port 格式';
-    }
+    // Allow "host" (no port) or "host:port" formats.
+    final colonIndex = value.lastIndexOf(':');
+    final String host;
+    final String? port;
 
-    final host = parts[0];
-    final port = parts[1];
+    if (colonIndex > 0) {
+      host = value.substring(0, colonIndex);
+      port = value.substring(colonIndex + 1);
+    } else {
+      host = value;
+      port = null;
+    }
 
     // Validate host (can be IP or domain)
     if (host.isEmpty) {
@@ -319,10 +324,12 @@ class CommandParameter {
       }
     }
 
-    // Validate port
-    final portNum = int.tryParse(port);
-    if (portNum == null || portNum < 1 || portNum > 65535) {
-      return 'Port 必須在 1-65535 之間';
+    // Validate port (optional — only check when provided)
+    if (port != null && port.isNotEmpty) {
+      final portNum = int.tryParse(port);
+      if (portNum == null || portNum < 1 || portNum > 65535) {
+        return 'Port 必須在 1-65535 之間';
+      }
     }
 
     return null;

@@ -105,6 +105,11 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
       return '';
     }
 
+    // Port is optional — omit the colon when no port is provided
+    if (port.isEmpty) {
+      return host;
+    }
+
     return '$host:$port';
   }
 
@@ -155,9 +160,9 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
 
         SizedBox(height: DesignTokens.spacingM),
 
-        // Port section
+        // Port section (optional)
         Text(
-          'Port',
+          'Port（選填）',
           style: TextStyle(
             fontSize: DesignTokens.fontS,
             color: colorScheme.onSurfaceVariant,
