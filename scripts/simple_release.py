@@ -185,12 +185,17 @@ class SimpleReleaseManager:
         if result.returncode != 0:
             raise RuntimeError(f"APK build failed: {result.stderr}")
 
-        # Find built APK
-        apk_files = list(self.build_dir.glob('*.apk'))
-        if not apk_files:
-            raise FileNotFoundError("No APK file found after build")
-
-        apk_path = apk_files[0]  # Usually app-release.apk
+        # Find the release APK specifically — the build directory may also
+        # contain stale debug APKs from previous flutter run sessions.
+        # glob('*.apk') would pick app-debug.apk first alphabetically.
+        release_apk = self.build_dir / 'app-release.apk'
+        if release_apk.exists():
+            apk_path = release_apk
+        else:
+            apk_files = list(self.build_dir.glob('*.apk'))
+            if not apk_files:
+                raise FileNotFoundError("No APK file found after build")
+            apk_path = apk_files[0]
         size_mb = apk_path.stat().st_size / 1024 / 1024
         print(f"[OK] APK built: {apk_path} ({size_mb:.1f} MB)")
 
