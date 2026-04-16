@@ -337,7 +337,7 @@ abstract class AppStrings {
   static const String tapHistoryToSend = '點擊指令立即送出';
 
   /// Application title shown on the splash screen and main scanner AppBar
-  static const String appTitle = 'CG500 藍牙掃描器';
+  static const String appTitle = 'RST Connect';
 
   /// First line of the splash screen
   static const String initializingApp = '正在初始化 CG500 藍牙應用...';

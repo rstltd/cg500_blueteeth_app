@@ -19,7 +19,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     
     <application
-        android:label="cg500_blueteeth_app"
+        android:label="RST Connect"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
