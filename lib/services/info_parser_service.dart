@@ -71,18 +71,21 @@ class InfoParserService {
         raw[kvMatch.group(1)!.trim()] = kvMatch.group(2)!.trim();
       }
 
-      // Try each specific pattern
-      fw ??= _extract(_fwPattern, line);
-      apn ??= _extract(_apnPattern, line);
+      // Try each specific pattern — use "last wins" so the most recent
+      // $INFO response overwrites values from earlier ones.
+      fw = _extract(_fwPattern, line) ?? fw;
+      apn = _extract(_apnPattern, line) ?? apn;
       // FTPADDR must be checked BEFORE ADDR because ADDR pattern would
       // also match FTPADDR lines.
-      ftpAddr ??= _extract(_ftpAddrPattern, line);
-      if (ftpAddr == null) {
-        addr ??= _extract(_addrPattern, line);
+      final ftpMatch = _extract(_ftpAddrPattern, line);
+      if (ftpMatch != null) {
+        ftpAddr = ftpMatch;
+      } else {
+        addr = _extract(_addrPattern, line) ?? addr;
       }
-      rebootHour ??= _extract(_rebootPattern, line);
-      imei ??= _extract(_imeiPattern, line);
-      mac ??= _extract(_macPattern, line);
+      rebootHour = _extract(_rebootPattern, line) ?? rebootHour;
+      imei = _extract(_imeiPattern, line) ?? imei;
+      mac = _extract(_macPattern, line) ?? mac;
     }
 
     return DeviceInfo(
