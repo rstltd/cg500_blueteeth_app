@@ -594,6 +594,33 @@ abstract class AppStrings {
   /// Check for updates menu item
   static const String checkForUpdates = '檢查更新';
 
+  /// Toast/notification title when user-initiated update check finds no update.
+  static const String upToDateTitle = '已是最新版本';
+
+  /// Toast/notification message when user-initiated update check finds no update.
+  static const String upToDateMessage = '您正在使用最新版本';
+
+  /// Toast/notification title when update check fails (network error, etc.)
+  static const String updateCheckFailedTitle = '檢查更新失敗';
+
+  /// Toast/notification message when update check fails
+  static const String updateCheckFailedMessage = '無法檢查更新，請確認網路連線後再試';
+
+  /// Label for the last update check timestamp row
+  static const String lastCheckedLabel = '上次檢查';
+
+  /// Placeholder shown when no manual check has been run yet this session
+  static const String lastCheckedNever = '尚未檢查';
+
+  /// Formatted timestamp for "just now" (<1 min ago)
+  static const String lastCheckedJustNow = '剛剛';
+
+  /// Formatted timestamp "N 分鐘前"
+  static String lastCheckedMinutesAgo(int minutes) => '$minutes 分鐘前';
+
+  /// Formatted timestamp "N 小時前"
+  static String lastCheckedHoursAgo(int hours) => '$hours 小時前';
+
   /// Update settings menu item
   static const String updateSettings = '更新設定';
 

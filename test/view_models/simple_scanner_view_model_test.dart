@@ -662,7 +662,10 @@ class _MockAppUpdateManager extends AppUpdateManager {
   );
 
   @override
-  Future<UpdateInfo?> checkForUpdatesWithUI({bool force = false}) async {
+  Future<UpdateInfo?> checkForUpdatesWithUI({
+    bool force = false,
+    bool showUpToDateMessage = false,
+  }) async {
     checkForUpdatesWithUICallCount++;
     return null;
   }

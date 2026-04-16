@@ -330,7 +330,13 @@ class SimpleScannerViewModel extends BaseViewModel {
 
   /// Check for updates with UI feedback.
   Future<void> checkForUpdates({bool force = false}) async {
-    await _updateManager.checkForUpdatesWithUI(force: force);
+    // Always show the up-to-date / failure toast when the user triggers
+    // this explicitly from the AppBar menu — silent behaviour here made
+    // the button look broken.
+    await _updateManager.checkForUpdatesWithUI(
+      force: force,
+      showUpToDateMessage: true,
+    );
   }
 
   @override

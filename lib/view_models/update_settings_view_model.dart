@@ -1,3 +1,4 @@
+import '../controllers/app_update_manager.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../services/role_service.dart';
@@ -32,21 +33,26 @@ class UpdateSettingsViewModel extends BaseViewModel {
     UpdateService? updateService,
     NetworkService? networkService,
     RoleService? roleService,
+    AppUpdateManager? updateManager,
   })  : _injectedUpdateService = updateService,
         _injectedNetworkService = networkService,
-        _injectedRoleService = roleService;
+        _injectedRoleService = roleService,
+        _injectedUpdateManager = updateManager;
 
   final UpdateService? _injectedUpdateService;
   final NetworkService? _injectedNetworkService;
   final RoleService? _injectedRoleService;
+  final AppUpdateManager? _injectedUpdateManager;
 
   late final UpdateService _updateService;
   late final NetworkService _networkService;
   late final RoleService _roleService;
+  late final AppUpdateManager _updateManager;
 
   UpdatePreferences? _preferences;
   NetworkStatus _networkStatus = NetworkStatus.unknown;
   bool _isCheckingUpdate = false;
+  DateTime? _lastCheckAt;
 
   // --- Getters ---
 
@@ -61,6 +67,10 @@ class UpdateSettingsViewModel extends BaseViewModel {
 
   /// Whether an update check is in progress.
   bool get isCheckingUpdate => _isCheckingUpdate;
+
+  /// When the user last ran a manual update check during this session.
+  /// Null means no check has been run yet in the current session.
+  DateTime? get lastCheckAt => _lastCheckAt;
 
   /// The update service instance.
   UpdateService get updateService => _updateService;
@@ -82,6 +92,7 @@ class UpdateSettingsViewModel extends BaseViewModel {
     _networkService =
         _injectedNetworkService ?? getIt<NetworkService>();
     _roleService = _injectedRoleService ?? getIt<RoleService>();
+    _updateManager = _injectedUpdateManager ?? getIt<AppUpdateManager>();
 
     // Subscribe to network status changes
     subscribe<NetworkStatus>(
@@ -139,30 +150,11 @@ class UpdateSettingsViewModel extends BaseViewModel {
   }
 
   // --- Preference Update Methods ---
-
-  /// Update auto check enabled setting.
-  void setAutoCheckEnabled(bool value) {
-    if (_preferences == null) return;
-    _preferences = _preferences!.copyWith(autoCheckEnabled: value);
-    safeNotifyListeners();
-    savePreferences();
-  }
-
-  /// Update update frequency setting.
-  void setUpdateFrequency(UpdateFrequency value) {
-    if (_preferences == null) return;
-    _preferences = _preferences!.copyWith(updateFrequency: value);
-    safeNotifyListeners();
-    savePreferences();
-  }
-
-  /// Update auto download enabled setting.
-  void setAutoDownloadEnabled(bool value) {
-    if (_preferences == null) return;
-    _preferences = _preferences!.copyWith(autoDownloadEnabled: value);
-    safeNotifyListeners();
-    savePreferences();
-  }
+  //
+  // Only the WiFi-only download toggle and the skip-list management are
+  // user-controllable from the settings page. Auto-check, auto-download,
+  // and check frequency stay at their developer-chosen defaults (always
+  // on, manual download, daily poll) and are no longer exposed as UI.
 
   /// Update WiFi only download setting.
   void setWifiOnlyDownload(bool value) {
@@ -188,16 +180,10 @@ class UpdateSettingsViewModel extends BaseViewModel {
     savePreferences();
   }
 
-  /// Reset preferences to defaults.
-  void resetToDefaults() {
-    _preferences = UpdatePreferences();
-    safeNotifyListeners();
-    savePreferences();
-  }
-
   // --- Update Checking ---
 
-  /// Check for updates.
+  /// Manually trigger an update check. Routes through AppUpdateManager so
+  /// the user gets the shared "up-to-date" / "check failed" toast feedback.
   Future<void> checkForUpdates() async {
     if (_isCheckingUpdate) return;
 
@@ -205,8 +191,12 @@ class UpdateSettingsViewModel extends BaseViewModel {
     safeNotifyListeners();
 
     try {
-      await _updateService.checkForUpdates(showNotification: true);
+      await _updateManager.checkForUpdatesWithUI(
+        force: true,
+        showUpToDateMessage: true,
+      );
     } finally {
+      _lastCheckAt = DateTime.now();
       _isCheckingUpdate = false;
       safeNotifyListeners();
     }

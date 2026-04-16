@@ -28,11 +28,14 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final ThemeService _themeService;
   late final AppUpdateManager _updateManager;
-  bool _isDarkMode = false;
+  // Drive MaterialApp.themeMode directly via the theme enum so
+  // AppThemeMode.system maps to Flutter's native ThemeMode.system and
+  // lets MaterialApp follow the OS brightness without manual tracking.
+  AppThemeMode _themeMode = AppThemeMode.system;
   bool _isInitialized = false;
 
   // StreamSubscription management
-  StreamSubscription<bool>? _themeSubscription;
+  StreamSubscription<AppThemeMode>? _themeSubscription;
 
   @override
   void initState() {
@@ -50,9 +53,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> _initializeApp() async {
     try {
       Logger.info('Initializing CG500 Bluetooth App...');
-      
+
       // Initialize theme service
       _themeService.initialize();
+      // Seed from the service's current value because the broadcast stream
+      // does NOT buffer the initial emit fired during initialize() above —
+      // if we only subscribed, we would miss the startup value and stay on
+      // the default (light) until the user toggled.
+      _themeMode = _themeService.currentThemeMode;
 
       // Initialize command parameter storage service
       try {
@@ -72,11 +80,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         Logger.warning('Failed to initialize custom command service: $e');
       }
 
-      // Listen to theme changes
-      _themeSubscription = _themeService.isDarkModeStream.listen((isDark) {
+      // Listen to theme mode changes for subsequent toggles
+      _themeSubscription = _themeService.themeModeStream.listen((mode) {
         if (mounted) {
           setState(() {
-            _isDarkMode = isDark;
+            _themeMode = mode;
           });
         }
       });
@@ -119,14 +127,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  ThemeMode _toMaterialThemeMode(AppThemeMode mode) {
+    switch (mode) {
+      case AppThemeMode.light:
+        return ThemeMode.light;
+      case AppThemeMode.dark:
+        return ThemeMode.dark;
+      case AppThemeMode.system:
+        return ThemeMode.system;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: AppStrings.appTitle,
       theme: ThemeService.lightTheme,
       darkTheme: ThemeService.darkTheme,
-      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: _isInitialized 
+      themeMode: _toMaterialThemeMode(_themeMode),
+      home: _isInitialized
         ? AppHomeWrapper(updateManager: _updateManager)
         : const AppLoadingScreen(),
       debugShowCheckedModeBanner: false,

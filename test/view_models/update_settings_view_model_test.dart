@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/role_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/view_models/update_settings_view_model.dart';
 
 void main() {
@@ -39,10 +41,12 @@ void main() {
   group('UpdateSettingsViewModel', () {
     late _MockUpdateService mockUpdateService;
     late _MockNetworkService mockNetworkService;
+    late _FakeAppUpdateManager mockUpdateManager;
 
     setUp(() {
       mockUpdateService = _MockUpdateService();
       mockNetworkService = _MockNetworkService();
+      mockUpdateManager = _FakeAppUpdateManager();
     });
 
     tearDown(() {
@@ -55,6 +59,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         expect(viewModel.isInitialized, isFalse);
@@ -71,6 +76,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -87,6 +93,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -109,6 +116,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -120,67 +128,16 @@ void main() {
     });
 
     group('preference updates', () {
-      test('should update autoCheckEnabled', () async {
-        final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
-          networkService: mockNetworkService,
-          roleService: RoleService(),
-        );
-
-        await viewModel.initialize();
-
-        final initialValue = viewModel.preferences!.autoCheckEnabled;
-        viewModel.setAutoCheckEnabled(!initialValue);
-
-        expect(viewModel.preferences!.autoCheckEnabled, equals(!initialValue));
-
-        // Wait for async savePreferences to complete
-        await Future.delayed(Duration.zero);
-        viewModel.dispose();
-      });
-
-      test('should update updateFrequency', () async {
-        final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
-          networkService: mockNetworkService,
-          roleService: RoleService(),
-        );
-
-        await viewModel.initialize();
-
-        viewModel.setUpdateFrequency(UpdateFrequency.weekly);
-
-        expect(viewModel.preferences!.updateFrequency, equals(UpdateFrequency.weekly));
-
-        // Wait for async savePreferences to complete
-        await Future.delayed(Duration.zero);
-        viewModel.dispose();
-      });
-
-      test('should update autoDownloadEnabled', () async {
-        final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
-          networkService: mockNetworkService,
-          roleService: RoleService(),
-        );
-
-        await viewModel.initialize();
-
-        final initialValue = viewModel.preferences!.autoDownloadEnabled;
-        viewModel.setAutoDownloadEnabled(!initialValue);
-
-        expect(viewModel.preferences!.autoDownloadEnabled, equals(!initialValue));
-
-        // Wait for async savePreferences to complete
-        await Future.delayed(Duration.zero);
-        viewModel.dispose();
-      });
-
+      // Note: auto-check, auto-download, and update-frequency settings are
+      // no longer user-facing (hardcoded to developer defaults) so their
+      // setters were removed from the ViewModel. Only WiFi-only download
+      // and skip-list management remain.
       test('should update wifiOnlyDownload', () async {
         final viewModel = UpdateSettingsViewModel(
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -200,6 +157,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -209,7 +167,9 @@ void main() {
           notified = true;
         });
 
-        viewModel.setAutoCheckEnabled(false);
+        viewModel.setWifiOnlyDownload(
+          !viewModel.preferences!.wifiOnlyDownload,
+        );
 
         expect(notified, isTrue);
 
@@ -225,6 +185,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -247,6 +208,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -266,35 +228,8 @@ void main() {
       });
     });
 
-    group('reset to defaults', () {
-      test('should reset preferences to defaults', () async {
-        final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
-          networkService: mockNetworkService,
-          roleService: RoleService(),
-        );
-
-        await viewModel.initialize();
-
-        // Modify preferences
-        viewModel.setAutoCheckEnabled(false);
-        await Future.delayed(Duration.zero);
-        viewModel.setWifiOnlyDownload(false);
-        await Future.delayed(Duration.zero);
-
-        // Reset
-        viewModel.resetToDefaults();
-
-        // Check defaults
-        final defaults = UpdatePreferences();
-        expect(viewModel.preferences!.autoCheckEnabled, equals(defaults.autoCheckEnabled));
-        expect(viewModel.preferences!.wifiOnlyDownload, equals(defaults.wifiOnlyDownload));
-
-        // Wait for async savePreferences to complete
-        await Future.delayed(Duration.zero);
-        viewModel.dispose();
-      });
-    });
+    // Reset-to-defaults feature removed — the settings page no longer has
+    // enough user-controllable fields to justify a bulk reset button.
 
     group('update checking', () {
       test('should set isCheckingUpdate during check', () async {
@@ -302,6 +237,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -327,6 +263,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -339,8 +276,9 @@ void main() {
 
         await Future.wait([check1, check2]);
 
-        // Should only have called checkForUpdates once
-        expect(mockUpdateService.checkForUpdatesCallCount, equals(1));
+        // The viewmodel now routes through AppUpdateManager, so we assert
+        // against the fake manager instead of the underlying UpdateService.
+        expect(mockUpdateManager.checkCallCount, equals(1));
 
         viewModel.dispose();
       });
@@ -352,6 +290,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -372,6 +311,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -386,6 +326,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -402,6 +343,7 @@ void main() {
           updateService: mockUpdateService,
           networkService: mockNetworkService,
           roleService: RoleService(),
+          updateManager: mockUpdateManager,
         );
 
         await viewModel.initialize();
@@ -553,4 +495,42 @@ class _MockNetworkService extends NetworkService {
   String estimateDownloadTime(int fileSizeBytes) {
     return '~5s';
   }
+}
+
+/// Minimal AppUpdateManager double — exposes only the one method that
+/// UpdateSettingsViewModel calls. Avoids pulling a real AppUpdateManager
+/// through the service locator in tests.
+class _FakeAppUpdateManager extends AppUpdateManager {
+  int checkCallCount = 0;
+
+  _FakeAppUpdateManager()
+      : super.withDependencies(
+          updateService: _NoopUpdateService(),
+          networkService: _NoopNetworkService(),
+          notificationService: _NoopNotificationService(),
+        );
+
+  @override
+  Future<UpdateInfo?> checkForUpdatesWithUI({
+    bool force = false,
+    bool showUpToDateMessage = false,
+  }) async {
+    checkCallCount++;
+    return null;
+  }
+}
+
+class _NoopUpdateService implements UpdateService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class _NoopNetworkService implements NetworkService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class _NoopNotificationService implements NotificationService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/service_locator.dart';
+import '../l10n/app_strings.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../services/notification_service.dart';
@@ -100,25 +101,34 @@ class AppUpdateManager {
     });
   }
 
-  /// Check for updates and show UI if available
-  Future<UpdateInfo?> checkForUpdatesWithUI({bool force = false}) async {
+  /// Check for updates and show UI if available.
+  ///
+  /// [force] bypasses the in-flight-check guard.
+  /// [showUpToDateMessage] makes the check user-visible — when the app is
+  /// already on the latest version or the check fails, a toast is shown so
+  /// the user knows the button did something. Leave it false for periodic
+  /// background checks which should stay silent.
+  Future<UpdateInfo?> checkForUpdatesWithUI({
+    bool force = false,
+    bool showUpToDateMessage = false,
+  }) async {
     if (_isCheckingForUpdates && !force) {
       Logger.debug('Update check already in progress');
       return _latestUpdateInfo;
     }
 
     _isCheckingForUpdates = true;
-    
+
     try {
       Logger.info('Checking for updates with UI...');
-      
+
       // Check for updates
       final updateInfo = await _updateService.checkForUpdates(showNotification: false);
-      
+
       if (updateInfo != null) {
         _latestUpdateInfo = updateInfo;
         Logger.info('Update found: ${updateInfo.currentVersion} -> ${updateInfo.latestVersion}');
-        
+
         // Show update dialog if context is available
         if (_currentContext != null && _currentContext!.mounted) {
           _showUpdateDialog(updateInfo);
@@ -129,14 +139,26 @@ class AppUpdateManager {
             message: 'Version ${updateInfo.latestVersion} is available',
           );
         }
-        
+
         return updateInfo;
       } else {
         Logger.info('No updates available');
+        if (showUpToDateMessage) {
+          _notificationService.showSuccess(
+            title: AppStrings.upToDateTitle,
+            message: AppStrings.upToDateMessage,
+          );
+        }
         return null;
       }
     } catch (e) {
       Logger.error('Failed to check for updates', error: e);
+      if (showUpToDateMessage) {
+        _notificationService.showError(
+          title: AppStrings.updateCheckFailedTitle,
+          message: AppStrings.updateCheckFailedMessage,
+        );
+      }
       return null;
     } finally {
       _isCheckingForUpdates = false;

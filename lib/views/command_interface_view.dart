@@ -345,6 +345,12 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
   }
 
   Widget _buildCommandInput({bool showHistoryOpener = false}) {
+    // Normal-mode field operators can only send the predefined quick-access
+    // commands — there's no free-form typing or history replay for them,
+    // so the entire input panel is hidden to avoid visual clutter.
+    if (!viewModel.canManualInput) {
+      return const SizedBox.shrink();
+    }
     return CommandInputPanelWidget(
       controller: viewModel.controller,
       commandManager: viewModel.commandManager,

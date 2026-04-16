@@ -23,6 +23,7 @@ import '../widgets/ble/device_grid_widget.dart';
 import '../widgets/ble/device_details_dialog.dart';
 import '../widgets/ble/device_search_widget.dart';
 import 'command_interface_view.dart';
+import 'developer_options_view.dart';
 import 'update_settings_view.dart';
 
 /// Simple Scanner View using ViewModelProvider pattern.
@@ -294,9 +295,6 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
 
         // More Settings Menu
         _buildSettingsMenu(context),
-
-        // Connected Device Actions
-        _buildConnectedDeviceActions(context),
       ],
     );
   }
@@ -315,6 +313,14 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
               context,
               MaterialPageRoute(
                 builder: (context) => const UpdateSettingsView(),
+              ),
+            );
+            break;
+          case 'developer_options':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DeveloperOptionsView(),
               ),
             );
             break;
@@ -345,6 +351,16 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
           ),
         ),
         PopupMenuItem<String>(
+          value: 'developer_options',
+          child: Row(
+            children: [
+              const Icon(Icons.developer_mode),
+              SizedBox(width: DesignTokens.spacingSM),
+              const Text(AppStrings.developerMode),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
           value: 'toggle_theme',
           child: StreamBuilder<AppThemeMode>(
             stream: viewModel.themeModeStream,
@@ -361,40 +377,6 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildConnectedDeviceActions(BuildContext context) {
-    return StreamBuilder<BleDeviceModel?>(
-      stream: viewModel.connectedDeviceStream,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          final colorScheme = Theme.of(context).colorScheme;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacingXS),
-                child: IconButton.filled(
-                  icon: const Icon(Icons.chat),
-                  onPressed: _openCommandInterface,
-                  tooltip: AppStrings.commandInterface,
-                  style: IconButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.bluetooth_connected),
-                onPressed: () => _showConnectedDeviceInfo(snapshot.data!),
-                tooltip: AppStrings.deviceInfo,
-              ),
-            ],
-          );
-        }
-        return const SizedBox.shrink();
-      },
     );
   }
 
@@ -589,7 +571,11 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
   }
 
   Widget _buildConnectedDeviceCard(BleDeviceModel device) {
-    return ConnectedDeviceCardWidget(device: device);
+    return ConnectedDeviceCardWidget(
+      device: device,
+      onOpenCommandInterface: _openCommandInterface,
+      onShowDeviceInfo: () => _showConnectedDeviceInfo(device),
+    );
   }
 
   Widget _buildQuickStats() {

@@ -4,12 +4,8 @@ import '../services/network_service.dart';
 import '../services/update_service.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
-import '../models/update_preferences.dart';
 import '../utils/formatting_utils.dart';
 import '../view_models/update_settings_view_model.dart';
-import '../widgets/dev_mode/change_password_dialog.dart';
-import '../widgets/dev_mode/dev_mode_password_dialog.dart';
-import 'custom_commands_view.dart';
 
 /// Update Settings View using ViewModelProvider pattern.
 ///
@@ -119,19 +115,13 @@ class _UpdateSettingsContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _NetworkStatusCard(viewModel: viewModel),
+            _CurrentVersionCard(viewModel: viewModel),
             SizedBox(height: DesignTokens.spacingL),
-            _UpdateCheckSettingsCard(viewModel: viewModel),
+            _NetworkStatusCard(viewModel: viewModel),
             SizedBox(height: DesignTokens.spacingL),
             _DownloadSettingsCard(viewModel: viewModel),
             SizedBox(height: DesignTokens.spacingL),
             _SkippedVersionsCard(viewModel: viewModel),
-            SizedBox(height: DesignTokens.spacingL),
-            _DeveloperModeCard(viewModel: viewModel),
-            SizedBox(height: DesignTokens.spacingL),
-            _CurrentVersionCard(viewModel: viewModel),
-            SizedBox(height: DesignTokens.spacingL),
-            _ResetSettingsCard(viewModel: viewModel),
           ],
         ),
       ),
@@ -201,51 +191,6 @@ class _NetworkStatusCard extends StatelessWidget {
   }
 }
 
-class _UpdateCheckSettingsCard extends StatelessWidget {
-  const _UpdateCheckSettingsCard({required this.viewModel});
-
-  final UpdateSettingsViewModel viewModel;
-
-  @override
-  Widget build(BuildContext context) {
-    final prefs = viewModel.preferences!;
-
-    return _SettingsSection(
-      title: AppStrings.updateCheck,
-      icon: Icons.update,
-      children: [
-        SwitchListTile(
-          title: const Text(AppStrings.autoCheckUpdates),
-          subtitle: const Text(AppStrings.autoCheckUpdatesDesc),
-          value: prefs.autoCheckEnabled,
-          onChanged: viewModel.setAutoCheckEnabled,
-          activeColor: Colors.blue.shade600,
-        ),
-        ListTile(
-          title: const Text(AppStrings.checkFrequency),
-          subtitle: const Text(AppStrings.checkFrequencyDesc),
-          trailing: DropdownButton<UpdateFrequency>(
-            value: prefs.updateFrequency,
-            onChanged: prefs.autoCheckEnabled
-                ? (value) {
-                    if (value != null) {
-                      viewModel.setUpdateFrequency(value);
-                    }
-                  }
-                : null,
-            items: UpdateFrequency.values.map((item) {
-              return DropdownMenuItem<UpdateFrequency>(
-                value: item,
-                child: Text(item.displayName),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _DownloadSettingsCard extends StatelessWidget {
   const _DownloadSettingsCard({required this.viewModel});
 
@@ -259,13 +204,6 @@ class _DownloadSettingsCard extends StatelessWidget {
       title: AppStrings.downloadSettings,
       icon: Icons.download,
       children: [
-        SwitchListTile(
-          title: const Text(AppStrings.autoDownloadUpdates),
-          subtitle: const Text(AppStrings.autoDownloadUpdatesDesc),
-          value: prefs.autoDownloadEnabled,
-          onChanged: viewModel.setAutoDownloadEnabled,
-          activeColor: Colors.blue.shade600,
-        ),
         SwitchListTile(
           title: const Text(AppStrings.wifiOnlyDownload),
           subtitle: const Text(AppStrings.wifiOnlyDownloadDesc),
@@ -352,112 +290,29 @@ class _CurrentVersionCard extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _DeveloperModeCard extends StatelessWidget {
-  const _DeveloperModeCard({required this.viewModel});
-
-  final UpdateSettingsViewModel viewModel;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDev = viewModel.isDeveloperMode;
-    return _SettingsSection(
-      title: AppStrings.developerMode,
-      icon: Icons.developer_mode,
-      children: [
-        SwitchListTile(
-          title: const Text(AppStrings.developerMode),
-          subtitle: Text(
-            isDev
-                ? AppStrings.developerModeEnabled
-                : AppStrings.developerModeDisabled,
-          ),
-          value: isDev,
-          activeColor: Colors.orange.shade700,
-          onChanged: (value) async {
-            if (value) {
-              await DevModePasswordDialog.show(context: context);
-              // No need to manually refresh — the viewmodel subscribes to
-              // RoleService.roleStream and rebuilds automatically.
-            } else {
-              viewModel.disableDeveloperMode();
-            }
-          },
-        ),
-        if (isDev) ...[
-          ListTile(
-            leading: const Icon(Icons.lock_reset),
-            title: const Text(AppStrings.changePasswordTitle),
-            onTap: () => ChangePasswordDialog.show(context: context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.edit_note),
-            title: const Text(AppStrings.manageCustomCommands),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const CustomCommandsView(),
-              ),
+        ListTile(
+          title: const Text(AppStrings.lastCheckedLabel),
+          trailing: Text(
+            _formatLastChecked(viewModel.lastCheckAt),
+            style: TextStyle(
+              color: AppColors.textSecondary(context),
             ),
           ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ResetSettingsCard extends StatelessWidget {
-  const _ResetSettingsCard({required this.viewModel});
-
-  final UpdateSettingsViewModel viewModel;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SettingsSection(
-      title: AppStrings.resetSection,
-      icon: Icons.restore,
-      children: [
-        ListTile(
-          title: const Text(AppStrings.restoreDefaults),
-          subtitle: const Text(AppStrings.restoreDefaultsDesc),
-          trailing: const Icon(Icons.restore),
-          onTap: () => _showResetDialog(context),
         ),
       ],
     );
   }
 
-  void _showResetDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(AppStrings.resetSettingsTitle),
-        content: const Text(
-          AppStrings.resetSettingsConfirmation,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              viewModel.resetToDefaults();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(AppStrings.settingsRestored),
-                ),
-              );
-            },
-            child: const Text(AppStrings.resetSection),
-          ),
-        ],
-      ),
-    );
+  /// Human-friendly relative timestamp for "last checked" row.
+  /// Returns "尚未檢查" when no check has been run in the current session.
+  String _formatLastChecked(DateTime? at) {
+    if (at == null) return AppStrings.lastCheckedNever;
+    final diff = DateTime.now().difference(at);
+    if (diff.inMinutes < 1) return AppStrings.lastCheckedJustNow;
+    if (diff.inHours < 1) {
+      return AppStrings.lastCheckedMinutesAgo(diff.inMinutes);
+    }
+    return AppStrings.lastCheckedHoursAgo(diff.inHours);
   }
 }
 
