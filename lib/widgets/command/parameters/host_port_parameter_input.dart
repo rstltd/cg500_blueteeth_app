@@ -271,7 +271,7 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
         _PortInputFormatter(),
       ],
       decoration: InputDecoration(
-        hintText: '8080',
+        hintText: '預設 80',
         hintStyle: TextStyle(
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
         ),
