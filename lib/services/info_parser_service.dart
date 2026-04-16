@@ -1,4 +1,5 @@
 import '../models/device_info.dart';
+import '../utils/logger.dart';
 
 /// Stateless service that parses CG500 $INFO response lines into a
 /// structured [DeviceInfo].
@@ -26,8 +27,10 @@ class InfoParserService {
     r'APN\s*[:=]\s*(\S+)',
     caseSensitive: false,
   );
+  // Only match "Target Addr" or a standalone "ADDR" at the start of the
+  // line — NOT substrings like "Command Addr" or "Wifi Address".
   static final _addrPattern = RegExp(
-    r'(?:ADDR|Target\s*Addr)\s*[:=]\s*(.+)',
+    r'(?:^ADDR\b|Target\s+Addr)\s*[:=]\s*(.+)',
     caseSensitive: false,
   );
   static final _ftpAddrPattern = RegExp(
@@ -111,6 +114,15 @@ class InfoParserService {
     final apn = _extract(_apnPattern, line);
     final ftpAddr = _extract(_ftpAddrPattern, line);
     final addr = ftpAddr == null ? _extract(_addrPattern, line) : null;
+
+    // Diagnostic: log lines that contain "addr" (case-insensitive) to help
+    // debug field-name mismatches with the actual device output.
+    if (line.toLowerCase().contains('addr')) {
+      Logger.diagnostic(
+        '[INFO_PARSER] addr-related line: "$line" → '
+        'ftpAddr=$ftpAddr, addr=$addr',
+      );
+    }
     final rebootHour = _extract(_rebootPattern, line);
     final imei = _extract(_imeiPattern, line);
     final mac = _extract(_macPattern, line);
