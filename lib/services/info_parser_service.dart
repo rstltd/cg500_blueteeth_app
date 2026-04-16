@@ -27,15 +27,15 @@ class InfoParserService {
     caseSensitive: false,
   );
   static final _addrPattern = RegExp(
-    r'ADDR\s*[:=]\s*(.+)',
+    r'(?:ADDR|Target\s*Addr)\s*[:=]\s*(.+)',
     caseSensitive: false,
   );
   static final _ftpAddrPattern = RegExp(
-    r'(?:FTPADDR|FTP\s*ADDR)\s*[:=]\s*(.+)',
+    r'(?:FTPADDR|FTP\s*ADDR|Prog\s*Address)\s*[:=]\s*(.+)',
     caseSensitive: false,
   );
   static final _rebootPattern = RegExp(
-    r'REBOOT\s*[:=]\s*(\d+)',
+    r'(?:REBOOT|Reset\s*hour)\s*[:=]\s*(\d+)',
     caseSensitive: false,
   );
   static final _imeiPattern = RegExp(
