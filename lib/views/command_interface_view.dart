@@ -7,6 +7,7 @@ import '../models/command/command.dart';
 import '../services/notification_service.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../view_models/command_interface_view_model.dart';
+import 'quick_setup_wizard_view.dart';
 import '../widgets/message/message_bubble_widget.dart';
 import '../widgets/message/message_filter_widget.dart';
 import '../widgets/ble/connection_status_widget.dart';
@@ -182,9 +183,8 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
     );
   }
 
-  /// Normal-mode bar: shows ALL role-visible commands (5) as named buttons.
-  /// Parameterized commands open the form sheet directly on tap; param-less
-  /// commands execute immediately. No "更多" menu is needed.
+  /// Normal-mode bar: shows ALL role-visible commands (5) as named buttons,
+  /// plus a prominent "快速設定" wizard entry at the top.
   Widget _buildNormalModeCommandBar({bool compact = false}) {
     final isConnected = viewModel.controller.connectedDevice != null;
     final commands = viewModel.commandRepository.getAllCommands();
@@ -204,23 +204,52 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
           ),
         ),
       ),
-      child: Wrap(
-        spacing: DesignTokens.spacingS,
-        runSpacing: DesignTokens.spacingS,
-        children: commands.map((command) {
-          final isLoading = viewModel.executingCommand == command.command;
-          return QuickCommandButton(
-            command: command,
-            onPressed: isConnected && !isLoading
-                ? () => _executeCommand(command)
-                : null,
-            isLoading: isLoading,
-            compact: compact,
-            // Show label for all — normal users benefit from seeing the
-            // Chinese name next to each icon so they don't guess.
-            showLabel: true,
-          );
-        }).toList(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Quick Setup wizard entry button
+          if (isConnected)
+            Padding(
+              padding: EdgeInsets.only(bottom: DesignTokens.spacingS),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _openQuickSetupWizard,
+                  icon: const Icon(Icons.rocket_launch),
+                  label: const Text(AppStrings.quickSetup),
+                ),
+              ),
+            ),
+          // Individual command buttons
+          Wrap(
+            spacing: DesignTokens.spacingS,
+            runSpacing: DesignTokens.spacingS,
+            children: commands.map((command) {
+              final isLoading = viewModel.executingCommand == command.command;
+              return QuickCommandButton(
+                command: command,
+                onPressed: isConnected && !isLoading
+                    ? () => _executeCommand(command)
+                    : null,
+                isLoading: isLoading,
+                compact: compact,
+                showLabel: true,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openQuickSetupWizard() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuickSetupWizardView(
+          controller: viewModel.controller,
+          commandManager: viewModel.commandManager,
+          responseLines: viewModel.responseLines,
+        ),
       ),
     );
   }

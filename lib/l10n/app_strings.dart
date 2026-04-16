@@ -1043,4 +1043,25 @@ abstract class AppStrings {
 
   /// Notification message for [communicationReadyTitle]
   static const String communicationReadyMessage = 'Nordic UART 服務設定成功';
+
+  // ============================================================
+  // Quick Setup Wizard
+  // ============================================================
+
+  static const String quickSetup = '快速設定';
+  static const String quickSetupDesc = '依序設定 APN、連線位址、更新位址與重啟時間';
+  static String stepNOfTotal(int n, int total) => '步驟 $n / $total';
+  static const String currentValue = '目前值';
+  static const String noChange = '未變更';
+  static const String confirmChanges = '確認變更';
+  static const String noChangesDetected = '沒有需要變更的設定';
+  static const String executing = '正在設定...';
+  static const String setupComplete = '設定完成';
+  static const String setupFailed = '設定失敗';
+  static String failedAt(String command) => '在「$command」處失敗';
+  static const String backToModify = '返回修改';
+  static const String confirmAndExecute = '確認執行';
+  static const String previousStep = '上一步';
+  static const String nextStep = '下一步';
+  static const String finish = '完成';
 }
