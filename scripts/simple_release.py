@@ -483,11 +483,16 @@ class SimpleReleaseManager:
             release_notes = self.generate_release_notes(version, sha256_checksum, apk_size_mb)
 
         title_suffix = ' (pre-release)' if version.is_prerelease else ''
+        # `--verify-tag` tells gh to use the already-pushed remote tag instead
+        # of creating a new one. Without this, gh creates the tag against the
+        # default branch's *remote* HEAD, which may lag the just-pushed version
+        # bump (and produce a tag pointing at the wrong commit).
         cmd = [
             gh_cmd, 'release', 'create', tag,
             str(apk_path),
             '--title', f"CG500 BLE App {tag}{title_suffix}",
             '--notes', release_notes,
+            '--verify-tag',
         ]
         if version.is_prerelease:
             cmd.append('--prerelease')
@@ -511,7 +516,21 @@ class SimpleReleaseManager:
             )
             print("[OK] Version change committed")
         except subprocess.CalledProcessError as e:
-            print(f"[WARNING] Could not commit version change: {e}")
+            raise RuntimeError(f"Could not commit version change: {e}") from e
+
+    def create_local_tag(self, version: Version):
+        """Create the release tag locally, pointing at the just-committed
+        version-bump commit. Created before push so the tag accompanies the
+        commit to the remote in [push_changes], guaranteeing the tag points
+        at the right commit instead of whatever the remote default branch's
+        HEAD happened to be when `gh release create` ran.
+        """
+        tag = version.to_tag()
+        try:
+            subprocess.run(['git', 'tag', tag], check=True, cwd=self.project_root)
+            print(f"[OK] Local tag {tag} created at HEAD")
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Could not create local tag {tag}: {e}") from e
 
     def push_changes(self):
         try:
@@ -519,7 +538,7 @@ class SimpleReleaseManager:
             subprocess.run(['git', 'push', '--tags'], check=True, cwd=self.project_root)
             print("[OK] Changes pushed to GitHub")
         except subprocess.CalledProcessError as e:
-            print(f"[WARNING] Could not push changes: {e}")
+            raise RuntimeError(f"Could not push changes: {e}") from e
 
     # --- Confirmation ---
 
@@ -578,9 +597,14 @@ class SimpleReleaseManager:
             preview_notes = custom_notes or self.generate_release_notes(new_version, apk_size_mb=apk_size_mb)
             self.confirm_release(new_version, release_apk_path, preview_notes, skip_confirm)
 
+            # Order matters: commit + tag locally, push them together, then
+            # let `gh release create --verify-tag` attach the release to the
+            # already-published tag. Doing `gh release create` first would let
+            # gh create the tag against the remote branch's stale HEAD.
             self.commit_version_change(new_version)
-            tag = self.create_github_release(new_version, release_apk_path, custom_notes=custom_notes)
+            self.create_local_tag(new_version)
             self.push_changes()
+            tag = self.create_github_release(new_version, release_apk_path, custom_notes=custom_notes)
 
             print("=" * 50)
             print("[SUCCESS] Release completed successfully!")
