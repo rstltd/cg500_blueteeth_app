@@ -1,5 +1,5 @@
 import '../controllers/update_controller.dart';
-import '../services/update_service.dart';
+import '../services/update_preferences_store.dart';
 import '../services/network_service.dart';
 import '../services/role_service.dart';
 import '../core/service_locator.dart' show getIt;
@@ -10,57 +10,48 @@ import '../models/update_preferences.dart';
 /// ViewModel for the Update Settings View.
 ///
 /// Manages:
-/// - Update preferences loading and saving
+/// - Update preferences loading and saving (via the shared store)
 /// - Network status monitoring
-/// - Update checking state
-///
-/// Example usage:
-/// ```dart
-/// ViewModelProvider<UpdateSettingsViewModel>(
-///   create: () => UpdateSettingsViewModel(),
-///   builder: (context, viewModel, child) {
-///     return UpdateSettingsContent(viewModel: viewModel);
-///   },
-/// )
-/// ```
+/// - Update checking state (delegated to UpdateController)
 class UpdateSettingsViewModel extends BaseViewModel {
   /// Creates an UpdateSettingsViewModel.
   ///
-  /// [updateService] - Optional update service for dependency injection (testing).
-  /// [networkService] - Optional network service for dependency injection (testing).
-  /// If null, services are retrieved from the service locator.
+  /// All dependencies are optional for testing. If null they are
+  /// retrieved from the service locator.
   UpdateSettingsViewModel({
-    UpdateService? updateService,
+    UpdatePreferencesStore? preferencesStore,
     NetworkService? networkService,
     RoleService? roleService,
     UpdateController? updateManager,
-  })  : _injectedUpdateService = updateService,
+  })  : _injectedPreferencesStore = preferencesStore,
         _injectedNetworkService = networkService,
         _injectedRoleService = roleService,
         _injectedUpdateManager = updateManager;
 
-  final UpdateService? _injectedUpdateService;
+  final UpdatePreferencesStore? _injectedPreferencesStore;
   final NetworkService? _injectedNetworkService;
   final RoleService? _injectedRoleService;
   final UpdateController? _injectedUpdateManager;
 
-  late final UpdateService _updateService;
+  late final UpdatePreferencesStore _preferencesStore;
   late final NetworkService _networkService;
   late final RoleService _roleService;
   late final UpdateController _updateManager;
 
-  UpdatePreferences? _preferences;
   NetworkStatus _networkStatus = NetworkStatus.unknown;
   bool _isCheckingUpdate = false;
   DateTime? _lastCheckAt;
 
   // --- Getters ---
 
-  /// The current update preferences.
-  UpdatePreferences? get preferences => _preferences;
+  /// The current update preferences (read from the shared store).
+  /// Null before [onInit] has wired up the store.
+  UpdatePreferences? get preferences =>
+      isInitialized ? _preferencesStore.current : null;
 
   /// Whether preferences have been loaded.
-  bool get hasPreferences => _preferences != null;
+  bool get hasPreferences =>
+      isInitialized && _preferencesStore.isLoaded;
 
   /// The current network status.
   NetworkStatus get networkStatus => _networkStatus;
@@ -72,23 +63,20 @@ class UpdateSettingsViewModel extends BaseViewModel {
   /// Null means no check has been run yet in the current session.
   DateTime? get lastCheckAt => _lastCheckAt;
 
-  /// The update service instance.
-  UpdateService get updateService => _updateService;
-
   /// The network service instance.
   NetworkService get networkService => _networkService;
 
-  /// Get current version info from the update service.
+  /// Get current version info from the update controller.
   Map<String, String> get currentVersionInfo =>
-      _updateService.getCurrentVersionInfo();
+      _updateManager.getCurrentVersionInfo();
 
   /// Network status description.
   String get networkStatusDescription => _networkService.getStatusDescription();
 
   @override
   Future<void> onInit() async {
-    // Use injected services or get from service locator
-    _updateService = _injectedUpdateService ?? getIt<UpdateService>();
+    _preferencesStore =
+        _injectedPreferencesStore ?? getIt<UpdatePreferencesStore>();
     _networkService =
         _injectedNetworkService ?? getIt<NetworkService>();
     _roleService = _injectedRoleService ?? getIt<RoleService>();
@@ -107,11 +95,22 @@ class UpdateSettingsViewModel extends BaseViewModel {
       (_) => safeNotifyListeners(),
     );
 
+    // Subscribe to preferences changes so the settings UI reflects edits
+    // made anywhere else (e.g. the dialog's skip-version flow updating
+    // skippedVersions while the settings screen is open).
+    subscribe<UpdatePreferences>(
+      _preferencesStore.changeStream,
+      (_) => safeNotifyListeners(),
+    );
+
     // Set initial network status
     _networkStatus = _networkService.currentStatus;
 
-    // Load preferences
-    await _loadPreferences();
+    // Load preferences via the store. No-op if already loaded.
+    if (!_preferencesStore.isLoaded) {
+      await _preferencesStore.load();
+    }
+    safeNotifyListeners();
   }
 
   // --- Developer Mode ---
@@ -129,26 +128,6 @@ class UpdateSettingsViewModel extends BaseViewModel {
     safeNotifyListeners();
   }
 
-  Future<void> _loadPreferences() async {
-    try {
-      final preferences = await UpdatePreferences.load();
-      _preferences = preferences;
-      safeNotifyListeners();
-    } catch (e) {
-      _preferences = UpdatePreferences();
-      safeNotifyListeners();
-    }
-  }
-
-  /// Save the current preferences.
-  Future<void> savePreferences() async {
-    if (_preferences != null) {
-      await _preferences!.save();
-      // Update the UpdateService with new preferences
-      await _updateService.updatePreferences(_preferences!);
-    }
-  }
-
   // --- Preference Update Methods ---
   //
   // Only the WiFi-only download toggle and the skip-list management are
@@ -157,28 +136,16 @@ class UpdateSettingsViewModel extends BaseViewModel {
   // on, manual download, daily poll) and are no longer exposed as UI.
 
   /// Update WiFi only download setting.
-  void setWifiOnlyDownload(bool value) {
-    if (_preferences == null) return;
-    _preferences = _preferences!.copyWith(wifiOnlyDownload: value);
-    safeNotifyListeners();
-    savePreferences();
-  }
+  Future<void> setWifiOnlyDownload(bool value) =>
+      _preferencesStore.setWifiOnlyDownload(value);
 
   /// Unskip a version.
-  void unskipVersion(String version) {
-    if (_preferences == null) return;
-    _preferences!.unskipVersion(version);
-    safeNotifyListeners();
-    savePreferences();
-  }
+  Future<void> unskipVersion(String version) =>
+      _preferencesStore.unskipVersion(version);
 
   /// Clear all skipped versions.
-  void clearSkippedVersions() {
-    if (_preferences == null) return;
-    _preferences!.clearSkippedVersions();
-    safeNotifyListeners();
-    savePreferences();
-  }
+  Future<void> clearSkippedVersions() =>
+      _preferencesStore.clearSkippedVersions();
 
   // --- Update Checking ---
 

@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import 'package:cg500_blueteeth_app/widgets/update/network_info_widget.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
+import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
@@ -10,11 +12,13 @@ void main() {
 
   group('NetworkInfoWidget', () {
     late MockNetworkService networkService;
-    late MockUpdateService updateService;
+    late UpdatePreferencesStore preferencesStore;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       networkService = MockNetworkService();
-      updateService = MockUpdateService();
+      preferencesStore = UpdatePreferencesStore();
+      await preferencesStore.load();
     });
 
     testWidgets('should render with WiFi status', (WidgetTester tester) async {
@@ -23,7 +27,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024, // 10 MB
               networkStatus: NetworkStatus.wifi,
             ),
@@ -41,7 +45,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.mobile,
             ),
@@ -58,7 +62,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.none,
             ),
@@ -75,7 +79,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.unknown,
             ),
@@ -92,7 +96,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -109,7 +113,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.mobile,
             ),
@@ -126,7 +130,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.none,
             ),
@@ -143,7 +147,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.unknown,
             ),
@@ -160,7 +164,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -178,7 +182,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 50 * 1024 * 1024, // 50 MB
               networkStatus: NetworkStatus.wifi,
             ),
@@ -196,7 +200,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 1024, // 1 KB
               networkStatus: NetworkStatus.wifi,
             ),
@@ -213,7 +217,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 500 * 1024 * 1024, // 500 MB
               networkStatus: NetworkStatus.wifi,
             ),
@@ -230,7 +234,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 0,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -247,7 +251,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -265,7 +269,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -283,7 +287,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -301,7 +305,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -315,11 +319,13 @@ void main() {
 
   group('NetworkInfoWidget icon colors', () {
     late MockNetworkService networkService;
-    late MockUpdateService updateService;
+    late UpdatePreferencesStore preferencesStore;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       networkService = MockNetworkService();
-      updateService = MockUpdateService();
+      preferencesStore = UpdatePreferencesStore();
+      await preferencesStore.load();
     });
 
     testWidgets('should have icon with proper color', (WidgetTester tester) async {
@@ -328,7 +334,7 @@ void main() {
           home: Scaffold(
             body: NetworkInfoWidget(
               networkService: networkService,
-              updateService: updateService,
+              preferencesStore: preferencesStore,
               downloadSize: 10 * 1024 * 1024,
               networkStatus: NetworkStatus.wifi,
             ),
@@ -343,11 +349,13 @@ void main() {
 
   group('NetworkInfoWidget all status types', () {
     late MockNetworkService networkService;
-    late MockUpdateService updateService;
+    late UpdatePreferencesStore preferencesStore;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       networkService = MockNetworkService();
-      updateService = MockUpdateService();
+      preferencesStore = UpdatePreferencesStore();
+      await preferencesStore.load();
     });
 
     for (final status in NetworkStatus.values) {
@@ -357,7 +365,7 @@ void main() {
             home: Scaffold(
               body: NetworkInfoWidget(
                 networkService: networkService,
-                updateService: updateService,
+                preferencesStore: preferencesStore,
                 downloadSize: 10 * 1024 * 1024,
                 networkStatus: status,
               ),

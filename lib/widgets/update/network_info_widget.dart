@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/network_service.dart';
-import '../../services/update_service.dart';
+import '../../services/update_preferences_store.dart';
 import '../../services/theme_service.dart';
 
 /// Widget for displaying network status and download suitability
 class NetworkInfoWidget extends StatelessWidget {
   final NetworkService networkService;
-  final UpdateService updateService;
+  final UpdatePreferencesStore preferencesStore;
   final int downloadSize;
   final NetworkStatus networkStatus;
 
   const NetworkInfoWidget({
     super.key,
     required this.networkService,
-    required this.updateService,
+    required this.preferencesStore,
     required this.downloadSize,
     required this.networkStatus,
   });
@@ -22,7 +22,7 @@ class NetworkInfoWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Only check WiFi requirement if preferences are loaded
-    final preferences = updateService.preferences;
+    final preferences = preferencesStore.current;
     final bool preferencesLoaded = preferences != null;
     final bool isWifiRequired;
 

@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
-import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/role_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/services/update_checker.dart';
@@ -16,39 +15,17 @@ import 'package:cg500_blueteeth_app/view_models/update_settings_view_model.dart'
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Mock SharedPreferences
-  const MethodChannel channel = MethodChannel(
-    'plugins.flutter.io/shared_preferences',
-  );
-
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-      if (methodCall.method == 'getAll') {
-        return <String, dynamic>{};
-      }
-      if (methodCall.method == 'setString' ||
-          methodCall.method == 'setBool' ||
-          methodCall.method == 'setInt' ||
-          methodCall.method == 'setStringList') {
-        return true;
-      }
-      return null;
-    });
-  });
-
-  tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
+    SharedPreferences.setMockInitialValues({});
   });
 
   group('UpdateSettingsViewModel', () {
-    late _MockUpdateService mockUpdateService;
+    late UpdatePreferencesStore preferencesStore;
     late _MockNetworkService mockNetworkService;
     late _FakeUpdateController mockUpdateManager;
 
     setUp(() {
-      mockUpdateService = _MockUpdateService();
+      preferencesStore = UpdatePreferencesStore();
       mockNetworkService = _MockNetworkService();
       mockUpdateManager = _FakeUpdateController();
     });
@@ -60,7 +37,7 @@ void main() {
     group('initialization', () {
       test('should start with correct initial state', () {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -77,7 +54,7 @@ void main() {
 
       test('should initialize and load preferences', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -94,7 +71,7 @@ void main() {
 
       test('should subscribe to network status changes', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -117,7 +94,7 @@ void main() {
     group('network status', () {
       test('should return network status description', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -138,7 +115,7 @@ void main() {
       // and skip-list management remain.
       test('should update wifiOnlyDownload', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -158,7 +135,7 @@ void main() {
 
       test('should notify listeners on preference change', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -171,14 +148,14 @@ void main() {
           notified = true;
         });
 
-        viewModel.setWifiOnlyDownload(
+        await viewModel.setWifiOnlyDownload(
           !viewModel.preferences!.wifiOnlyDownload,
         );
+        // Drain the store->VM stream microtask so the listener fires.
+        await Future<void>.delayed(Duration.zero);
 
         expect(notified, isTrue);
 
-        // Wait for async savePreferences to complete
-        await Future.delayed(Duration.zero);
         viewModel.dispose();
       });
     });
@@ -186,7 +163,7 @@ void main() {
     group('skipped versions', () {
       test('should clear skipped versions', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -209,7 +186,7 @@ void main() {
 
       test('should unskip a specific version', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -238,7 +215,7 @@ void main() {
     group('update checking', () {
       test('should set isCheckingUpdate during check', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -264,7 +241,7 @@ void main() {
 
       test('should not allow concurrent update checks', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -291,7 +268,7 @@ void main() {
     group('version info', () {
       test('should return current version info', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -310,24 +287,9 @@ void main() {
     });
 
     group('service accessors', () {
-      test('should provide access to update service', () async {
-        final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
-          networkService: mockNetworkService,
-          roleService: RoleService(),
-          updateManager: mockUpdateManager,
-        );
-
-        await viewModel.initialize();
-
-        expect(viewModel.updateService, equals(mockUpdateService));
-
-        viewModel.dispose();
-      });
-
       test('should provide access to network service', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -344,7 +306,7 @@ void main() {
     group('dispose', () {
       test('should cancel network subscription on dispose', () async {
         final viewModel = UpdateSettingsViewModel(
-          updateService: mockUpdateService,
+          preferencesStore: preferencesStore,
           networkService: mockNetworkService,
           roleService: RoleService(),
           updateManager: mockUpdateManager,
@@ -367,81 +329,6 @@ void main() {
 }
 
 // --- Mock Implementations ---
-
-class _MockUpdateService implements UpdateService {
-  int checkForUpdatesCallCount = 0;
-  final _updateController = StreamController<UpdateInfo>.broadcast();
-  final _downloadController = StreamController<DownloadProgress>.broadcast();
-
-  @override
-  Stream<UpdateInfo> get updateStream => _updateController.stream;
-
-  @override
-  Stream<DownloadProgress> get downloadStream => _downloadController.stream;
-
-  @override
-  bool get isDownloading => false;
-
-  @override
-  Future<bool> initialize() async => true;
-
-  @override
-  void dispose() {
-    _updateController.close();
-    _downloadController.close();
-  }
-
-  @override
-  Future<UpdateInfo?> checkForUpdates({bool showNotification = false}) async {
-    checkForUpdatesCallCount++;
-    await Future.delayed(const Duration(milliseconds: 10));
-    return null;
-  }
-
-  @override
-  Map<String, String> getCurrentVersionInfo() {
-    return {
-      'version': '1.0.0',
-      'buildNumber': '1',
-    };
-  }
-
-  @override
-  Future<void> updatePreferences(UpdatePreferences preferences) async {
-    // No-op for testing
-  }
-
-  @override
-  Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
-    return null;
-  }
-
-  @override
-  Future<bool> installUpdate(String filePath) async {
-    return false;
-  }
-
-  @override
-  Future<void> cleanupDownloads({String? keepVersion}) async {}
-
-  @override
-  Future<bool> canInstallApks() async => false;
-
-  @override
-  Future<void> requestInstallPermission() async {}
-
-  @override
-  Future<Map<String, dynamic>> diagnosePermissions() async => {};
-
-  @override
-  Future<void> skipVersion(String version) async {}
-
-  @override
-  UpdatePreferences? get preferences => null;
-
-  @override
-  bool shouldAutoDownload(UpdateInfo updateInfo) => false;
-}
 
 class _MockNetworkService extends NetworkService {
   final _networkController = StreamController<NetworkStatus>.broadcast();
@@ -525,6 +412,12 @@ class _FakeUpdateController extends UpdateController {
     checkCallCount++;
     return null;
   }
+
+  @override
+  Map<String, String> getCurrentVersionInfo() => {
+        'version': '1.0.0',
+        'buildNumber': '1',
+      };
 }
 
 class _NoopUpdateChecker implements UpdateChecker {

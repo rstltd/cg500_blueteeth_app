@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
 import '../services/network_service.dart';
-import '../services/update_service.dart';
+import '../services/update_preferences_store.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
 import '../utils/formatting_utils.dart';
@@ -18,25 +18,25 @@ import '../view_models/update_settings_view_model.dart';
 class UpdateSettingsView extends StatelessWidget {
   /// Creates an UpdateSettingsView using the service locator.
   const UpdateSettingsView({super.key})
-      : _updateService = null,
+      : _preferencesStore = null,
         _networkService = null;
 
   /// Creates an UpdateSettingsView with explicit dependencies for testing.
   const UpdateSettingsView.withDependencies({
     super.key,
-    required UpdateService updateService,
+    required UpdatePreferencesStore preferencesStore,
     required NetworkService networkService,
-  })  : _updateService = updateService,
+  })  : _preferencesStore = preferencesStore,
         _networkService = networkService;
 
-  final UpdateService? _updateService;
+  final UpdatePreferencesStore? _preferencesStore;
   final NetworkService? _networkService;
 
   @override
   Widget build(BuildContext context) {
     return ViewModelProvider<UpdateSettingsViewModel>(
       create: () => UpdateSettingsViewModel(
-        updateService: _updateService,
+        preferencesStore: _preferencesStore,
         networkService: _networkService,
       ),
       builder: (context, viewModel, child) {
