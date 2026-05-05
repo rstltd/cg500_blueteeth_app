@@ -485,4 +485,187 @@ void main() {
       });
     });
   });
+
+  group('NotificationService.smart() (filtered)', () {
+    late NotificationService service;
+
+    setUp(() {
+      service = NotificationService.smart();
+    });
+
+    tearDown(() {
+      service.dispose();
+    });
+
+    group('silent operations', () {
+      test('filters MTU Configured', () {
+        service.showInfo(title: 'MTU Configured', message: 'Test');
+        expect(service.notificationCount, 0);
+      });
+
+      test('filters Command Sent', () {
+        service.showInfo(title: 'Command Sent', message: 'Test');
+        expect(service.notificationCount, 0);
+      });
+
+      test('filters Communication Ready', () {
+        service.showInfo(title: 'Communication Ready', message: 'Test');
+        expect(service.notificationCount, 0);
+      });
+    });
+
+    group('critical notifications always pass', () {
+      test('Connection Failed', () {
+        service.showError(title: 'Connection Failed', message: 'Test');
+        expect(service.notificationCount, 1);
+      });
+
+      test('Bluetooth Not Supported', () {
+        service.showError(title: 'Bluetooth Not Supported', message: 'Test');
+        expect(service.notificationCount, 1);
+      });
+
+      test('Permissions Required', () {
+        service.showError(title: 'Permissions Required', message: 'Test');
+        expect(service.notificationCount, 1);
+      });
+
+      test('Send Failed', () {
+        service.showError(title: 'Send Failed', message: 'Test');
+        expect(service.notificationCount, 1);
+      });
+    });
+
+    group('duplicate filtering', () {
+      test('suppresses identical title:message within window', () {
+        service.showInfo(title: 'X', message: 'Y');
+        service.showInfo(title: 'X', message: 'Y');
+        expect(service.notificationCount, 1);
+      });
+
+      test('different messages bypass dedup window', () {
+        service.showInfo(title: 'A', message: 'M1');
+        service.showInfo(title: 'B', message: 'M2');
+        expect(service.notificationCount, 2);
+      });
+
+      test('force bypasses every filter rule', () {
+        // 'MTU Configured' is in silentTitles — would normally be dropped.
+        service.showInfo(
+          title: 'MTU Configured',
+          message: 'Test',
+          force: true,
+        );
+        expect(service.notificationCount, 1);
+      });
+    });
+
+    group('clearFilters', () {
+      test('allows the same notification to fire again', () {
+        service.showInfo(title: 'Repeat', message: 'Same');
+        service.clearFilters();
+        service.showInfo(title: 'Repeat', message: 'Same');
+        expect(service.notificationCount, 2);
+      });
+
+      test('cancels pending debounced notifications', () async {
+        service.showConnectionStatus(
+          title: 'Connecting',
+          message: 'Test',
+          isConnected: true,
+        );
+        service.clearFilters();
+        // Wait past the debounce delay; nothing should arrive.
+        await Future.delayed(const Duration(milliseconds: 600));
+        expect(service.notificationCount, 0);
+      });
+    });
+
+    group('configureSettings', () {
+      test('adds new silent titles at runtime', () {
+        service.configureSettings(
+          additionalSilentOperations: {'NewSilent'},
+        );
+        service.showInfo(title: 'NewSilent', message: 'Test');
+        expect(service.notificationCount, 0);
+      });
+
+      test('adds new critical titles at runtime', () {
+        service.configureSettings(
+          additionalCriticalNotifications: {'NewCritical'},
+        );
+        // Send twice quickly — without critical exemption the second would
+        // be suppressed by the dedup window.
+        service.showError(title: 'NewCritical', message: 'M');
+        service.showError(title: 'NewCritical', message: 'M');
+        expect(service.notificationCount, 2);
+      });
+
+      test('null arguments are no-ops', () {
+        expect(
+          () => service.configureSettings(
+            additionalSilentOperations: null,
+            additionalCriticalNotifications: null,
+            additionalDebouncedNotifications: null,
+          ),
+          returnsNormally,
+        );
+      });
+    });
+
+    group('getStatistics', () {
+      test('reports filter set sizes from BLE defaults', () {
+        final stats = service.getStatistics();
+        expect(stats['silent_operations'], 3);
+        expect(stats['critical_notifications'], 4);
+        expect(stats['debounced_notifications'], 4);
+      });
+
+      test('tracks pending count during debounce', () async {
+        service.showConnectionStatus(
+          title: 'Connected',
+          message: 'Test',
+          isConnected: true,
+        );
+        final stats = service.getStatistics();
+        expect(stats['pending_notifications'], greaterThan(0));
+        await Future.delayed(const Duration(milliseconds: 600));
+      });
+    });
+
+    group('showScanningStatus', () {
+      test('non-error scan stop is suppressed', () async {
+        service.showScanningStatus(
+          title: 'Scan Complete',
+          message: 'done',
+          isScanning: false,
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        expect(service.notificationCount, 0);
+      });
+
+      test('disabled scan start emits a warning', () async {
+        service.showScanningStatus(
+          title: 'Bluetooth Disabled',
+          message: 'enable BT',
+          isScanning: true,
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        expect(service.notificationCount, 1);
+        expect(
+          service.allNotifications.first.type,
+          NotificationType.warning,
+        );
+      });
+    });
+
+    group('NotificationFilter.bleDefaults', () {
+      test('each instance gets its own mutable sets', () {
+        final filter1 = NotificationFilter.bleDefaults();
+        final filter2 = NotificationFilter.bleDefaults();
+        filter1.silentTitles.add('OnlyInOne');
+        expect(filter2.silentTitles.contains('OnlyInOne'), isFalse);
+      });
+    });
+  });
 }

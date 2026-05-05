@@ -7,7 +7,6 @@ import '../controllers/ble_controller_interface.dart';
 // Implementation imports
 import '../services/network_service.dart';
 import '../services/notification_service.dart';
-import '../services/smart_notification_service.dart';
 import '../services/permission_service.dart';
 import '../services/ble_service.dart';
 import '../services/update_checker.dart';
@@ -54,9 +53,12 @@ Future<void> setupServiceLocator() async {
     () => NetworkService.withDependencies(),
   );
 
-  // SmartNotificationService - notification filtering and management
+  // NotificationService.smart() — production wiring with BLE-tuned
+  // dedup/silence/debounce defaults. The `.smart()` factory is the only
+  // place that knows about the filter; every consumer just sees a
+  // NotificationService.
   getIt.registerLazySingleton<NotificationService>(
-    () => SmartNotificationService.withDependencies(),
+    () => NotificationService.smart(),
   );
 
   // PermissionService - Bluetooth and location permissions

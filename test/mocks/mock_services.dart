@@ -117,6 +117,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {
     _addNotification(title, message, NotificationType.info);
   }
@@ -128,6 +129,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {
     _addNotification(title, message, NotificationType.success);
   }
@@ -139,6 +141,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {
     _addNotification(title, message, NotificationType.warning);
   }
@@ -150,6 +153,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {
     _addNotification(title, message, NotificationType.error);
   }

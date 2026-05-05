@@ -136,6 +136,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {}
 
   @override
@@ -145,6 +146,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {}
 
   @override
@@ -154,6 +156,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {}
 
   @override
@@ -163,6 +166,7 @@ class MockNotificationService extends NotificationService {
     Duration? duration,
     Map<String, dynamic> metadata = const {},
     NotificationAction? action,
+    bool force = false,
   }) {}
 
   @override
