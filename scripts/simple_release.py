@@ -133,13 +133,16 @@ class Version:
         return s
 
     def to_pubspec(self) -> str:
-        """`pubspec.yaml` form (no `v` prefix, build appended after `+`)."""
+        """`pubspec.yaml` form. Dart's pubspec parser requires three numeric
+        segments (`MAJOR.MINOR.PATCH`), so CalVer versions always emit `.MICRO`
+        here (defaulting to `.0`) even though [to_tag] omits the `.0` for the
+        first release of the month. The two forms compare as equal in
+        [AppVersion.compareTo] because missing segments are treated as zero.
+        """
         if self.fmt == 'legacy':
             base = f"{self.major}.{self.minor}.{self.patch}"
         else:
-            base = f"{self.year}.{self.month:02d}"
-            if self.micro > 0:
-                base += f".{self.micro}"
+            base = f"{self.year}.{self.month:02d}.{self.micro}"
             if self.channel != 'stable':
                 base += f"-{self.channel}.{self.channel_n}"
         return f"{base}+{self.build}" if self.build > 0 else base

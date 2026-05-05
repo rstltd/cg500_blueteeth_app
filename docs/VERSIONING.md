@@ -39,14 +39,20 @@ silently rejected. Beta builds count too — never reset, never decrease.
 
 ### Examples
 
+Dart's pubspec parser requires three numeric segments (`MAJOR.MINOR.PATCH`),
+so the pubspec form always carries an explicit `.MICRO` (defaulting to `.0`)
+even when the corresponding git tag omits it. This is purely a storage detail
+— `AppVersion.compareTo` treats missing segments as zero, so `v26.05` and
+`26.05.0+31` order identically.
+
 | Tag             | `pubspec.yaml`         | When to use                                  |
 | --------------- | ---------------------- | -------------------------------------------- |
-| `v26.05`        | `26.05+31`             | First stable release of May 2026             |
+| `v26.05`        | `26.05.0+31`           | First stable release of May 2026             |
 | `v26.05.1`      | `26.05.1+32`           | Same-month hotfix on top of `v26.05`         |
-| `v26.05-beta.1` | `26.05-beta.1+30`      | First beta cut for the May 2026 release      |
-| `v26.05-beta.2` | `26.05-beta.2+33`      | Second beta after `v26.05.1` already shipped |
-| `v26.10`        | `26.10+40`             | October 2026 stable                          |
-| `v27.01`        | `27.01+45`             | January 2027 stable                          |
+| `v26.05-beta.1` | `26.05.0-beta.1+30`    | First beta cut for the May 2026 release      |
+| `v26.05-beta.2` | `26.05.0-beta.2+33`    | Second beta after `v26.05.1` already shipped |
+| `v26.10`        | `26.10.0+40`           | October 2026 stable                          |
+| `v27.01`        | `27.01.0+45`           | January 2027 stable                          |
 
 ### Examples that are **wrong**
 
