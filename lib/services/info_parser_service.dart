@@ -39,10 +39,6 @@ class InfoParserService {
     r'IMEI\s*[:=]\s*(\d{10,20})',
     caseSensitive: false,
   );
-  static final _macPattern = RegExp(
-    r'MAC\s*[:=]\s*([0-9A-Fa-f:]{17})',
-    caseSensitive: false,
-  );
 
   /// Incrementally update a [DeviceInfo] with a single new response line.
   /// Returns a new [DeviceInfo] if the line matched any field, or the
@@ -66,15 +62,13 @@ class InfoParserService {
     }
     final rebootHour = _extract(_rebootPattern, line);
     final imei = _extract(_imeiPattern, line);
-    final mac = _extract(_macPattern, line);
 
     if (fw == null &&
         apn == null &&
         addr == null &&
         ftpAddr == null &&
         rebootHour == null &&
-        imei == null &&
-        mac == null) {
+        imei == null) {
       return current;
     }
 
@@ -85,7 +79,6 @@ class InfoParserService {
       ftpAddr: ftpAddr,
       rebootHour: rebootHour,
       imei: imei,
-      mac: mac,
     );
   }
 

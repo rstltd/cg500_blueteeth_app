@@ -9,7 +9,6 @@ class DeviceInfo {
   final String? ftpAddr;
   final String? rebootHour;
   final String? imei;
-  final String? mac;
 
   /// Every recognized KEY:VALUE pair from the raw response.
   final Map<String, String> raw;
@@ -21,7 +20,6 @@ class DeviceInfo {
     this.ftpAddr,
     this.rebootHour,
     this.imei,
-    this.mac,
     this.raw = const {},
   });
 
@@ -33,7 +31,6 @@ class DeviceInfo {
     String? ftpAddr,
     String? rebootHour,
     String? imei,
-    String? mac,
     Map<String, String>? raw,
   }) {
     return DeviceInfo(
@@ -43,7 +40,6 @@ class DeviceInfo {
       ftpAddr: ftpAddr ?? this.ftpAddr,
       rebootHour: rebootHour ?? this.rebootHour,
       imei: imei ?? this.imei,
-      mac: mac ?? this.mac,
       raw: raw ?? this.raw,
     );
   }
