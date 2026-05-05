@@ -1,19 +1,13 @@
 import '../models/device_info.dart';
 import '../utils/logger.dart';
 
-/// Stateless service that parses CG500 $INFO response lines into a
-/// structured [DeviceInfo].
+/// Stateless regex-based extractor that maps a single CG500 $INFO response
+/// line onto fields of [DeviceInfo].
 ///
-/// The device typically responds to $INFO with multiple lines of the form
-/// `KEY:VALUE` (sometimes `KEY=VALUE`). This parser applies a set of
-/// regex patterns to extract known fields, and stores every recognized
-/// pair in [DeviceInfo.raw] for transparency.
-///
-/// Usage:
-/// ```dart
-/// final info = InfoParserService.parse(responseLines);
-/// print(info.apn);  // e.g. 'internet'
-/// ```
+/// The device responds to $INFO with multiple lines of the form
+/// `KEY:VALUE` (sometimes `KEY=VALUE`). [DeviceInfoTracker] feeds each
+/// arriving line through [updateFromLine] so the accumulated [DeviceInfo]
+/// reflects the most recent values seen on the wire.
 class InfoParserService {
   InfoParserService._();
 
@@ -49,59 +43,6 @@ class InfoParserService {
     r'MAC\s*[:=]\s*([0-9A-Fa-f:]{17})',
     caseSensitive: false,
   );
-
-  /// Generic KEY:VALUE or KEY=VALUE splitter for the raw map.
-  static final _kvPattern = RegExp(r'^([A-Za-z0-9_ ]+)\s*[:=]\s*(.+)$');
-
-  /// Parse a list of $INFO response lines into [DeviceInfo].
-  static DeviceInfo parse(List<String> lines) {
-    String? fw;
-    String? apn;
-    String? addr;
-    String? ftpAddr;
-    String? rebootHour;
-    String? imei;
-    String? mac;
-    final raw = <String, String>{};
-
-    for (final rawLine in lines) {
-      final line = rawLine.trim();
-      if (line.isEmpty) continue;
-
-      // Store raw key-value pair
-      final kvMatch = _kvPattern.firstMatch(line);
-      if (kvMatch != null) {
-        raw[kvMatch.group(1)!.trim()] = kvMatch.group(2)!.trim();
-      }
-
-      // Try each specific pattern — use "last wins" so the most recent
-      // $INFO response overwrites values from earlier ones.
-      fw = _extract(_fwPattern, line) ?? fw;
-      apn = _extract(_apnPattern, line) ?? apn;
-      // FTPADDR must be checked BEFORE ADDR because ADDR pattern would
-      // also match FTPADDR lines.
-      final ftpMatch = _extract(_ftpAddrPattern, line);
-      if (ftpMatch != null) {
-        ftpAddr = ftpMatch;
-      } else {
-        addr = _extract(_addrPattern, line) ?? addr;
-      }
-      rebootHour = _extract(_rebootPattern, line) ?? rebootHour;
-      imei = _extract(_imeiPattern, line) ?? imei;
-      mac = _extract(_macPattern, line) ?? mac;
-    }
-
-    return DeviceInfo(
-      firmwareName: fw,
-      apn: apn,
-      addr: addr,
-      ftpAddr: ftpAddr,
-      rebootHour: rebootHour,
-      imei: imei,
-      mac: mac,
-      raw: raw,
-    );
-  }
 
   /// Incrementally update a [DeviceInfo] with a single new response line.
   /// Returns a new [DeviceInfo] if the line matched any field, or the

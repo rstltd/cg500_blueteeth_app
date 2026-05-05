@@ -23,15 +23,15 @@ class QuickSetupWizardView extends StatefulWidget {
     super.key,
     required this.controller,
     required this.commandManager,
-    required this.responseLines,
+    required this.initialInfo,
   });
 
   final BleControllerInterface controller;
   final CommandManager commandManager;
 
-  /// All non-command response lines received so far in the command
-  /// interface. Used to parse the initial $INFO values.
-  final List<String> responseLines;
+  /// Snapshot of the current device's parsed [DeviceInfo], taken from the
+  /// shared [DeviceInfoTracker] when the wizard was opened.
+  final DeviceInfo initialInfo;
 
   @override
   State<QuickSetupWizardView> createState() => _QuickSetupWizardViewState();
@@ -49,7 +49,7 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
     _viewModel = QuickSetupViewModel(
       commandManager: widget.commandManager,
     );
-    _viewModel.initializeFromResponseLines(widget.responseLines);
+    _viewModel.initializeWithInfo(widget.initialInfo);
     _viewModel.addListener(_onViewModelChanged);
 
     _pageController = PageController();

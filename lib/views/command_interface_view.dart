@@ -248,7 +248,7 @@ class _CommandInterfaceContentState extends State<_CommandInterfaceContent>
         builder: (_) => QuickSetupWizardView(
           controller: viewModel.controller,
           commandManager: viewModel.commandManager,
-          responseLines: viewModel.responseLines,
+          initialInfo: viewModel.deviceInfoTracker.current,
         ),
       ),
     );

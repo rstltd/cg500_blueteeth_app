@@ -1,7 +1,6 @@
 import '../controllers/command_manager.dart';
 import '../core/view_model/view_model.dart';
 import '../models/device_info.dart';
-import '../services/info_parser_service.dart';
 import '../utils/logger.dart';
 
 /// A single pending command in the execution queue.
@@ -83,10 +82,10 @@ class QuickSetupViewModel extends BaseViewModel {
 
   // ---- Initialization ----
 
-  /// Seed the wizard with the current device info parsed from $INFO
-  /// response lines that were already received in the command interface.
-  void initializeFromResponseLines(List<String> responseLines) {
-    _originalInfo = InfoParserService.parse(responseLines);
+  /// Seed the wizard with the current device info already accumulated by
+  /// the shared [DeviceInfoTracker] in the command interface.
+  void initializeWithInfo(DeviceInfo info) {
+    _originalInfo = info;
 
     // Pre-fill _newValues with originals so the form inputs start there
     final originals = [

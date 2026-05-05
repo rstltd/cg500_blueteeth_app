@@ -18,6 +18,7 @@ import '../services/theme_service.dart';
 import '../services/error_handling_service.dart';
 import '../services/command_parameter_storage_service.dart';
 import '../services/custom_command_service.dart';
+import '../services/device_info_tracker.dart';
 import '../services/role_service.dart';
 import '../repositories/command_repository.dart';
 import '../repositories/custom_command_repository.dart';
@@ -170,6 +171,14 @@ Future<void> setupServiceLocator() async {
       bleService: getIt<BleService>(),
       notificationService: getIt<NotificationService>(),
     ),
+  );
+
+  // DeviceInfoTracker - app-wide accumulator for the connected device's
+  // structured DeviceInfo (parsed from $INFO response lines). Subscribed
+  // by every consumer that needs to display or seed wizard forms with
+  // current device state, so no caller has to re-buffer raw lines.
+  getIt.registerLazySingleton<DeviceInfoTracker>(
+    () => DeviceInfoTracker(controller: getIt<BleControllerInterface>()),
   );
 
   // AppUpdateManager - coordinated update operations

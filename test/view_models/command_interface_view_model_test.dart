@@ -5,6 +5,7 @@ import 'package:cg500_blueteeth_app/core/interfaces/command_repository_interface
 import 'package:cg500_blueteeth_app/models/command/command_category.dart';
 import 'package:cg500_blueteeth_app/models/command/device_command.dart';
 import 'package:cg500_blueteeth_app/services/command_parameter_storage_service.dart';
+import 'package:cg500_blueteeth_app/services/device_info_tracker.dart';
 import 'package:cg500_blueteeth_app/widgets/message/message_filter_widget.dart';
 import '../mocks/mock_ble_controller.dart';
 
@@ -41,6 +42,7 @@ void main() {
   late MockBleController mockController;
   late _MockCommandRepository mockRepo;
   late _MockParameterStorageService mockStorage;
+  late DeviceInfoTracker tracker;
 
   setUp(() async {
     mockController = MockBleController();
@@ -48,9 +50,11 @@ void main() {
     await mockController.initialize();
     mockRepo = _MockCommandRepository();
     mockStorage = _MockParameterStorageService();
+    tracker = DeviceInfoTracker(controller: mockController);
   });
 
   tearDown(() {
+    tracker.dispose();
     mockController.dispose();
   });
 
@@ -61,6 +65,7 @@ void main() {
       controller: mockController,
       commandRepository: mockRepo,
       parameterStorageService: mockStorage,
+      deviceInfoTracker: tracker,
     );
 
     // Initialize to call onInit (sets up subscriptions)

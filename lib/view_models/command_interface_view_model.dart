@@ -11,8 +11,8 @@ import '../models/command/custom_command.dart';
 import '../models/connection_state.dart';
 import '../models/device_info.dart';
 import '../models/role/user_role.dart';
-import '../services/info_parser_service.dart';
 import '../services/custom_command_service.dart';
+import '../services/device_info_tracker.dart';
 import '../services/role_service.dart';
 import '../utils/logger.dart';
 import '../widgets/message/message_filter_widget.dart';
@@ -43,17 +43,21 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     BleControllerInterface? controller,
     CommandRepositoryInterface? commandRepository,
     CommandParameterStorageService? parameterStorageService,
+    DeviceInfoTracker? deviceInfoTracker,
   })  : _injectedController = controller,
         _injectedCommandRepository = commandRepository,
-        _injectedParameterStorageService = parameterStorageService;
+        _injectedParameterStorageService = parameterStorageService,
+        _injectedDeviceInfoTracker = deviceInfoTracker;
 
   final BleControllerInterface? _injectedController;
   final CommandRepositoryInterface? _injectedCommandRepository;
   final CommandParameterStorageService? _injectedParameterStorageService;
+  final DeviceInfoTracker? _injectedDeviceInfoTracker;
   late final BleControllerInterface _controller;
   late final CommandManager _commandManager;
   late final CommandRepositoryInterface _commandRepository;
   late final CommandParameterStorageService _parameterStorageService;
+  late final DeviceInfoTracker _deviceInfoTracker;
   final ScrollController _scrollController = ScrollController();
   final List<MessageData> _messages = [];
   MessageFilter _currentFilter = MessageFilter.all;
@@ -70,13 +74,10 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   DateTime? _lastResponseAt;
   static const Duration _responseDedupWindow = Duration(milliseconds: 50);
 
-  /// Structured device info incrementally updated from every $INFO
-  /// response line. Replaces the earlier single-field `_firmwareName`.
-  DeviceInfo _latestDeviceInfo = const DeviceInfo();
-
-  /// All non-command response lines received from the device, kept so the
-  /// Quick Setup Wizard can parse the full $INFO at its leisure.
-  final List<String> _responseLines = [];
+  /// The shared [DeviceInfoTracker] that maintains the connected device's
+  /// parsed [DeviceInfo]. Exposed so the View can hand its current snapshot
+  /// to the Quick Setup Wizard without the VM holding a buffer of its own.
+  DeviceInfoTracker get deviceInfoTracker => _deviceInfoTracker;
 
   /// The BLE controller instance.
   BleControllerInterface get controller => _controller;
@@ -101,13 +102,10 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   int get unreadCount => _unreadCount;
 
   /// Firmware name parsed from device $INFO response, or null when unknown.
-  String? get firmwareName => _latestDeviceInfo.firmwareName;
+  String? get firmwareName => _deviceInfoTracker.current.firmwareName;
 
   /// Structured device info parsed incrementally from $INFO responses.
-  DeviceInfo get latestDeviceInfo => _latestDeviceInfo;
-
-  /// All response lines for wizard parsing.
-  List<String> get responseLines => List.unmodifiable(_responseLines);
+  DeviceInfo get latestDeviceInfo => _deviceInfoTracker.current;
 
   /// Scroll controller for the message list.
   ScrollController get scrollController => _scrollController;
@@ -167,6 +165,8 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
         _injectedCommandRepository ?? getIt<CommandRepositoryInterface>();
     _parameterStorageService = _injectedParameterStorageService ??
         getIt<CommandParameterStorageService>();
+    _deviceInfoTracker =
+        _injectedDeviceInfoTracker ?? getIt<DeviceInfoTracker>();
 
     // Initialize parameter storage
     await _parameterStorageService.initialize();
@@ -184,10 +184,18 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     // Initialize controller if needed
     await _ensureControllerInitialized();
 
-    // Subscribe to command responses
+    // Subscribe to command responses for chat-log display.
     subscribe<String>(
       _controller.commandResponseStream,
       _onCommandResponse,
+    );
+
+    // Subscribe to the tracker so the firmware-name chip and any other
+    // DeviceInfo-driven UI element rebuilds as soon as parsed values
+    // change. The tracker itself does the parsing and accumulation.
+    subscribe<DeviceInfo>(
+      _deviceInfoTracker.infoStream,
+      (_) => safeNotifyListeners(),
     );
 
     // Subscribe to role changes so the command list and input panel
@@ -232,7 +240,7 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   /// command channel is available. Uses [sendPredefinedCommand] so both the
   /// command and the response appear in the chat log naturally.
   void _autoSendInfoIfReady() {
-    if (_latestDeviceInfo.firmwareName != null) return;
+    if (_deviceInfoTracker.current.firmwareName != null) return;
     final info = _controller.getCommandInfo();
     if (info['hasCommandChannel'] != true) return;
     if (_controller.connectedDevice == null) return;
@@ -261,11 +269,6 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   }
 
   void _onCommandResponse(String response) {
-    // Accumulate for wizard and incrementally update DeviceInfo.
-    _responseLines.add(response);
-    _latestDeviceInfo =
-        InfoParserService.updateFromLine(_latestDeviceInfo, response);
-
     addMessage(MessageData(
       text: response,
       isCommand: false,
