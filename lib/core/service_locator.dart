@@ -25,7 +25,6 @@ import '../repositories/command_repository.dart';
 import '../repositories/custom_command_repository.dart';
 import '../repositories/role_aware_command_repository.dart';
 import '../controllers/simple_ble_controller.dart';
-import '../controllers/app_update_manager.dart';
 import '../controllers/update_controller.dart';
 
 /// Global service locator instance
@@ -192,19 +191,12 @@ Future<void> setupServiceLocator() async {
     () => DeviceInfoTracker(controller: getIt<BleControllerInterface>()),
   );
 
-  // AppUpdateManager - coordinated update operations
-  // (Deprecated: superseded by UpdateController. Kept until callers migrate.)
-  getIt.registerLazySingleton<AppUpdateManager>(
-    () => AppUpdateManager.withDependencies(
-      updateService: getIt<UpdateService>(),
-      networkService: getIt<NetworkService>(),
-      notificationService: getIt<NotificationService>(),
-    ),
-  );
-
-  // UpdateController - merges AppUpdateManager + UpdateLogicManager.
-  // Single set of subscriptions, single dispose path, ChangeNotifier so
-  // any UI piece that renders update state can ListenableBuilder it.
+  // UpdateController - app-wide update flow coordinator. Owns every
+  // piece of update state (latest info, in-flight check flag, download
+  // progress, network status, dialog context) in one place and
+  // subscribes once each to the network, download, and update streams.
+  // ChangeNotifier so any UI piece that renders update state can
+  // ListenableBuilder it.
   getIt.registerLazySingleton<UpdateController>(
     () => UpdateController.withDependencies(
       updateService: getIt<UpdateService>(),

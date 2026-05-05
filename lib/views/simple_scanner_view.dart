@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
-import '../controllers/app_update_manager.dart';
+import '../controllers/update_controller.dart';
 import '../core/mixins/notification_listener_mixin.dart';
 import '../core/view_model/view_model.dart';
 import '../design/design_system.dart';
@@ -47,14 +47,14 @@ class SimpleScannerView extends StatelessWidget {
     super.key,
     required BleControllerInterface controller,
     required ThemeService themeService,
-    required AppUpdateManager updateManager,
+    required UpdateController updateManager,
   })  : _controller = controller,
         _themeService = themeService,
         _updateManager = updateManager;
 
   final BleControllerInterface? _controller;
   final ThemeService? _themeService;
-  final AppUpdateManager? _updateManager;
+  final UpdateController? _updateManager;
 
   @override
   Widget build(BuildContext context) {

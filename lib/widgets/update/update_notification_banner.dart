@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../controllers/app_update_manager.dart';
+import '../../controllers/update_controller.dart';
 import '../../design/design_system.dart';
 import '../../services/update_service.dart';
 import '../../utils/logger.dart';
@@ -8,8 +8,8 @@ import '../../l10n/app_strings.dart';
 /// Banner widget that shows update notification at the top of the app
 /// Replaces the legacy update banner with enhanced functionality
 class UpdateNotificationBanner extends StatefulWidget {
-  final AppUpdateManager updateManager;
-  
+  final UpdateController updateManager;
+
   const UpdateNotificationBanner({
     super.key,
     required this.updateManager,

@@ -1,4 +1,4 @@
-import '../controllers/app_update_manager.dart';
+import '../controllers/update_controller.dart';
 import '../services/update_service.dart';
 import '../services/network_service.dart';
 import '../services/role_service.dart';
@@ -33,7 +33,7 @@ class UpdateSettingsViewModel extends BaseViewModel {
     UpdateService? updateService,
     NetworkService? networkService,
     RoleService? roleService,
-    AppUpdateManager? updateManager,
+    UpdateController? updateManager,
   })  : _injectedUpdateService = updateService,
         _injectedNetworkService = networkService,
         _injectedRoleService = roleService,
@@ -42,12 +42,12 @@ class UpdateSettingsViewModel extends BaseViewModel {
   final UpdateService? _injectedUpdateService;
   final NetworkService? _injectedNetworkService;
   final RoleService? _injectedRoleService;
-  final AppUpdateManager? _injectedUpdateManager;
+  final UpdateController? _injectedUpdateManager;
 
   late final UpdateService _updateService;
   late final NetworkService _networkService;
   late final RoleService _roleService;
-  late final AppUpdateManager _updateManager;
+  late final UpdateController _updateManager;
 
   UpdatePreferences? _preferences;
   NetworkStatus _networkStatus = NetworkStatus.unknown;
@@ -92,7 +92,7 @@ class UpdateSettingsViewModel extends BaseViewModel {
     _networkService =
         _injectedNetworkService ?? getIt<NetworkService>();
     _roleService = _injectedRoleService ?? getIt<RoleService>();
-    _updateManager = _injectedUpdateManager ?? getIt<AppUpdateManager>();
+    _updateManager = _injectedUpdateManager ?? getIt<UpdateController>();
 
     // Subscribe to network status changes
     subscribe<NetworkStatus>(
@@ -182,7 +182,7 @@ class UpdateSettingsViewModel extends BaseViewModel {
 
   // --- Update Checking ---
 
-  /// Manually trigger an update check. Routes through AppUpdateManager so
+  /// Manually trigger an update check. Routes through UpdateController so
   /// the user gets the shared "up-to-date" / "check failed" toast feedback.
   Future<void> checkForUpdates() async {
     if (_isCheckingUpdate) return;

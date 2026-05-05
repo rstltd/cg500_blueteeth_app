@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'views/simple_scanner_view.dart';
 import 'l10n/app_strings.dart';
 import 'services/theme_service.dart';
-import 'controllers/app_update_manager.dart';
+import 'controllers/update_controller.dart';
 import 'services/command_parameter_storage_service.dart';
 import 'services/custom_command_service.dart';
 import 'core/service_locator.dart';
@@ -27,7 +27,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final ThemeService _themeService;
-  late final AppUpdateManager _updateManager;
+  late final UpdateController _updateManager;
   // Drive MaterialApp.themeMode directly via the theme enum so
   // AppThemeMode.system maps to Flutter's native ThemeMode.system and
   // lets MaterialApp follow the OS brightness without manual tracking.
@@ -44,7 +44,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     // Get services from service locator
     _themeService = getIt<ThemeService>();
-    _updateManager = getIt<AppUpdateManager>();
+    _updateManager = getIt<UpdateController>();
 
     _initializeApp();
   }
@@ -187,7 +187,7 @@ class AppLoadingScreen extends StatelessWidget {
 
 /// Wrapper that provides update manager context to the main app
 class AppHomeWrapper extends StatefulWidget {
-  final AppUpdateManager updateManager;
+  final UpdateController updateManager;
   
   const AppHomeWrapper({
     super.key,

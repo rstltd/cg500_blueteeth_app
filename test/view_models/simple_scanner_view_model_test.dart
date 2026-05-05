@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/ble_controller_interface.dart';
-import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
+import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
@@ -20,13 +20,13 @@ void main() {
   group('SimpleScannerViewModel', () {
     late _MockBleController mockController;
     late _MockThemeService mockThemeService;
-    late _MockAppUpdateManager mockUpdateManager;
+    late _MockUpdateController mockUpdateManager;
     late ErrorHandlingService errorHandlingService;
 
     setUp(() {
       mockController = _MockBleController();
       mockThemeService = _MockThemeService();
-      mockUpdateManager = _MockAppUpdateManager();
+      mockUpdateManager = _MockUpdateController();
       errorHandlingService = ErrorHandlingService.forTesting(
         notificationService: _MockNotificationService(),
       );
@@ -652,10 +652,10 @@ class _MockThemeService extends ThemeService {
   }
 }
 
-class _MockAppUpdateManager extends AppUpdateManager {
+class _MockUpdateController extends UpdateController {
   int checkForUpdatesWithUICallCount = 0;
 
-  _MockAppUpdateManager() : super.withDependencies(
+  _MockUpdateController() : super.withDependencies(
     updateService: _MockUpdateService(),
     networkService: _MockNetworkService(),
     notificationService: _MockNotificationService(),

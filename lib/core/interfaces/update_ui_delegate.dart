@@ -9,7 +9,7 @@ enum InstallResult {
 
 /// Delegate for update-related UI operations.
 ///
-/// This class separates UI concerns from business logic in UpdateLogicManager,
+/// This class separates UI concerns from business logic in UpdateController,
 /// making the manager easier to test and maintaining single responsibility.
 /// Uses SnackBars and AlertDialogs for UI feedback.
 class UpdateUIDelegate {

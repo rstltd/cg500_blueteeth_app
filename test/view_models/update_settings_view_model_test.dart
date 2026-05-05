@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
+import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/role_service.dart';
@@ -41,12 +41,12 @@ void main() {
   group('UpdateSettingsViewModel', () {
     late _MockUpdateService mockUpdateService;
     late _MockNetworkService mockNetworkService;
-    late _FakeAppUpdateManager mockUpdateManager;
+    late _FakeUpdateController mockUpdateManager;
 
     setUp(() {
       mockUpdateService = _MockUpdateService();
       mockNetworkService = _MockNetworkService();
-      mockUpdateManager = _FakeAppUpdateManager();
+      mockUpdateManager = _FakeUpdateController();
     });
 
     tearDown(() {
@@ -276,7 +276,7 @@ void main() {
 
         await Future.wait([check1, check2]);
 
-        // The viewmodel now routes through AppUpdateManager, so we assert
+        // The viewmodel now routes through UpdateController, so we assert
         // against the fake manager instead of the underlying UpdateService.
         expect(mockUpdateManager.checkCallCount, equals(1));
 
@@ -497,13 +497,13 @@ class _MockNetworkService extends NetworkService {
   }
 }
 
-/// Minimal AppUpdateManager double — exposes only the one method that
-/// UpdateSettingsViewModel calls. Avoids pulling a real AppUpdateManager
+/// Minimal UpdateController double — exposes only the one method that
+/// UpdateSettingsViewModel calls. Avoids pulling a real UpdateController
 /// through the service locator in tests.
-class _FakeAppUpdateManager extends AppUpdateManager {
+class _FakeUpdateController extends UpdateController {
   int checkCallCount = 0;
 
-  _FakeAppUpdateManager()
+  _FakeUpdateController()
       : super.withDependencies(
           updateService: _NoopUpdateService(),
           networkService: _NoopNetworkService(),

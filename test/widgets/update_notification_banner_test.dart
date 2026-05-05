@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_notification_banner.dart';
-import 'package:cg500_blueteeth_app/controllers/app_update_manager.dart';
+import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
 import '../mocks/mock_services.dart';
 
-/// Helper function to create test AppUpdateManager with mock services
-AppUpdateManager createTestManager({
+/// Helper function to create test UpdateController with mock services
+UpdateController createTestManager({
   MockUpdateService? updateService,
   MockNetworkService? networkService,
   MockNotificationService? notificationService,
 }) {
-  return AppUpdateManager.withDependencies(
+  return UpdateController.withDependencies(
     updateService: updateService ?? MockUpdateService(),
     networkService: networkService ?? MockNetworkService(),
     notificationService: notificationService ?? MockNotificationService(),
@@ -26,7 +26,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // Create test manager with mock services
-  late AppUpdateManager updateManager;
+  late UpdateController updateManager;
 
   setUpAll(() {
     // Register mock services for testing
@@ -508,53 +508,53 @@ void main() {
     });
   });
 
-  group('AppUpdateManager integration', () {
-    test('AppUpdateManager DI pattern creates independent instances', () {
+  group('UpdateController integration', () {
+    test('UpdateController DI pattern creates independent instances', () {
       final instance1 = createTestManager();
       final instance2 = createTestManager();
       // With DI pattern, each call creates a new instance
       expect(identical(instance1, instance2), false);
     });
 
-    test('AppUpdateManager latestUpdateInfo should be nullable', () {
-      final manager = AppUpdateManager();
+    test('UpdateController latestUpdateInfo should be nullable', () {
+      final manager = UpdateController();
       // Initially should be null
       expect(manager.latestUpdateInfo, isNull);
     });
 
-    test('AppUpdateManager isCheckingForUpdates should be boolean', () {
-      final manager = AppUpdateManager();
+    test('UpdateController isCheckingForUpdates should be boolean', () {
+      final manager = UpdateController();
       expect(manager.isCheckingForUpdates, isA<bool>());
     });
 
-    test('AppUpdateManager isInitialized should be boolean', () {
-      final manager = AppUpdateManager();
+    test('UpdateController isInitialized should be boolean', () {
+      final manager = UpdateController();
       expect(manager.isInitialized, isA<bool>());
     });
 
-    test('AppUpdateManager updateService should be accessible', () {
-      final manager = AppUpdateManager();
+    test('UpdateController updateService should be accessible', () {
+      final manager = UpdateController();
       expect(manager.updateService, isNotNull);
     });
 
-    test('AppUpdateManager networkService should be accessible', () {
-      final manager = AppUpdateManager();
+    test('UpdateController networkService should be accessible', () {
+      final manager = UpdateController();
       expect(manager.networkService, isNotNull);
     });
 
-    test('AppUpdateManager getCurrentVersionInfo should return map', () {
-      final manager = AppUpdateManager();
+    test('UpdateController getCurrentVersionInfo should return map', () {
+      final manager = UpdateController();
       final versionInfo = manager.getCurrentVersionInfo();
       expect(versionInfo, isA<Map<String, String>>());
     });
 
-    test('AppUpdateManager autoUpdatesEnabled should be boolean', () {
-      final manager = AppUpdateManager();
+    test('UpdateController autoUpdatesEnabled should be boolean', () {
+      final manager = UpdateController();
       expect(manager.autoUpdatesEnabled, isA<bool>());
     });
 
-    test('AppUpdateManager autoDownloadEnabled should be boolean', () {
-      final manager = AppUpdateManager();
+    test('UpdateController autoDownloadEnabled should be boolean', () {
+      final manager = UpdateController();
       expect(manager.autoDownloadEnabled, isA<bool>());
     });
   });

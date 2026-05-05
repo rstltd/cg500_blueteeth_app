@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/update_service.dart' show UpdateInfo;
-import '../../controllers/update_logic_manager.dart';
+import '../../controllers/update_controller.dart';
+import '../../core/service_locator.dart' show getIt;
 import '../layout/responsive_layout.dart';
 import 'update_header_widget.dart';
 import 'version_info_widget.dart';
@@ -12,6 +13,11 @@ import 'update_actions_widget.dart';
 /// Shows only what a field operator needs: version numbers, download size,
 /// download progress, and action buttons. NetworkInfoWidget and the 4-step
 /// InstallGuideDialog have been removed.
+///
+/// State (download in progress, current progress %, status text) is read
+/// from the shared `UpdateController` via `ListenableBuilder`. The previous
+/// per-dialog `UpdateLogicManager` instance is gone — opening the dialog
+/// twice no longer creates two listeners on the same download stream.
 class UpdateDialog extends StatefulWidget {
   final UpdateInfo updateInfo;
   final VoidCallback? onDismiss;
@@ -32,11 +38,7 @@ class _UpdateDialogState extends State<UpdateDialog>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  late UpdateLogicManager _updateManager;
-
-  bool _isDownloading = false;
-  double _downloadProgress = 0.0;
-  String _downloadStatus = '';
+  late final UpdateController _controller;
 
   @override
   void initState() {
@@ -57,28 +59,12 @@ class _UpdateDialogState extends State<UpdateDialog>
 
     _animationController.forward();
 
-    _updateManager = UpdateLogicManager(
-      onDownloadStateChanged: (isDownloading) {
-        if (mounted) setState(() => _isDownloading = isDownloading);
-      },
-      onProgressUpdated: (progress, status) {
-        if (mounted) {
-          setState(() {
-            _downloadProgress = progress;
-            _downloadStatus = status;
-          });
-        }
-      },
-      onNetworkStatusChanged: (_) {},
-    );
-
-    _updateManager.initialize();
+    _controller = getIt<UpdateController>();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
-    _updateManager.dispose();
     super.dispose();
   }
 
@@ -110,23 +96,35 @@ class _UpdateDialogState extends State<UpdateDialog>
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  UpdateHeaderWidget(updateInfo: widget.updateInfo),
-                  _buildContent(),
-                  UpdateActionsWidget(
-                    updateInfo: widget.updateInfo,
-                    isDownloading: _isDownloading,
-                    downloadProgress: _downloadProgress,
-                    onStartUpdate: _startUpdate,
-                    onSkipVersion: _skipVersion,
-                    onDismiss: () {
-                      Navigator.of(context).pop();
-                      widget.onDismiss?.call();
-                    },
-                  ),
-                ],
+              child: ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) {
+                  final isDownloading = _controller.isDownloading;
+                  final progress = _controller.downloadProgress;
+                  final status = _controller.downloadStatus;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      UpdateHeaderWidget(updateInfo: widget.updateInfo),
+                      _buildContent(
+                        isDownloading: isDownloading,
+                        downloadProgress: progress,
+                        downloadStatus: status,
+                      ),
+                      UpdateActionsWidget(
+                        updateInfo: widget.updateInfo,
+                        isDownloading: isDownloading,
+                        downloadProgress: progress,
+                        onStartUpdate: _startUpdate,
+                        onSkipVersion: _skipVersion,
+                        onDismiss: () {
+                          Navigator.of(context).pop();
+                          widget.onDismiss?.call();
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -135,7 +133,11 @@ class _UpdateDialogState extends State<UpdateDialog>
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent({
+    required bool isDownloading,
+    required double downloadProgress,
+    required String downloadStatus,
+  }) {
     return Flexible(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -143,11 +145,11 @@ class _UpdateDialogState extends State<UpdateDialog>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             VersionInfoWidget(updateInfo: widget.updateInfo),
-            if (_isDownloading) ...[
+            if (isDownloading) ...[
               const SizedBox(height: 24),
               UpdateProgressWidget(
-                progress: _downloadProgress,
-                statusText: _downloadStatus,
+                progress: downloadProgress,
+                statusText: downloadStatus,
               ),
             ],
           ],
@@ -157,10 +159,10 @@ class _UpdateDialogState extends State<UpdateDialog>
   }
 
   Future<void> _startUpdate() async {
-    await _updateManager.startUpdate(widget.updateInfo, context);
+    await _controller.startUpdate(widget.updateInfo, context);
   }
 
   void _skipVersion() {
-    _updateManager.skipVersion(widget.updateInfo, context, widget.onDismiss);
+    _controller.skipVersion(widget.updateInfo, context, widget.onDismiss);
   }
 }

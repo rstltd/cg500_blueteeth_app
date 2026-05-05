@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' show IconData;
 
 import '../controllers/ble_controller_interface.dart';
-import '../controllers/app_update_manager.dart';
+import '../controllers/update_controller.dart';
 import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/ble_device.dart';
@@ -39,7 +39,7 @@ class SimpleScannerViewModel extends BaseViewModel {
   SimpleScannerViewModel({
     BleControllerInterface? controller,
     ThemeService? themeService,
-    AppUpdateManager? updateManager,
+    UpdateController? updateManager,
     ErrorHandlingService? errorHandlingService,
   })  : _injectedController = controller,
         _injectedThemeService = themeService,
@@ -48,12 +48,12 @@ class SimpleScannerViewModel extends BaseViewModel {
 
   final BleControllerInterface? _injectedController;
   final ThemeService? _injectedThemeService;
-  final AppUpdateManager? _injectedUpdateManager;
+  final UpdateController? _injectedUpdateManager;
   final ErrorHandlingService? _injectedErrorHandlingService;
 
   late final BleControllerInterface _controller;
   late final ThemeService _themeService;
-  late final AppUpdateManager _updateManager;
+  late final UpdateController _updateManager;
   late final ErrorHandlingService _errorHandlingService;
 
   // Local state
@@ -109,7 +109,7 @@ class SimpleScannerViewModel extends BaseViewModel {
   ThemeService get themeService => _themeService;
 
   /// The update manager instance.
-  AppUpdateManager get updateManager => _updateManager;
+  UpdateController get updateManager => _updateManager;
 
   /// List of scanned BLE devices (unfiltered).
   List<BleDeviceModel> get devices => _devices;
@@ -168,7 +168,7 @@ class SimpleScannerViewModel extends BaseViewModel {
     // Use injected services or get from service locator
     _controller = _injectedController ?? getIt<BleControllerInterface>();
     _themeService = _injectedThemeService ?? getIt<ThemeService>();
-    _updateManager = _injectedUpdateManager ?? getIt<AppUpdateManager>();
+    _updateManager = _injectedUpdateManager ?? getIt<UpdateController>();
     _errorHandlingService =
         _injectedErrorHandlingService ?? getIt<ErrorHandlingService>();
 

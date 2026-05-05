@@ -1,22 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_dialog.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
+import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import '../mocks/mock_services.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    // Register mock services for testing
+    // Register mock services so UpdateDialog (which pulls UpdateController
+    // from getIt) can resolve every dependency.
     final getIt = GetIt.instance;
     if (!getIt.isRegistered<UpdateService>()) {
       getIt.registerSingleton<UpdateService>(MockUpdateService());
     }
     if (!getIt.isRegistered<NetworkService>()) {
       getIt.registerSingleton<NetworkService>(MockNetworkService());
+    }
+    if (!getIt.isRegistered<NotificationService>()) {
+      getIt.registerSingleton<NotificationService>(MockNotificationService());
+    }
+    if (!getIt.isRegistered<UpdateController>()) {
+      getIt.registerSingleton<UpdateController>(
+        UpdateController.withDependencies(
+          updateService: getIt<UpdateService>(),
+          networkService: getIt<NetworkService>(),
+          notificationService: getIt<NotificationService>(),
+        ),
+      );
     }
   });
 
