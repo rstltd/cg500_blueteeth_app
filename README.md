@@ -64,16 +64,24 @@ A comprehensive Flutter application for Bluetooth Low Energy (BLE) device scanni
 
 ### Deployment
 
-This project uses GitHub Releases for deployment:
+This project uses GitHub Releases for deployment with **Calendar Versioning
+(CalVer)** — `vYY.0M[.MICRO][-beta.N]` (e.g. `v26.05`, `v26.05.1`,
+`v26.05-beta.1`). See [docs/VERSIONING.md](docs/VERSIONING.md) for the
+authoritative spec.
 
 ```bash
-# Release new version
-python scripts/simple_release.py patch   # Bug fixes (1.0.0 → 1.0.1)
-python scripts/simple_release.py minor   # New features (1.0.1 → 1.1.0)
-python scripts/simple_release.py major   # Breaking changes (1.1.0 → 2.0.0)
+# Stable monthly release  (e.g. 26.05+31 → 26.06+33)
+python scripts/simple_release.py release --notes-file release_notes.md
+
+# Same-month hotfix       (e.g. 26.05+31 → 26.05.1+32)
+python scripts/simple_release.py hotfix  --notes-file release_notes.md
+
+# Beta pre-release        (e.g. 26.05+31 → 26.06-beta.1+32)
+python scripts/simple_release.py beta    --notes-file release_notes.md
 ```
 
-See [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md) for detailed deployment instructions.
+See [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md) for the GitHub CLI
+prerequisites and end-to-end deployment walkthrough.
 
 ## Architecture
 

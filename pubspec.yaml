@@ -5,10 +5,16 @@ description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
+#
+# This project uses CalVer (vYY.0M[.MICRO][-beta.N|-rc.N]+BUILD) — the
+# authoritative spec lives in docs/VERSIONING.md. Dart's pubspec parser
+# requires three numeric segments, so the .MICRO is always present here
+# (defaulting to .0) even when the corresponding git tag omits it.
+#
+# Never edit this version line by hand. The release script
+# (scripts/simple_release.py) is the only authorized writer. See
+# docs/VERSIONING.md §3 for the available release modes.
+#
 # In Android, build-name is used as versionName while build-number used as versionCode.
 # Read more about Android versioning at https://developer.android.com/studio/publish/versioning
 # In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
