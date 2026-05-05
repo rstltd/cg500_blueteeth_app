@@ -106,7 +106,6 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - **Update System**: package_info_plus (^8.0.2), path_provider (^2.1.4), http (^1.2.2), url_launcher (^6.3.0)
 - **Storage**: shared_preferences (^2.3.2) - Local data persistence
 - **Network**: connectivity_plus (^6.0.5) - Network connectivity detection and monitoring
-- **Icons**: cupertino_icons (^1.0.8)
 - **Testing**: flutter_test, flutter_lints (^5.0.0)
 
 ### Android Permissions
