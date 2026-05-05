@@ -667,6 +667,24 @@ abstract class AppStrings {
   /// WiFi only download description
   static const String wifiOnlyDownloadDesc = '僅在連接 WiFi 時下載更新';
 
+  /// Update channel card title
+  static const String updateChannel = '更新通道';
+
+  /// Update channel card subtitle / explanation
+  static const String updateChannelDesc = '選擇要接收哪一類版本';
+
+  /// Stable channel option label
+  static const String updateChannelStable = '穩定版';
+
+  /// Stable channel description
+  static const String updateChannelStableDesc = '只接收正式版本，預設選項';
+
+  /// Beta channel option label
+  static const String updateChannelBeta = 'Beta 測試版';
+
+  /// Beta channel description
+  static const String updateChannelBetaDesc = '搶先收到 beta / rc 預覽版，可能有未知問題';
+
   /// Skipped versions section
   static const String skippedVersions = '已略過版本';
 

@@ -139,6 +139,11 @@ class UpdateSettingsViewModel extends BaseViewModel {
   Future<void> setWifiOnlyDownload(bool value) =>
       _preferencesStore.setWifiOnlyDownload(value);
 
+  /// Switch the user between the stable and beta update channels.
+  /// See `docs/VERSIONING.md` for the channel policy.
+  Future<void> setUpdateChannel(UpdateChannel channel) =>
+      _preferencesStore.setUpdateChannel(channel);
+
   /// Unskip a version.
   Future<void> unskipVersion(String version) =>
       _preferencesStore.unskipVersion(version);

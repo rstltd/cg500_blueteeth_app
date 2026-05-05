@@ -7,6 +7,7 @@ import '../core/service_locator.dart' show getIt;
 import '../l10n/app_strings.dart';
 import '../models/download_progress.dart';
 import '../models/update_info.dart';
+import '../models/update_preferences.dart';
 import '../services/download_manager.dart';
 import '../services/install_manager.dart';
 import '../services/network_service.dart';
@@ -270,7 +271,8 @@ class UpdateController with ChangeNotifier {
   }
 
   /// Single shared path that gates a check against the autoCheck preference
-  /// and forwards to UpdateChecker with the user's skipped-version list.
+  /// and forwards to UpdateChecker with the user's skipped-version list and
+  /// channel selection.
   Future<UpdateInfo?> _runUpdateCheck() async {
     final prefs = _preferencesStore.current;
     if (prefs != null && !prefs.autoCheckEnabled) {
@@ -279,6 +281,7 @@ class UpdateController with ChangeNotifier {
     }
     return _updateChecker.checkForUpdates(
       skippedVersions: prefs?.skippedVersions ?? const [],
+      channel: prefs?.updateChannel ?? UpdateChannel.stable,
     );
   }
 

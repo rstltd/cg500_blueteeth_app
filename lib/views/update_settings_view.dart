@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
+import '../models/update_preferences.dart';
 import '../services/network_service.dart';
 import '../services/update_preferences_store.dart';
 import '../core/view_model/view_model.dart';
@@ -119,6 +120,8 @@ class _UpdateSettingsContent extends StatelessWidget {
             SizedBox(height: DesignTokens.spacingL),
             _NetworkStatusCard(viewModel: viewModel),
             SizedBox(height: DesignTokens.spacingL),
+            _UpdateChannelCard(viewModel: viewModel),
+            SizedBox(height: DesignTokens.spacingL),
             _DownloadSettingsCard(viewModel: viewModel),
             SizedBox(height: DesignTokens.spacingL),
             _SkippedVersionsCard(viewModel: viewModel),
@@ -187,6 +190,56 @@ class _NetworkStatusCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _UpdateChannelCard extends StatelessWidget {
+  const _UpdateChannelCard({required this.viewModel});
+
+  final UpdateSettingsViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final prefs = viewModel.preferences!;
+
+    return _SettingsSection(
+      title: AppStrings.updateChannel,
+      icon: Icons.alt_route,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            DesignTokens.spacingM,
+            DesignTokens.spacingS,
+            DesignTokens.spacingM,
+            0,
+          ),
+          child: Text(
+            AppStrings.updateChannelDesc,
+            style: AppTextStyles.bodySmall(context).copyWith(
+              color: AppColors.textSecondary(context),
+            ),
+          ),
+        ),
+        RadioListTile<UpdateChannel>(
+          title: const Text(AppStrings.updateChannelStable),
+          subtitle: const Text(AppStrings.updateChannelStableDesc),
+          value: UpdateChannel.stable,
+          groupValue: prefs.updateChannel,
+          onChanged: (v) {
+            if (v != null) viewModel.setUpdateChannel(v);
+          },
+        ),
+        RadioListTile<UpdateChannel>(
+          title: const Text(AppStrings.updateChannelBeta),
+          subtitle: const Text(AppStrings.updateChannelBetaDesc),
+          value: UpdateChannel.beta,
+          groupValue: prefs.updateChannel,
+          onChanged: (v) {
+            if (v != null) viewModel.setUpdateChannel(v);
+          },
+        ),
+      ],
     );
   }
 }

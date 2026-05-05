@@ -53,6 +53,9 @@ class UpdatePreferencesStore {
   Future<void> setAutoDownloadEnabled(bool value) =>
       _mutate((p) => p.autoDownloadEnabled = value);
 
+  Future<void> setUpdateChannel(UpdateChannel channel) =>
+      _mutate((p) => p.updateChannel = channel);
+
   Future<void> skipVersion(String version) =>
       _mutate((p) => p.skipVersion(version));
 
