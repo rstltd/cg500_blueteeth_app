@@ -68,11 +68,16 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - `lib/views/simple_scanner_view.dart` - Modern responsive BLE scanner interface with animated components
 - `lib/views/command_interface_view.dart` - Chat-style text command communication interface
 - `lib/views/update_settings_view.dart` - Comprehensive update preferences management
+- `lib/views/quick_setup_wizard_view.dart` - 4-step guided wizard (APN → ADDR → FTPADDR → REBOOT)
+- `lib/views/custom_commands_view.dart` - Developer-mode custom command CRUD
+- `lib/views/developer_options_view.dart` - Role/password management for dev mode
 - `lib/controllers/simple_ble_controller.dart` - MVC controller coordinating BLE operations
+- `lib/controllers/update_controller.dart` - Update lifecycle coordinator across check/download/install/preferences
 - `lib/services/ble_service.dart` - Core BLE service with Nordic UART Service support
-- `lib/services/smart_notification_service.dart` - Intelligent notification filtering system
-- `lib/services/update_service.dart` - Enhanced update management with user preferences
+- `lib/services/ble_message_assembler.dart` - Reassembles `\r\n`-terminated lines from BLE chunks
+- `lib/services/notification_service.dart` - In-app notifications with optional `NotificationFilter` (smart dedup/silence/debounce)
 - `lib/services/network_service.dart` - Network connectivity monitoring and optimization
+- `lib/services/update_checker.dart` / `download_manager.dart` / `install_manager.dart` / `update_preferences_store.dart` - The four narrow services behind `UpdateController`
 
 #### Key Features:
 - **Nordic UART Service Communication**: Text command communication via standardized BLE UART protocol
@@ -131,20 +136,32 @@ The application follows an MVC (Model-View-Controller) architecture enhanced wit
 - **`ble_service.dart`** - Service model with characteristic management and UUID resolution
 - **`ble_characteristic.dart`** - Characteristic model with properties, value formatting, and operations
 
-#### 2. **Services Layer** (`lib/services/`)
+#### 2. **Services Layer** (`lib/services/` — 18 files)
 - **`ble_service.dart`** - Core BLE operations with Nordic UART Service implementation
-- **`smart_notification_service.dart`** - Intelligent notification filtering with debouncing and duplicate prevention
-- **`update_service.dart`** - GitHub Releases-based automatic update system
+- **`ble_message_assembler.dart`** - Reassembles BLE chunks into `\r\n`-delimited lines (50ms quiet-timeout fallback, 4KB safety flush)
+- **`notification_service.dart`** - In-app notifications. The `NotificationService.smart()` factory enables dedup/silence/debounce via an internal `NotificationFilter` config; the plain constructor is unfiltered (used by tests). Production wires `.smart()` in `service_locator.dart`.
 - **`permission_service.dart`** - Bluetooth and location permission management
-- **`notification_service.dart`** - Base notification system with categorized message types
+- **`network_service.dart`** - Network connectivity monitoring (`connectivity_plus`)
+- **`error_handling_service.dart`** - Comprehensive error categorization and user feedback
 - **`theme_service.dart`** - Dark/light theme management with persistence
 - **`animation_service.dart`** - Page transitions and custom animation effects
-- **`error_handling_service.dart`** - Comprehensive error categorization and user feedback
+- **`layout_preference_service.dart`** - Persists user layout/density choices
+- **`role_service.dart`** - Role lifecycle (normal / developer) + password hashing; broadcasts via `roleStream`
+- **`custom_command_service.dart`** - Persists user-defined BLE commands (SharedPreferences, JSON)
+- **`command_parameter_storage_service.dart`** - Persists last-used command parameter values
+- **`device_info_tracker.dart`** - App-wide accumulator for the connected device's parsed `DeviceInfo` (subscribes to `commandResponseStream`, feeds `info_parser_service`)
+- **`info_parser_service.dart`** - Stateless regex extraction from `$INFO` response lines
+- **Update subsystem** (4 narrow services, coordinated by `UpdateController`):
+  - **`update_checker.dart`** - GitHub API polling, version comparison, channel filtering
+  - **`download_manager.dart`** - APK fetch, progress stream, retry logic, checksum
+  - **`install_manager.dart`** - Native Android APK install via platform channel
+  - **`update_preferences_store.dart`** - Single owner of update settings (auto-check, WiFi-only, channel, skipped versions); broadcasts via `changeStream`
 
 #### 3. **Controllers Layer** (`lib/controllers/`)
 - **`simple_ble_controller.dart`** - Main BLE operations coordinator with command support
-- **`command_manager.dart`** - Command history management and UART communication controller
-- **`update_logic_manager.dart`** - Update process coordinator handling download, install, and skip operations
+- **`command_manager.dart`** - Shared command history + `TextEditingController` + send pipeline. Used by both `CommandInterfaceViewModel` and `QuickSetupViewModel`.
+- **`update_controller.dart`** - App-wide update flow coordinator. Owns latest update info, in-flight check flag, download progress, network status, and dialog context in one place. ChangeNotifier so any UI piece that renders update state can `ListenableBuilder` it.
+- **`ble_controller_interface.dart`** - Interface for `SimpleBleController` (kept because tests mock it via `MockBleController`).
 
 #### 4. **Core Layer** (`lib/core/`)
 - **`service_locator.dart`** - GetIt-based dependency injection container
@@ -156,49 +173,74 @@ The application follows an MVC (Model-View-Controller) architecture enhanced wit
 - **`simple_scanner_view_model.dart`** - ViewModel for BLE scanner with device/theme/update management
 - **`command_interface_view_model.dart`** - ViewModel for command interface with message management
 - **`update_settings_view_model.dart`** - ViewModel for update settings with preferences management
+- **`quick_setup_view_model.dart`** - ViewModel for the 4-step Quick Setup wizard
+- **`custom_commands_view_model.dart`** - ViewModel for custom-command CRUD (developer mode)
 
 #### 6. **Views Layer** (`lib/views/`)
 - **`simple_scanner_view.dart`** — BLE scanner (uses `SimpleScannerViewModel`)
 - **`command_interface_view.dart`** — Chat-style command interface (uses `CommandInterfaceViewModel`)
 - **`update_settings_view.dart`** — Update preferences (uses `UpdateSettingsViewModel`)
+- **`quick_setup_wizard_view.dart`** — Guided field-deployment wizard (uses `QuickSetupViewModel`); shares `CommandManager` with the command interface so wizard commands appear in the chat log
+- **`custom_commands_view.dart`** — Developer-mode custom command CRUD (uses `CustomCommandsViewModel`)
+- **`developer_options_view.dart`** — Developer mode entry / password management
 
-#### 7. **Widgets Layer** (`lib/widgets/`)
-**Scanner Components:**
-- **`device_list_widget.dart`** - BLE device discovery and listing
-- **`device_grid_widget.dart`** - Grid layout for discovered devices
-- **`connected_device_card_widget.dart`** - Connected device status display
-- **`scanning_indicator_widget.dart`** - Animated scanning progress indicators
-- **`control_panel_widget.dart`** - Scanner control buttons and options
-- **`quick_stats_widget.dart`** - Real-time scanning statistics
+#### 7. **Repositories Layer** (`lib/repositories/`)
+- **`command_repository.dart`** - Canonical built-in command list (12 commands; see [`docs/command.md`](docs/command.md))
+- **`custom_command_repository.dart`** - Decorator that merges user-defined commands from `CustomCommandService` into the built-in list and filters collisions
+- **`role_aware_command_repository.dart`** - Outermost decorator that filters by `RoleService.currentRole` (normal-mode whitelist: `$INFO`, `$APN`, `$ADDR`, `$FTPADDR`, `$REBOOT`)
 
-**Communication Components:**
-- **`message_bubble_widget.dart`** - Chat-style message display for BLE communication
-- **`connection_status_widget.dart`** - Connection state and duration display
+The decorator chain registered in `service_locator.dart` is:
+`built-in → custom (merge) → role-aware (filter)`. UI consumers see only the outermost wrapper via `CommandRepositoryInterface`.
 
-**Command Components:**
-- **`danger_confirm_dialog.dart`** - Confirmation dialog for dangerous/warning level commands with dynamic colors (orange for warning, red for dangerous)
+#### 8. **Widgets Layer** (`lib/widgets/`, organised by feature subdirectories)
 
-**Update System Components:**
-- **`update_dialog.dart`** - Main update dialog container
-- **`update_header_widget.dart`** - Update type header with visual indicators
-- **`version_info_widget.dart`** - Version details and release notes display
-- **`update_progress_widget.dart`** - Download progress indicators
-- **`network_info_widget.dart`** - Network status and download suitability
-- **`update_actions_widget.dart`** - Update action buttons and browser fallback
-- **`install_guide_dialog.dart`** - APK installation guidance
-- **`legacy_update_banner.dart`** - Legacy update notification banner
+**`widgets/ble/` — Scanner & device components**
+- `device_list_widget.dart` / `device_grid_widget.dart` / `device_search_widget.dart` - device discovery and listing
+- `connected_device_card_widget.dart` / `device_details_dialog.dart` / `device_status_panel_widget.dart` - connected device display
+- `connection_status_widget.dart` / `connection_stats_panel_widget.dart` - connection state and stats
+- `scanning_indicator_widget.dart` / `quick_stats_widget.dart` - scan progress and stats
+- `control_panel_widget.dart` - scanner control buttons
 
-**Common UI Components:**
-- **`responsive_layout.dart`** - Adaptive layout system for mobile/tablet/desktop
-- **`animated_widgets.dart`** - Custom animated components (scan buttons, connection status)
-- **`notification_settings_dialog.dart`** - User interface for notification preferences
+**`widgets/message/` — Chat / command interface**
+- `message_bubble_widget.dart` / `message_filter_widget.dart` - message display + filter chips
+- `command_input_panel_widget.dart` / `command_history_panel_widget.dart` - text input + history navigation
 
-#### 8. **Localization Layer** (`lib/l10n/`)
+**`widgets/command/` — Smart Command Center**
+- `quick_access_bar_widget.dart` / `quick_command_button.dart` - quick-send buttons
+- `command_menu_sheet.dart` / `command_category_tabs.dart` / `command_list_tile.dart` / `command_search_bar.dart` - command browser
+- `command_form_sheet.dart` / `command_preview_widget.dart` / `command_feedback_widget.dart` - parameter form + preview + feedback
+- `danger_confirm_dialog.dart` - confirmation for warning/dangerous commands (orange / red)
+- `widgets/command/parameters/` - typed inputs (`text`, `dropdown`, `host_port`, `ip_port`, `hour_picker`, `bit_flags`)
+
+**`widgets/wizard/` — Quick Setup Wizard**
+- `wizard_step_form.dart` / `wizard_summary_page.dart` / `wizard_execution_page.dart`
+
+**`widgets/dev_mode/` — Developer mode UI**
+- `dev_mode_password_dialog.dart` / `change_password_dialog.dart`
+- `custom_command_form_dialog.dart` - custom command edit form
+
+**`widgets/update/` — Update system**
+- `update_dialog.dart` - main update dialog container
+- `update_header_widget.dart` / `version_info_widget.dart` / `update_progress_widget.dart` / `update_actions_widget.dart` - dialog parts
+- `network_info_widget.dart` - network status and download suitability
+- `update_notification_banner.dart` - inline update notification banner
+
+**`widgets/layout/` & `widgets/common/`**
+- `widgets/layout/responsive_layout.dart` - adaptive layout system for mobile/tablet/desktop. Re-exports `responsive_utils.dart` and `app_colors.dart` — single import covers all responsive utilities.
+- `widgets/common/animated_widgets.dart` - custom animated components (scan buttons, connection status)
+- `widgets/common/app_empty_state.dart` - shared empty-state placeholder
+
+#### 9. **Localization Layer** (`lib/l10n/`)
 - **`app_strings.dart`** - Centralized UI string constants for internationalization preparation
 
-#### 9. **Utils Layer** (`lib/utils/`)
+#### 10. **Utils Layer** (`lib/utils/`)
 - **`responsive_utils.dart`** - Screen breakpoint management and responsive calculations
-- **`logger.dart`** - Application logging utilities
+- **`app_colors.dart`** - Theme-aware color palette
+- **`app_version.dart`** - CalVer + legacy SemVer parser/comparator (`AppVersion.tryParse`, `compareTo`); see [`docs/VERSIONING.md`](docs/VERSIONING.md)
+- **`formatting_utils.dart`** - Duration / byte / date formatters
+- **`accessibility_utils.dart`** / **`focus_management.dart`** - a11y helpers
+- **`logger.dart`** - Tagged logging (`Logger.ble` / `ui` / `command` etc.; `Logger.diagnostic` for production traces — see Diagnostic section below)
+- **`painters/`** - Custom CustomPainter implementations
 
 ### ViewModelProvider Pattern Guide
 
@@ -382,7 +424,7 @@ The codebase follows strict single responsibility principles with highly modular
 - This architecture enables easy testing, maintenance, and feature additions
 
 #### **Conventions:**
-- `lib/widgets/common/responsive_layout.dart` re-exports `responsive_utils.dart` and `app_colors.dart` — single import for all responsive utilities.
+- `lib/widgets/layout/responsive_layout.dart` re-exports `responsive_utils.dart` and `app_colors.dart` — single import covers all responsive utilities.
 
 ## BLE Usage Guide
 
@@ -477,12 +519,16 @@ The application uses a complete GitHub Releases-based deployment system that eli
 - **Seamless APK installation**: Downloads and installs updates directly from GitHub
 - **Private repository support**: Works with private repositories via GitHub API
 
-#### Update Service Architecture:
-- **UpdateService** (`lib/services/update_service.dart`): Core update management
-- **UpdateInfo model**: Version comparison and release metadata
-- **GitHub API integration**: Repository: `rstltd/cg500_blueteeth_app`
-- **Download management**: Progress tracking and error handling
-- **Platform channel**: Android APK installation via native code
+#### Update System Architecture:
+The update flow is split across one controller and four narrow services. UI consumers inject `UpdateController`; the four services are internal implementation detail.
+
+- **`UpdateController`** (`lib/controllers/update_controller.dart`): Owns the full update lifecycle (latest info, in-flight check flag, download progress, network status, dialog context). ChangeNotifier so any UI piece can `ListenableBuilder` it.
+- **`UpdateChecker`** (`lib/services/update_checker.dart`): GitHub Releases API polling, version comparison, channel filtering (`stable` vs `beta`).
+- **`DownloadManager`** (`lib/services/download_manager.dart`): APK fetch with progress stream, retry, SHA256 checksum.
+- **`InstallManager`** (`lib/services/install_manager.dart`): Triggers Android APK install via platform channel.
+- **`UpdatePreferencesStore`** (`lib/services/update_preferences_store.dart`): Single owner of update settings (auto-check, WiFi-only, channel, skipped versions). Mutations save to disk and broadcast via `changeStream`.
+- **Models**: `UpdateInfo` (version comparison + metadata), `DownloadProgress`, `UpdatePreferences`, `UpdateType`.
+- **GitHub API integration**: Repository `rstltd/cg500_blueteeth_app`.
 
 #### Prerequisites for Deployment:
 1. **GitHub CLI**: `winget install GitHub.cli`
@@ -498,43 +544,23 @@ The application uses a complete GitHub Releases-based deployment system that eli
 
 This system provides professional-grade deployment capabilities without server maintenance costs, leveraging GitHub's infrastructure for reliable global distribution.
 
-## Diagnostic and Testing Tools
-
-### Test Runners
-The project includes specialized diagnostic tools for troubleshooting specific functionality:
-
-#### WiFi Only Settings Test:
-```bash
-flutter run -t test_wifi_only.dart
-```
-- Tests WiFi-only download preferences behavior
-- Validates setting synchronization between UI and services
-- Simulates network condition testing
-- Verifies preference loading and fallback logic
-
-#### Permission Diagnosis Tool:
-```bash
-flutter run -t test_permissions.dart
-```
-- Diagnoses Android APK installation permissions
-- Tests `canRequestPackageInstalls()` functionality
-- Validates FileProvider configuration
-- Provides step-by-step permission request flow
+## Diagnostic and Troubleshooting
 
 ### Key Troubleshooting Areas
 
 #### Update System Issues:
-1. **WiFi-Only Setting Problems**: Check `lib/widgets/network_info_widget.dart` for proper null handling in preference loading
-2. **APK Installation Failures**: Use `test_permissions.dart` to validate Android permissions and FileProvider setup
-3. **Download Failures**: Verify GitHub API access and network connectivity in UpdateService
-4. **Setting Synchronization**: Ensure `UpdateService.updatePreferences()` is called after UI preference changes
+1. **WiFi-Only Setting Problems**: Check `lib/widgets/update/network_info_widget.dart` for proper null handling in preference loading.
+2. **APK Installation Failures**: `InstallManager.diagnosePermissions()` returns a status map; use it to verify Android `canRequestPackageInstalls()` and FileProvider configuration.
+3. **Download Failures**: Verify GitHub API access (`UpdateChecker`) and network connectivity (`NetworkService`); `DownloadManager` retries automatically on transient failure.
+4. **Setting Synchronization**: All update-preference mutations must go through `UpdatePreferencesStore` — its `changeStream` is the single broadcast channel that `UpdateController` and the settings VM listen on.
 
 #### Common Fix Patterns:
-- **Preference Fallback Logic**: Always use non-restrictive fallbacks (allow mobile data) when settings are loading
-- **Setting Synchronization**: Call `updateService.updatePreferences(prefs)` after any UI setting changes
-- **Permission Handling**: Check both legacy and Android 8.0+ unknown sources permissions
+- **Preference Fallback Logic**: Always use non-restrictive fallbacks (allow mobile data) when settings are loading.
+- **Setting Synchronization**: Call `getIt<UpdatePreferencesStore>().update(...)`; never hold a private copy of preferences.
+- **Permission Handling**: Check both legacy and Android 8.0+ unknown-sources permissions.
 - **Diagnostic Logging in Release Builds**: `Logger.ble` / `debug` / `command` / `info` are silent in release because `_currentLogLevel = kDebugMode ? _debugLevel : _errorLevel`. For traces that must work in production (e.g. capturing user-reported BLE bugs), use `Logger.diagnostic()` and toggle `Logger.diagnosticEnabled = true`. The diagnostic channel is used by `BleMessageAssembler` to log raw hex chunks and by the `addMessage` dedup guard in `CommandInterfaceViewModel`.
 
 #### Documentation References:
-- WiFi-only fix details: `WIFI_ONLY_FIX.md`
-- Architecture patterns: Follow MVC separation with single-responsibility widgets
+- Versioning policy: [`docs/VERSIONING.md`](docs/VERSIONING.md)
+- Device command reference: [`docs/command.md`](docs/command.md) (for the canonical app-side command list, see `lib/repositories/command_repository.dart`)
+- Historical architecture analyses (now stale, kept for context): [`docs/OVER_ENGINEERING_ANALYSIS.md`](docs/OVER_ENGINEERING_ANALYSIS.md), [`docs/SIMPLIFICATION_PLAN.md`](docs/SIMPLIFICATION_PLAN.md), [`docs/SMART_COMMAND_CENTER_PLAN.md`](docs/SMART_COMMAND_CENTER_PLAN.md), [`docs/TEST_COVERAGE_PLAN.md`](docs/TEST_COVERAGE_PLAN.md)
