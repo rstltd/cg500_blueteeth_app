@@ -25,22 +25,33 @@ This is a Flutter mobile application named `cg500_blueteeth_app` - appears to be
 - `flutter clean` - Clean build artifacts
 
 ### Release and Deployment
-- `python scripts/simple_release.py patch` - Build and release patch version (1.0.0 → 1.0.1)
-- `python scripts/simple_release.py minor` - Build and release minor version (1.0.1 → 1.1.0)
-- `python scripts/simple_release.py major` - Build and release major version (1.1.0 → 2.0.0)
-- `python scripts/update_version.py current` - Show current version
-- `python scripts/update_version.py patch` - Increment patch version only (no release)
+
+**The authoritative versioning policy is `docs/VERSIONING.md`.** Read it before
+running any release command. The summary below is convenience only; if it
+disagrees with `docs/VERSIONING.md`, the doc wins.
+
+The project uses **CalVer** (`vYY.0M[.MICRO][-beta.N]`, e.g. `v26.05`,
+`v26.05.1`, `v26.05-beta.1`) with two channels — `stable` and `beta`.
+
+- `python scripts/simple_release.py release` — monthly stable release (`26.05+31 → 26.06+33`)
+- `python scripts/simple_release.py hotfix`  — same-month hotfix (`26.05+31 → 26.05.1+32`)
+- `python scripts/simple_release.py beta`    — beta pre-release (`26.05+31 → 26.06-beta.1+32`)
+- `python scripts/simple_release.py rc`      — release candidate (rarely used)
+- `python scripts/simple_release.py build`   — build-number-only bump
+- `python scripts/update_version.py current` — show current version
+- `python scripts/update_version.py release|hotfix|beta|rc|build` — bump version without releasing
 
 ### Release Notes Workflow (IMPORTANT)
 **Before every release**, AI must generate a user-facing `release_notes.md` file in the project root summarizing all changes since the last release. This file is used by the release script via `--notes-file`.
 
 **Steps:**
 1. Review commits since last tag: `git log $(git describe --tags --abbrev=0)..HEAD --oneline`
-2. Write a clear, user-facing `release_notes.md` (in the project root) with sections like "New Features", "Improvements", "Bug Fixes" as appropriate. Write in English. Do not include commit hashes.
-3. Show the content to the user for approval
-4. User runs: `python scripts/simple_release.py patch --notes-file release_notes.md`
+2. Decide the mode (`release` / `hotfix` / `beta` / `rc`) using the rules in `docs/VERSIONING.md` §5.
+3. Write a clear, user-facing `release_notes.md` (in the project root) with sections like "New Features", "Improvements", "Bug Fixes" as appropriate. Write in English. Do not include commit hashes. Do not include the version number in the title — the release script supplies it.
+4. Show the content to the user for approval
+5. User runs: `python scripts/simple_release.py <mode> --notes-file release_notes.md`
 
-**AI must proactively do this whenever the user asks to release/publish/deploy** — do not wait for the user to ask for release notes separately.
+**AI must proactively do this whenever the user asks to release/publish/deploy** — do not wait for the user to ask for release notes separately. **Never edit `pubspec.yaml` by hand to change the version** — the release script is the only authorized writer.
 
 ## Architecture
 
@@ -454,10 +465,10 @@ RSSI thresholds optimized based on real-world BLE testing (-60 dBm at ~10cm, -80
 The application uses a complete GitHub Releases-based deployment system that eliminates the need for additional servers:
 
 #### Automated Release Process:
-- **One-command release**: `python scripts/simple_release.py patch|minor|major`
-- **Automatic version management**: Updates `pubspec.yaml` with semantic versioning
+- **One-command release**: `python scripts/simple_release.py release|hotfix|beta|rc` (see `docs/VERSIONING.md`)
+- **Automatic version management**: Updates `pubspec.yaml` using CalVer (`vYY.0M[.MICRO][-beta.N]+BUILD`)
 - **APK building**: Clean Flutter release build with optimized size
-- **GitHub Release creation**: Automated release notes and APK upload
+- **GitHub Release creation**: Automated release notes and APK upload; `beta`/`rc` modes mark the release as `prerelease=true`
 - **Git integration**: Commits version changes and pushes to repository
 
 #### In-App Update System:
@@ -479,10 +490,11 @@ The application uses a complete GitHub Releases-based deployment system that eli
 3. **Repository access**: Configured for `rstltd/cg500_blueteeth_app`
 
 #### Version Management:
-- **Semantic versioning**: major.minor.patch+build format
-- **Automatic increments**: patch (bugs), minor (features), major (breaking changes)
-- **Release notes**: Auto-generated from git commit history
-- **Force updates**: Support for critical updates via commit message tags
+- **Calendar versioning (CalVer)**: `vYY.0M[.MICRO][-beta.N]+BUILD` — see `docs/VERSIONING.md`
+- **Channels**: `stable` (default) and `beta` (opt-in via update settings)
+- **Build number**: monotonically increases on every release across both channels (Android `versionCode` requirement)
+- **Release notes**: User-supplied via `--notes-file release_notes.md`. Auto-generated commit-log notes are a fallback only — they leak internal jargon
+- **Force updates**: Support for critical updates via `[forced]` / `[critical]` markers in release notes
 
 This system provides professional-grade deployment capabilities without server maintenance costs, leveraging GitHub's infrastructure for reliable global distribution.
 
