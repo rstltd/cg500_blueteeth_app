@@ -539,4 +539,5 @@ This system provides professional-grade deployment capabilities without server m
   - [ADR-0002](docs/adr/0002-app-scope-rst-device-family.md) — Why this is one app for the whole RST device family (GNSS receivers, accelerometers, inclinometers), even though the repo name says `cg500`.
   - [ADR-0003](docs/adr/0003-keep-update-ui-delegate-seam.md) — Why `UpdateUIDelegate` survives despite SIMPLIFICATION_PLAN listing it for removal.
   - [ADR-0004](docs/adr/0004-command-manager-shared-instance.md) — Why `CommandManager` is a shared instance across `CommandInterfaceVM` and `QuickSetupVM`, not absorbed into either VM.
+  - [ADR-0005](docs/adr/0005-role-state-not-persisted.md) — Why developer-mode state never persists across app launches (only the password hash does), even though re-prompting on every cold start is a real UX cost.
 - Historical architecture analyses (now stale, kept for context): [`docs/OVER_ENGINEERING_ANALYSIS.md`](docs/OVER_ENGINEERING_ANALYSIS.md), [`docs/SIMPLIFICATION_PLAN.md`](docs/SIMPLIFICATION_PLAN.md), [`docs/SMART_COMMAND_CENTER_PLAN.md`](docs/SMART_COMMAND_CENTER_PLAN.md), [`docs/TEST_COVERAGE_PLAN.md`](docs/TEST_COVERAGE_PLAN.md)
