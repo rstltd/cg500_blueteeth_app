@@ -1,5 +1,13 @@
 # 專案複雜度降低計畫
 
+> **STATUS：Phases 1–3 已完成（2024-12 至 2026-05 期間多次 commit）。** 介面
+> 已從 10 縮減為 3、`BleNotificationDelegate` 已重構為單類別配置式、
+> `UpdateService` 已分解為 4 個窄服務（`update_checker` / `download_manager` /
+> `install_manager` / `update_preferences_store`）並由 `UpdateController` 協
+> 調。Phase 4 (Widget 整理) 未明確結論——`animated_widgets.dart` 等大檔仍存
+> 在於 `lib/widgets/common/`。本文保留作為歷史決策脈絡；現況請參考實際程式
+> 碼與 CLAUDE.md。
+
 > 建立日期：2024-12-09
 > 基於：[OVER_ENGINEERING_ANALYSIS.md](./OVER_ENGINEERING_ANALYSIS.md)
 > 目標：降低架構複雜度，提升可維護性

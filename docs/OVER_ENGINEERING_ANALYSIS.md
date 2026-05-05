@@ -1,5 +1,11 @@
 # 過度設計分析報告
 
+> **STATUS：HISTORICAL SNAPSHOT — 2024-12-09。** 本報告中所有檔案數、行數、
+> 服務數、介面數均為當時數據，現況已大幅變動（介面 10→3、服務 11→18、檔案
+> 117→127、UpdateService 已分解為 4 個窄服務）。建議行動已透過
+> [SIMPLIFICATION_PLAN.md](./SIMPLIFICATION_PLAN.md) 與後續多次重構落地，
+> 詳見 git log。本檔保留作為架構決策的歷史脈絡參考；不再作為「現況」依據。
+
 > 分析日期：2024-12-09
 > 專案：cg500_blueteeth_app
 > 分析範圍：架構複雜度、介面抽象、Widget 拆分、設計模式

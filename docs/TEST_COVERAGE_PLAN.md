@@ -1,5 +1,11 @@
 # 測試覆蓋率提升計劃
 
+> **STATUS：HISTORICAL — 計畫初稿。** 覆蓋率數據與檔案行數為計畫撰寫當下
+> 的快照，現況已大幅變動（測試總數已達 2108）。文中提及的 `UpdateService`
+> 已不存在；相關策略對 `update_checker` / `download_manager` 等替代服務
+> 仍可參考。建議拿覆蓋率指標前先跑 `flutter test --coverage` 取得最新數
+> 字，不要直接引用本文數據。
+
 ## 當前狀態分析
 
 ### 覆蓋率概覽

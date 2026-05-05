@@ -1,5 +1,11 @@
 # Smart Command Center 實作計畫
 
+> **STATUS：IMPLEMENTED（2024-12-09 全部 6 階段完成）。** 所有命名 widget
+> 與 ViewModel 整合均已落地，相關元件位於 `lib/widgets/command/`、
+> `lib/repositories/command_repository.dart` 與 `lib/view_models/`。本文保留
+> 作為設計決策參考；指令清單請以 `command_repository.dart` 為準
+> （[`docs/command.md`](./command.md) 是設備文件的精簡參考）。
+
 ## 概述
 
 將目前的純文字指令介面升級為「智慧指令中心」，結合指令選單與參數表單，提供更友善的使用者體驗。
