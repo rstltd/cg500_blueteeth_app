@@ -6,6 +6,10 @@ import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/role_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/update_checker.dart';
+import 'package:cg500_blueteeth_app/services/download_manager.dart';
+import 'package:cg500_blueteeth_app/services/install_manager.dart';
+import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/view_models/update_settings_view_model.dart';
 
@@ -505,7 +509,10 @@ class _FakeUpdateController extends UpdateController {
 
   _FakeUpdateController()
       : super.withDependencies(
-          updateService: _NoopUpdateService(),
+          updateChecker: _NoopUpdateChecker(),
+          downloadManager: _NoopDownloadManager(),
+          installManager: _NoopInstallManager(),
+          preferencesStore: UpdatePreferencesStore(),
           networkService: _NoopNetworkService(),
           notificationService: _NoopNotificationService(),
         );
@@ -520,7 +527,17 @@ class _FakeUpdateController extends UpdateController {
   }
 }
 
-class _NoopUpdateService implements UpdateService {
+class _NoopUpdateChecker implements UpdateChecker {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class _NoopDownloadManager implements DownloadManager {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class _NoopInstallManager implements InstallManager {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }

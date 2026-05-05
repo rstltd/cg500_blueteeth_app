@@ -3,7 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_notification_banner.dart';
 import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/update_checker.dart';
+import 'package:cg500_blueteeth_app/services/download_manager.dart';
+import 'package:cg500_blueteeth_app/services/install_manager.dart';
+import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
@@ -11,12 +14,18 @@ import '../mocks/mock_services.dart';
 
 /// Helper function to create test UpdateController with mock services
 UpdateController createTestManager({
-  MockUpdateService? updateService,
+  MockUpdateChecker? updateChecker,
+  MockDownloadManager? downloadManager,
+  MockInstallManager? installManager,
+  UpdatePreferencesStore? preferencesStore,
   MockNetworkService? networkService,
   MockNotificationService? notificationService,
 }) {
   return UpdateController.withDependencies(
-    updateService: updateService ?? MockUpdateService(),
+    updateChecker: updateChecker ?? MockUpdateChecker(),
+    downloadManager: downloadManager ?? MockDownloadManager(),
+    installManager: installManager ?? MockInstallManager(),
+    preferencesStore: preferencesStore ?? UpdatePreferencesStore(),
     networkService: networkService ?? MockNetworkService(),
     notificationService: notificationService ?? MockNotificationService(),
   );
@@ -29,10 +38,20 @@ void main() {
   late UpdateController updateManager;
 
   setUpAll(() {
-    // Register mock services for testing
+    // Register mock services so the default UpdateController() constructor
+    // (which pulls every dependency from getIt) can resolve.
     final getIt = GetIt.instance;
-    if (!getIt.isRegistered<UpdateService>()) {
-      getIt.registerSingleton<UpdateService>(MockUpdateService());
+    if (!getIt.isRegistered<UpdateChecker>()) {
+      getIt.registerSingleton<UpdateChecker>(MockUpdateChecker());
+    }
+    if (!getIt.isRegistered<DownloadManager>()) {
+      getIt.registerSingleton<DownloadManager>(MockDownloadManager());
+    }
+    if (!getIt.isRegistered<InstallManager>()) {
+      getIt.registerSingleton<InstallManager>(MockInstallManager());
+    }
+    if (!getIt.isRegistered<UpdatePreferencesStore>()) {
+      getIt.registerSingleton<UpdatePreferencesStore>(UpdatePreferencesStore());
     }
     if (!getIt.isRegistered<NetworkService>()) {
       getIt.registerSingleton<NetworkService>(MockNetworkService());
@@ -532,9 +551,9 @@ void main() {
       expect(manager.isInitialized, isA<bool>());
     });
 
-    test('UpdateController updateService should be accessible', () {
+    test('UpdateController preferencesStore should be accessible', () {
       final manager = UpdateController();
-      expect(manager.updateService, isNotNull);
+      expect(manager.preferencesStore, isNotNull);
     });
 
     test('UpdateController networkService should be accessible', () {

@@ -194,12 +194,15 @@ Future<void> setupServiceLocator() async {
   // UpdateController - app-wide update flow coordinator. Owns every
   // piece of update state (latest info, in-flight check flag, download
   // progress, network status, dialog context) in one place and
-  // subscribes once each to the network, download, and update streams.
+  // subscribes once each to the network and download streams.
   // ChangeNotifier so any UI piece that renders update state can
   // ListenableBuilder it.
   getIt.registerLazySingleton<UpdateController>(
     () => UpdateController.withDependencies(
-      updateService: getIt<UpdateService>(),
+      updateChecker: getIt<UpdateChecker>(),
+      downloadManager: getIt<DownloadManager>(),
+      installManager: getIt<InstallManager>(),
+      preferencesStore: getIt<UpdatePreferencesStore>(),
       networkService: getIt<NetworkService>(),
       notificationService: getIt<NotificationService>(),
     ),

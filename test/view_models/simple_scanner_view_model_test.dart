@@ -10,9 +10,12 @@ import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/theme_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/update_checker.dart';
+import 'package:cg500_blueteeth_app/services/download_manager.dart';
+import 'package:cg500_blueteeth_app/services/install_manager.dart';
+import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:cg500_blueteeth_app/view_models/simple_scanner_view_model.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
-import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -655,11 +658,15 @@ class _MockThemeService extends ThemeService {
 class _MockUpdateController extends UpdateController {
   int checkForUpdatesWithUICallCount = 0;
 
-  _MockUpdateController() : super.withDependencies(
-    updateService: _MockUpdateService(),
-    networkService: _MockNetworkService(),
-    notificationService: _MockNotificationService(),
-  );
+  _MockUpdateController()
+      : super.withDependencies(
+          updateChecker: _NoopUpdateChecker(),
+          downloadManager: _NoopDownloadManager(),
+          installManager: _NoopInstallManager(),
+          preferencesStore: UpdatePreferencesStore(),
+          networkService: _MockNetworkService(),
+          notificationService: _MockNotificationService(),
+        );
 
   @override
   Future<UpdateInfo?> checkForUpdatesWithUI({
@@ -671,63 +678,19 @@ class _MockUpdateController extends UpdateController {
   }
 }
 
-class _MockUpdateService implements UpdateService {
-  final _updateController = StreamController<UpdateInfo>.broadcast();
-  final _downloadController = StreamController<DownloadProgress>.broadcast();
-
+class _NoopUpdateChecker implements UpdateChecker {
   @override
-  Stream<UpdateInfo> get updateStream => _updateController.stream;
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
+class _NoopDownloadManager implements DownloadManager {
   @override
-  Stream<DownloadProgress> get downloadStream => _downloadController.stream;
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
+class _NoopInstallManager implements InstallManager {
   @override
-  bool get isDownloading => false;
-
-  @override
-  Future<bool> initialize() async => true;
-
-  @override
-  void dispose() {
-    _updateController.close();
-    _downloadController.close();
-  }
-
-  @override
-  Future<UpdateInfo?> checkForUpdates({bool showNotification = false}) async => null;
-
-  @override
-  Map<String, String> getCurrentVersionInfo() => {'version': '1.0.0', 'buildNumber': '1'};
-
-  @override
-  Future<void> updatePreferences(UpdatePreferences preferences) async {}
-
-  @override
-  Future<String?> downloadUpdate(UpdateInfo updateInfo) async => null;
-
-  @override
-  Future<bool> installUpdate(String filePath) async => false;
-
-  @override
-  Future<void> cleanupDownloads({String? keepVersion}) async {}
-
-  @override
-  Future<bool> canInstallApks() async => false;
-
-  @override
-  Future<void> requestInstallPermission() async {}
-
-  @override
-  Future<Map<String, dynamic>> diagnosePermissions() async => {};
-
-  @override
-  Future<void> skipVersion(String version) async {}
-
-  @override
-  UpdatePreferences? get preferences => null;
-
-  @override
-  bool shouldAutoDownload(UpdateInfo updateInfo) => false;
+  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 class _MockNetworkService extends NetworkService {

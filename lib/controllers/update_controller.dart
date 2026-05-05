@@ -5,47 +5,63 @@ import 'package:flutter/material.dart';
 import '../core/interfaces/update_ui_delegate.dart';
 import '../core/service_locator.dart' show getIt;
 import '../l10n/app_strings.dart';
+import '../models/download_progress.dart';
+import '../models/update_info.dart';
+import '../services/download_manager.dart';
+import '../services/install_manager.dart';
 import '../services/network_service.dart';
 import '../services/notification_service.dart';
-import '../services/update_service.dart';
+import '../services/update_checker.dart';
+import '../services/update_preferences_store.dart';
 import '../utils/logger.dart';
 import '../widgets/update/update_dialog.dart';
 
 /// App-wide update flow coordinator.
 ///
-/// Replaces the previous split between `AppUpdateManager` (app-level
-/// state: latest update info, periodic check, dialog context) and
-/// `UpdateLogicManager` (per-dialog state: download progress, install
-/// flow, skip-version flow). The split caused two listeners on the same
-/// download stream, two dispose paths that both called
-/// `NetworkService.dispose()`, and forced consumers to learn two
-/// different surfaces to ask the same question.
+/// Owns every piece of update state in one place — initialised flag,
+/// in-flight check flag, download progress, network status, latest
+/// update info, dialog context — and subscribes once each to the
+/// network and download streams. ChangeNotifier semantics let any
+/// widget rendering update state attach via `ListenableBuilder`.
 ///
-/// One singleton, one set of subscriptions, one dispose path. State
-/// changes notify listeners via [ChangeNotifier], so any widget that
-/// renders update state can use a `ListenableBuilder` instead of
-/// rolling per-instance callbacks.
+/// Internally composes the four specialised services that actually do
+/// work (`UpdateChecker`, `DownloadManager`, `InstallManager`,
+/// `UpdatePreferencesStore`) plus the network / notification services.
+/// The previous `UpdateService` facade is no longer in the dependency
+/// chain — those responsibilities live here, where they always belonged.
 class UpdateController with ChangeNotifier {
   /// Default constructor pulls dependencies from the service locator.
   /// Used in production; tests should prefer [withDependencies].
   UpdateController()
-      : _updateService = getIt<UpdateService>(),
+      : _updateChecker = getIt<UpdateChecker>(),
+        _downloadManager = getIt<DownloadManager>(),
+        _installManager = getIt<InstallManager>(),
+        _preferencesStore = getIt<UpdatePreferencesStore>(),
         _networkService = getIt<NetworkService>(),
         _notificationService = getIt<NotificationService>(),
         _uiDelegate = const UpdateUIDelegate();
 
   /// Named constructor for dependency injection.
   UpdateController.withDependencies({
-    required UpdateService updateService,
+    required UpdateChecker updateChecker,
+    required DownloadManager downloadManager,
+    required InstallManager installManager,
+    required UpdatePreferencesStore preferencesStore,
     required NetworkService networkService,
     required NotificationService notificationService,
     UpdateUIDelegate? uiDelegate,
-  })  : _updateService = updateService,
+  })  : _updateChecker = updateChecker,
+        _downloadManager = downloadManager,
+        _installManager = installManager,
+        _preferencesStore = preferencesStore,
         _networkService = networkService,
         _notificationService = notificationService,
         _uiDelegate = uiDelegate ?? const UpdateUIDelegate();
 
-  final UpdateService _updateService;
+  final UpdateChecker _updateChecker;
+  final DownloadManager _downloadManager;
+  final InstallManager _installManager;
+  final UpdatePreferencesStore _preferencesStore;
   final NetworkService _networkService;
   final NotificationService _notificationService;
   final UpdateUIDelegate _uiDelegate;
@@ -89,10 +105,10 @@ class UpdateController with ChangeNotifier {
   /// Backwards-compatible alias matching `AppUpdateManager.setContext`.
   void setContext(BuildContext context) => setDialogContext(context);
 
-  // ---- Service references (kept so legacy view models can read prefs /
-  //      version info without restructuring in the same step) ----
-  UpdateService get updateService => _updateService;
+  // ---- Service references for callers that still need raw access.
+  //      Resolved through getIt so we don't hold a stale reference. ----
   NetworkService get networkService => _networkService;
+  UpdatePreferencesStore get preferencesStore => _preferencesStore;
   UpdateUIDelegate get uiDelegate => _uiDelegate;
 
   /// Initialize the controller and its underlying services.
@@ -104,19 +120,17 @@ class UpdateController with ChangeNotifier {
     try {
       Logger.info('Initializing UpdateController...');
 
-      await _updateService.initialize();
+      await _updateChecker.initialize();
+      await _preferencesStore.load();
       await _networkService.initialize();
 
       _networkStatus = _networkService.currentStatus;
 
       _subscriptions.add(
-        _updateService.updateStream.listen(_onUpdateAvailable),
-      );
-      _subscriptions.add(
         _networkService.networkStream.listen(_onNetworkStatusChanged),
       );
       _subscriptions.add(
-        _updateService.downloadStream.listen(_onDownloadProgress),
+        _downloadManager.downloadStream.listen(_onDownloadProgress),
       );
 
       _isInitialized = true;
@@ -140,22 +154,10 @@ class UpdateController with ChangeNotifier {
 
   // ---- Stream handlers ----
 
-  void _onUpdateAvailable(UpdateInfo info) {
-    _latestUpdateInfo = info;
-    Logger.info('Update event received: ${info.latestVersion}');
-    notifyListeners();
-    if (info.isForced && _dialogContext != null && _dialogContext!.mounted) {
-      _showUpdateDialog(info);
-    }
-  }
-
   void _onNetworkStatusChanged(NetworkStatus status) {
     _networkStatus = status;
     Logger.debug('Network status changed: $status');
     notifyListeners();
-    // Trigger a silent recheck on WiFi reconnect — was AppUpdateManager
-    // behaviour. UpdateLogicManager only updated _networkStatus here, so
-    // no behaviour is lost.
     if (status == NetworkStatus.wifi) {
       Logger.debug('WiFi connected, scheduling silent update check');
       _wifiRecheckTimer?.cancel();
@@ -170,6 +172,17 @@ class UpdateController with ChangeNotifier {
     _downloadProgress = progress.progress;
     _downloadStatus = progress.sizeText;
     notifyListeners();
+  }
+
+  /// Show the update dialog automatically when a forced update is found.
+  /// Used by both checkForUpdatesWithUI and checkForUpdatesSilently so
+  /// background polling cannot bypass a forced upgrade.
+  void _maybeAutoShowForcedDialog(UpdateInfo info) {
+    if (info.isForced &&
+        _dialogContext != null &&
+        _dialogContext!.mounted) {
+      _showUpdateDialog(info);
+    }
   }
 
   // ---- Update check API ----
@@ -194,8 +207,7 @@ class UpdateController with ChangeNotifier {
     try {
       Logger.info('Checking for updates with UI...');
 
-      final updateInfo =
-          await _updateService.checkForUpdates(showNotification: false);
+      final updateInfo = await _runUpdateCheck();
 
       if (updateInfo != null) {
         _latestUpdateInfo = updateInfo;
@@ -236,19 +248,19 @@ class UpdateController with ChangeNotifier {
     }
   }
 
-  /// Check for updates silently — no UI feedback, used by periodic and
-  /// network-driven re-checks.
+  /// Check for updates silently — no UI feedback unless a forced update
+  /// arrives. Used by periodic and network-driven re-checks.
   Future<UpdateInfo?> checkForUpdatesSilently() async {
     try {
       Logger.debug('Checking for updates silently...');
-      final updateInfo =
-          await _updateService.checkForUpdates(showNotification: false);
+      final updateInfo = await _runUpdateCheck();
 
       if (updateInfo != null) {
         _latestUpdateInfo = updateInfo;
         Logger.info(
             'Silent update check: Update available ${updateInfo.latestVersion}');
         notifyListeners();
+        _maybeAutoShowForcedDialog(updateInfo);
       }
       return updateInfo;
     } catch (e) {
@@ -257,8 +269,21 @@ class UpdateController with ChangeNotifier {
     }
   }
 
-  /// Open the update dialog if a known update info is cached. Used by the
-  /// notification banner when the user taps it.
+  /// Single shared path that gates a check against the autoCheck preference
+  /// and forwards to UpdateChecker with the user's skipped-version list.
+  Future<UpdateInfo?> _runUpdateCheck() async {
+    final prefs = _preferencesStore.current;
+    if (prefs != null && !prefs.autoCheckEnabled) {
+      Logger.debug('Auto check disabled by user preferences');
+      return null;
+    }
+    return _updateChecker.checkForUpdates(
+      skippedVersions: prefs?.skippedVersions ?? const [],
+    );
+  }
+
+  /// Open the update dialog if a known update info is cached. Used by
+  /// the notification banner when the user taps it.
   void showUpdateDialogIfAvailable() {
     if (_latestUpdateInfo != null &&
         _dialogContext != null &&
@@ -315,7 +340,7 @@ class UpdateController with ChangeNotifier {
     notifyListeners();
 
     try {
-      final apkPath = await _updateService.downloadUpdate(info);
+      final apkPath = await _runDownload(info);
 
       if (apkPath != null) {
         Logger.info('Download completed, starting installation: $apkPath');
@@ -337,13 +362,50 @@ class UpdateController with ChangeNotifier {
     }
   }
 
+  /// Trigger a download for the cached latest update info. Used by
+  /// callers that want to start a download outside the dialog flow.
+  Future<String?> downloadUpdate() async {
+    final info = _latestUpdateInfo;
+    if (info == null) {
+      Logger.warning('No update info available for download');
+      return null;
+    }
+    try {
+      Logger.info('Starting update download...');
+      return await _runDownload(info);
+    } catch (e) {
+      Logger.error('Failed to download update', error: e);
+      return null;
+    }
+  }
+
+  /// Single shared path that pulls wifi-only preference from the store
+  /// and forwards to DownloadManager. Bails out with a notification if
+  /// preferences haven't loaded yet.
+  Future<String?> _runDownload(UpdateInfo info) async {
+    final prefs = _preferencesStore.current;
+    if (prefs == null) {
+      Logger.error(
+          'Update preferences not loaded, cannot check network suitability');
+      _notificationService.showError(
+        title: 'Configuration Error',
+        message: 'Update settings not loaded. Please restart the app.',
+      );
+      return null;
+    }
+    return _downloadManager.downloadUpdate(
+      info,
+      wifiOnly: prefs.wifiOnlyDownload,
+    );
+  }
+
   Future<void> _installUpdate(String apkPath, BuildContext context) async {
     if (!context.mounted) return;
 
     Logger.info('Installing APK directly: $apkPath');
 
     try {
-      final success = await _updateService.installUpdate(apkPath);
+      final success = await _installManager.installUpdate(apkPath);
       if (!context.mounted) return;
       if (success) {
         Logger.info(
@@ -380,7 +442,7 @@ class UpdateController with ChangeNotifier {
     // Close the confirmation dialog AND the parent update dialog.
     _uiDelegate.closeDialogs(context, count: 2);
 
-    await _updateService.skipVersion(info.latestVersion);
+    await _preferencesStore.skipVersion(info.latestVersion);
     onComplete?.call();
 
     if (context.mounted) {
@@ -388,53 +450,32 @@ class UpdateController with ChangeNotifier {
         context,
         info.latestVersion,
         () {
-          _updateService.preferences?.unskipVersion(info.latestVersion);
-          _updateService.preferences?.save();
+          _preferencesStore.unskipVersion(info.latestVersion);
         },
       );
-    }
-  }
-
-  /// Trigger a download for the cached latest update info. Used by
-  /// callers that want to start a download outside the dialog flow.
-  Future<String?> downloadUpdate() async {
-    if (_latestUpdateInfo == null) {
-      Logger.warning('No update info available for download');
-      return null;
-    }
-    try {
-      Logger.info('Starting update download...');
-      return await _updateService.downloadUpdate(_latestUpdateInfo!);
-    } catch (e) {
-      Logger.error('Failed to download update', error: e);
-      return null;
     }
   }
 
   // ---- Settings facade (was AppUpdateManager) ----
 
   Map<String, String> getCurrentVersionInfo() =>
-      _updateService.getCurrentVersionInfo();
+      _updateChecker.getCurrentVersionInfo();
 
   bool get autoUpdatesEnabled =>
-      _updateService.preferences?.autoCheckEnabled ?? true;
+      _preferencesStore.current?.autoCheckEnabled ?? true;
 
   bool get autoDownloadEnabled =>
-      _updateService.preferences?.autoDownloadEnabled ?? false;
+      _preferencesStore.current?.autoDownloadEnabled ?? false;
 
   Future<void> setAutoUpdatesEnabled(bool enabled) async {
-    final prefs = _updateService.preferences;
-    if (prefs != null) {
-      prefs.autoCheckEnabled = enabled;
-      await _updateService.updatePreferences(prefs);
-
-      if (enabled) {
-        startPeriodicUpdateChecks();
-      } else {
-        _stopPeriodicUpdateChecks();
-      }
-      Logger.info('Auto updates ${enabled ? 'enabled' : 'disabled'}');
+    if (_preferencesStore.current == null) return;
+    await _preferencesStore.setAutoCheckEnabled(enabled);
+    if (enabled) {
+      startPeriodicUpdateChecks();
+    } else {
+      _stopPeriodicUpdateChecks();
     }
+    Logger.info('Auto updates ${enabled ? 'enabled' : 'disabled'}');
   }
 
   // ---- Dispose ----
@@ -451,10 +492,8 @@ class UpdateController with ChangeNotifier {
     _initialCheckTimer = null;
     _wifiRecheckTimer?.cancel();
     _wifiRecheckTimer = null;
-    // NOTE: do NOT dispose _updateService or _networkService — they are
-    // service-locator singletons whose lifetime is owned by getIt, not
-    // by us. The previous AppUpdateManager + UpdateService split called
-    // _networkService.dispose() twice on shutdown.
+    // NOTE: do NOT dispose injected services — they are service-locator
+    // singletons whose lifetime is owned by getIt, not by us.
     _dialogContext = null;
     _latestUpdateInfo = null;
     _isInitialized = false;

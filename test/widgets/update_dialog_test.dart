@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_dialog.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import '../mocks/mock_services.dart';
@@ -27,7 +28,10 @@ void main() {
     if (!getIt.isRegistered<UpdateController>()) {
       getIt.registerSingleton<UpdateController>(
         UpdateController.withDependencies(
-          updateService: getIt<UpdateService>(),
+          updateChecker: MockUpdateChecker(),
+          downloadManager: MockDownloadManager(),
+          installManager: MockInstallManager(),
+          preferencesStore: UpdatePreferencesStore(),
           networkService: getIt<NetworkService>(),
           notificationService: getIt<NotificationService>(),
         ),

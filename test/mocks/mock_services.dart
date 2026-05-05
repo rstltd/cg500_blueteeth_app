@@ -4,6 +4,9 @@ import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/update_checker.dart';
+import 'package:cg500_blueteeth_app/services/download_manager.dart';
+import 'package:cg500_blueteeth_app/services/install_manager.dart';
 import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
@@ -676,6 +679,168 @@ class MockUpdateService implements UpdateService {
     _updateController.close();
     _downloadController.close();
   }
+}
+
+/// Mock implementation of UpdateChecker.
+///
+/// Tests inject the next [UpdateInfo] result via [setPendingUpdate]; the
+/// mock returns it from [checkForUpdates] regardless of skippedVersions.
+class MockUpdateChecker implements UpdateChecker {
+  UpdateInfo? _pendingUpdate;
+  bool _isInitialized = false;
+
+  void setPendingUpdate(UpdateInfo? info) {
+    _pendingUpdate = info;
+  }
+
+  @override
+  bool get isInitialized => _isInitialized;
+
+  @override
+  String? get currentVersion => '1.0.0';
+
+  @override
+  String? get currentBuildNumber => '1';
+
+  @override
+  Future<bool> initialize() async {
+    _isInitialized = true;
+    return true;
+  }
+
+  @override
+  Future<UpdateInfo?> checkForUpdates({
+    List<String> skippedVersions = const [],
+  }) async {
+    final pending = _pendingUpdate;
+    if (pending == null) return null;
+    if (skippedVersions.contains(pending.latestVersion)) return null;
+    return pending;
+  }
+
+  @override
+  Map<String, String> getCurrentVersionInfo() => {
+        'version': '1.0.0',
+        'buildNumber': '1',
+      };
+
+  @override
+  int compareVersions(String version1, String version2) => 0;
+}
+
+/// Mock implementation of DownloadManager.
+///
+/// Drives [downloadStream] from a configurable [DownloadProgress]
+/// sequence and returns a configurable success/failure path from
+/// [downloadUpdate]. Defaults to a single completion progress event and
+/// a successful "/mock/path/app.apk" path.
+class MockDownloadManager implements DownloadManager {
+  final StreamController<DownloadProgress> _downloadController =
+      StreamController<DownloadProgress>.broadcast();
+
+  bool _shouldSucceed = true;
+  bool _isDownloading = false;
+  String _mockApkPath = '/mock/path/app.apk';
+  List<DownloadProgress>? _progressSequence;
+  Duration _delay = Duration.zero;
+  int downloadCallCount = 0;
+  final List<bool> wifiOnlyArgs = [];
+
+  void configureDownload({
+    bool succeed = true,
+    String apkPath = '/mock/path/app.apk',
+    List<DownloadProgress>? progressSequence,
+    Duration delay = Duration.zero,
+  }) {
+    _shouldSucceed = succeed;
+    _mockApkPath = apkPath;
+    _progressSequence = progressSequence;
+    _delay = delay;
+  }
+
+  @override
+  Stream<DownloadProgress> get downloadStream => _downloadController.stream;
+
+  @override
+  bool get isDownloading => _isDownloading;
+
+  @override
+  Future<String?> downloadUpdate(
+    UpdateInfo updateInfo, {
+    bool wifiOnly = true,
+  }) async {
+    downloadCallCount++;
+    wifiOnlyArgs.add(wifiOnly);
+    _isDownloading = true;
+
+    if (_delay > Duration.zero) {
+      await Future<void>.delayed(_delay);
+    }
+
+    final sequence = _progressSequence;
+    if (sequence != null) {
+      for (final progress in sequence) {
+        _downloadController.add(progress);
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    } else {
+      _downloadController.add(DownloadProgress(
+        progress: 1.0,
+        downloadedBytes: updateInfo.downloadSize,
+        totalBytes: updateInfo.downloadSize,
+        status: 'Complete',
+        filePath: _mockApkPath,
+      ));
+    }
+
+    _isDownloading = false;
+    return _shouldSucceed ? _mockApkPath : null;
+  }
+
+  @override
+  Future<void> cleanupDownloads({String? keepVersion}) async {}
+
+  @override
+  void dispose() {
+    _downloadController.close();
+  }
+}
+
+/// Mock implementation of InstallManager.
+///
+/// Returns a configurable success/failure from [installUpdate]; the
+/// other permission-related methods are stubbed with sensible defaults.
+class MockInstallManager implements InstallManager {
+  bool _shouldSucceed = true;
+  bool _canInstall = true;
+  int installCallCount = 0;
+  final List<String> installPaths = [];
+
+  void configureInstall({bool succeed = true, bool canInstall = true}) {
+    _shouldSucceed = succeed;
+    _canInstall = canInstall;
+  }
+
+  @override
+  Future<bool> installUpdate(String apkPath) async {
+    installCallCount++;
+    installPaths.add(apkPath);
+    return _shouldSucceed;
+  }
+
+  @override
+  Future<bool> canInstallApks() async => _canInstall;
+
+  @override
+  Future<void> requestInstallPermission() async {}
+
+  @override
+  Future<Map<String, dynamic>> diagnosePermissions() async => {
+        'supported': true,
+      };
+
+  @override
+  Future<void> openInstallSettings() async {}
 }
 
 /// Mock implementation of ErrorHandlingService for testing

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
+import 'package:cg500_blueteeth_app/models/download_progress.dart';
+import 'package:cg500_blueteeth_app/models/update_info.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../mocks/mock_services.dart';
 
@@ -23,13 +26,19 @@ UpdateInfo _info({
 }
 
 UpdateController _newController({
-  MockUpdateService? updateService,
+  MockUpdateChecker? updateChecker,
+  MockDownloadManager? downloadManager,
+  MockInstallManager? installManager,
+  UpdatePreferencesStore? preferencesStore,
   MockNetworkService? networkService,
   MockNotificationService? notificationService,
   MockUpdateUIDelegate? uiDelegate,
 }) {
   return UpdateController.withDependencies(
-    updateService: updateService ?? MockUpdateService(),
+    updateChecker: updateChecker ?? MockUpdateChecker(),
+    downloadManager: downloadManager ?? MockDownloadManager(),
+    installManager: installManager ?? MockInstallManager(),
+    preferencesStore: preferencesStore ?? UpdatePreferencesStore(),
     networkService: networkService ?? MockNetworkService(),
     notificationService: notificationService ?? MockNotificationService(),
     uiDelegate: uiDelegate ?? MockUpdateUIDelegate(),
@@ -38,6 +47,12 @@ UpdateController _newController({
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    // The controller's initialize() loads UpdatePreferences from disk.
+    // Provide an empty mock store so the load completes synchronously.
+    SharedPreferences.setMockInitialValues({});
+  });
 
   group('UpdateController', () {
     group('initialization', () {
@@ -98,17 +113,15 @@ void main() {
       });
 
       test('caches latestUpdateInfo and notifies listeners', () async {
-        final updateService = MockUpdateService();
-        final controller = _newController(updateService: updateService);
+        final updateChecker = MockUpdateChecker();
+        final controller = _newController(updateChecker: updateChecker);
         await controller.initialize();
 
         var notified = 0;
         controller.addListener(() => notified++);
 
-        updateService.setPendingUpdate(_info());
+        updateChecker.setPendingUpdate(_info());
 
-        // Settle the synchronous setPendingUpdate broadcast and the
-        // separate poll path:
         final result = await controller.checkForUpdatesSilently();
 
         expect(result, isNotNull);
@@ -121,12 +134,12 @@ void main() {
 
     group('checkForUpdatesWithUI without dialog context', () {
       test('falls back to info notification when update available', () async {
-        final updateService = MockUpdateService();
+        final updateChecker = MockUpdateChecker();
         final notification = MockNotificationService();
-        updateService.setPendingUpdate(_info());
+        updateChecker.setPendingUpdate(_info());
 
         final controller = _newController(
-          updateService: updateService,
+          updateChecker: updateChecker,
           notificationService: notification,
         );
         await controller.initialize();
@@ -159,17 +172,13 @@ void main() {
       test(
           'in-flight check is bypassed when force=true; concurrent calls are coalesced otherwise',
           () async {
-        final updateService = MockUpdateService();
-        final controller = _newController(updateService: updateService);
+        final controller = _newController();
         await controller.initialize();
 
-        // First call sets _isCheckingForUpdates=true while the await runs.
         final f1 = controller.checkForUpdatesWithUI();
-        // Second call (no force) should return early without re-checking.
         final f2 = controller.checkForUpdatesWithUI();
 
         await Future.wait([f1, f2]);
-        // Both completed; no exception.
         controller.dispose();
       });
 
@@ -187,12 +196,11 @@ void main() {
     group('download progress', () {
       testWidgets('progress events update downloadProgress and downloadStatus',
           (tester) async {
-        final updateService = MockUpdateService();
-        final controller = _newController(updateService: updateService);
+        final downloadManager = MockDownloadManager();
+        final controller = _newController(downloadManager: downloadManager);
         await controller.initialize();
 
-        // Configure a progress sequence.
-        updateService.configureDownload(
+        downloadManager.configureDownload(
           progressSequence: [
             DownloadProgress(
               progress: 0.5,
@@ -216,8 +224,6 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (ctx) {
-                  // Kick off the download; we don't actually need a real
-                  // context here for verifying state transitions.
                   controller.startUpdate(_info(), ctx);
                   return const SizedBox();
                 },
@@ -232,6 +238,38 @@ void main() {
 
         expect(controller.downloadProgress, 1.0);
         expect(controller.downloadStatus, contains('1000'));
+        controller.dispose();
+      });
+
+      testWidgets('startUpdate forwards wifiOnly preference to DownloadManager',
+          (tester) async {
+        final store = UpdatePreferencesStore();
+        await store.load();
+        await store.setWifiOnlyDownload(false);
+
+        final downloadManager = MockDownloadManager();
+        final controller = _newController(
+          downloadManager: downloadManager,
+          preferencesStore: store,
+        );
+        await controller.initialize();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (ctx) {
+                  controller.startUpdate(_info(), ctx);
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(downloadManager.wifiOnlyArgs, contains(false));
         controller.dispose();
       });
     });
@@ -255,14 +293,16 @@ void main() {
     });
 
     group('skipVersion', () {
-      testWidgets('cancelled confirmation does not call service.skipVersion',
+      testWidgets('cancelled confirmation does not persist a skip',
           (tester) async {
-        final updateService = MockUpdateService();
+        final store = UpdatePreferencesStore();
+        await store.load();
+
         final ui = MockUpdateUIDelegate();
         ui.skipVersionConfirmationResult = false;
 
         final controller = _newController(
-          updateService: updateService,
+          preferencesStore: store,
           uiDelegate: ui,
         );
         await controller.initialize();
@@ -281,7 +321,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(updateService.skippedVersions, isEmpty);
+        expect(store.current!.skippedVersions, isEmpty);
         expect(ui.versionSkippedCalls, isEmpty);
         controller.dispose();
       });
@@ -289,12 +329,14 @@ void main() {
       testWidgets(
           'confirmed: closes dialogs, persists skip, shows undo toast',
           (tester) async {
-        final updateService = MockUpdateService();
+        final store = UpdatePreferencesStore();
+        await store.load();
+
         final ui = MockUpdateUIDelegate();
         ui.skipVersionConfirmationResult = true;
 
         final controller = _newController(
-          updateService: updateService,
+          preferencesStore: store,
           uiDelegate: ui,
         );
         await controller.initialize();
@@ -313,7 +355,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(updateService.skippedVersions, contains('3.0.0'));
+        expect(store.current!.skippedVersions, contains('3.0.0'));
         expect(ui.closeDialogsCalls, contains(2));
         expect(ui.versionSkippedCalls, contains('3.0.0'));
         controller.dispose();
@@ -322,11 +364,11 @@ void main() {
 
     group('dispose', () {
       test('does NOT dispose injected services (no double-dispose)', () async {
-        final updateService = MockUpdateService();
+        final downloadManager = MockDownloadManager();
         final network = MockNetworkService();
 
         final controller = _newController(
-          updateService: updateService,
+          downloadManager: downloadManager,
           networkService: network,
         );
         await controller.initialize();
@@ -334,8 +376,8 @@ void main() {
         controller.dispose();
 
         // If the controller had disposed these, the next call would throw
-        // because the underlying StreamControllers are already closed.
-        expect(() => updateService.dispose(), returnsNormally);
+        // because the underlying StreamControllers would already be closed.
+        expect(() => downloadManager.dispose(), returnsNormally);
         expect(() => network.dispose(), returnsNormally);
       });
 
