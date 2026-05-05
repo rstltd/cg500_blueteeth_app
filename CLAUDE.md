@@ -534,4 +534,6 @@ This system provides professional-grade deployment capabilities without server m
 #### Documentation References:
 - Versioning policy: [`docs/VERSIONING.md`](docs/VERSIONING.md)
 - Device command reference: [`docs/command.md`](docs/command.md) (for the canonical app-side command list, see `lib/repositories/command_repository.dart`)
+- **Architecture Decision Records**: [`docs/adr/`](docs/adr/) — load-bearing decisions that aren't obvious from the code. Read the relevant ADR before proposing structural changes; some apparent over-engineering is deliberate and the ADR explains why. Index:
+  - [ADR-0001](docs/adr/0001-update-system-decomposition.md) — Why the update system is 4 narrow services + `UpdateController`, not a single facade.
 - Historical architecture analyses (now stale, kept for context): [`docs/OVER_ENGINEERING_ANALYSIS.md`](docs/OVER_ENGINEERING_ANALYSIS.md), [`docs/SIMPLIFICATION_PLAN.md`](docs/SIMPLIFICATION_PLAN.md), [`docs/SMART_COMMAND_CENTER_PLAN.md`](docs/SMART_COMMAND_CENTER_PLAN.md), [`docs/TEST_COVERAGE_PLAN.md`](docs/TEST_COVERAGE_PLAN.md)
