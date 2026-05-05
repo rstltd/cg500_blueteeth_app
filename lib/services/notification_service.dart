@@ -200,6 +200,20 @@ class NotificationFilter {
 /// noise (internal BLE chatter, duplicates, debounced connect/scan
 /// toggles). Callers always inject the same [NotificationService] type —
 /// the filter is an internal concern.
+///
+/// **Consumers** (all inject the locator-registered `.smart()` instance):
+/// `BleService`, `SimpleBleController` (via `BleNotificationDelegate`),
+/// `ErrorHandlingService`, `DownloadManager`, `InstallManager`,
+/// `UpdateController`. Views consume the broadcast via `notifications`
+/// stream + `NotificationListenerMixin` for SnackBar rendering.
+///
+/// **Load-bearing decision**: filtering lives behind a single seam (the
+/// optional [NotificationFilter] config) instead of a wrapper class. The
+/// previous design had `SmartNotificationService extends NotificationService`
+/// using composition — a single-adapter seam that didn't earn its keep. If
+/// you find yourself wanting to add a third constructor or split filtering
+/// back into its own class, run the deletion test first: production only
+/// uses `.smart()`, tests use the unfiltered constructor, and that's it.
 class NotificationService {
   /// Unfiltered service. Every `show*` call is emitted as-is.
   NotificationService()

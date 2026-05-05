@@ -14,6 +14,27 @@ import '../services/role_service.dart';
 ///
 /// The wrapper is stateless: it queries [RoleService.currentRole] on every
 /// call, so a role switch becomes visible as soon as listeners rebuild.
+///
+/// **Position in the decorator chain** (see `service_locator.dart`):
+/// ```
+/// CommandRepository (built-in)
+///   ↑ wrapped by
+/// CustomCommandRepository (merges user-defined commands)
+///   ↑ wrapped by
+/// RoleAwareCommandRepository  ← THIS, outermost
+/// ```
+/// All UI consumers receive the outermost wrapper via `getIt<CommandRepositoryInterface>()`.
+/// `quick_setup_wizard_view.dart` is the one place that bypasses this chain
+/// (it pulls the bare `CommandRepository` directly) so wizard steps see
+/// commands regardless of role — a deliberate scope exception, not an
+/// oversight.
+///
+/// **Load-bearing decision**: role state ([RoleService]) and command
+/// whitelist ([normalModeWhitelist]) are split across two modules. A
+/// reviewer might suggest merging them into a single `CommandAccessControl`
+/// class. Don't, until you have at least three roles or a dynamic whitelist
+/// — currently the decorator pattern keeps the policy table close to the
+/// repository it filters and the role lifecycle close to its UI controls.
 class RoleAwareCommandRepository implements CommandRepositoryInterface {
   RoleAwareCommandRepository({
     required CommandRepositoryInterface inner,

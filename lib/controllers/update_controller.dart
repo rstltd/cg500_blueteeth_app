@@ -30,6 +30,20 @@ import '../widgets/update/update_dialog.dart';
 /// `UpdatePreferencesStore`) plus the network / notification services.
 /// The previous `UpdateService` facade is no longer in the dependency
 /// chain — those responsibilities live here, where they always belonged.
+///
+/// **Consumers**: `SimpleScannerViewModel` (auto-check on startup),
+/// `UpdateSettingsViewModel` (manual check + skip toggle),
+/// `update_notification_banner.dart` (passive renderer), `update_dialog.dart`
+/// (modal flow). All four `ListenableBuilder` against this controller; nobody
+/// holds a private copy of update state.
+///
+/// **Load-bearing decision** (see `docs/adr/0001-update-system-decomposition.md`):
+/// the four narrow services are deliberately not collapsed into a single
+/// facade. Each one is independently testable with a simple mock, the
+/// controller is the single state owner, and `UpdatePreferencesStore` is the
+/// single broadcast source for preference changes. Future architecture
+/// reviews tend to suggest "merge these into one UpdateService" — read the
+/// ADR before acting on that suggestion.
 class UpdateController with ChangeNotifier {
   /// Default constructor pulls dependencies from the service locator.
   /// Used in production; tests should prefer [withDependencies].

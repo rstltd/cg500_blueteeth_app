@@ -2,7 +2,26 @@ import 'package:flutter/material.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../utils/logger.dart';
 
-/// Command manager for handling command history, input, and sending logic
+/// Shared command-input state for the command UI subsystem.
+///
+/// **Consumers (must all keep working after any change):**
+/// - `CommandInterfaceViewModel` — interactive chat input, history navigation,
+///   manual `sendCommand` from the text field, auto-fired `$INFO` after connect.
+/// - `QuickSetupViewModel` — wizard sends predefined commands through the same
+///   instance so they appear in the chat log via `onMessageAdded`.
+/// - `CommandInputPanelWidget` / `CommandHistoryPanelWidget` — bind to
+///   [textController] and read [commandHistory] for display + tap-to-fill.
+/// - `ConnectionStatsPanelWidget` — reads `commandHistory.length` for the
+///   "messages sent" stat row.
+///
+/// **Why this is a single shared instance, not per-VM state:**
+/// `QuickSetupWizardView` is opened from `CommandInterfaceView` and is
+/// explicitly constructed with the *same* `CommandManager` reference so
+/// commands the wizard issues land in the chat log and inherit history
+/// behaviour. If you find yourself thinking "this looks like a shallow
+/// pass-through that the VM could absorb," run the deletion test against
+/// **every consumer above** before acting — the wizard depends on the same
+/// instance, not a copy.
 class CommandManager {
   final BleControllerInterface _controller;
   final TextEditingController _textController = TextEditingController();

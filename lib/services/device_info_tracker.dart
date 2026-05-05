@@ -15,6 +15,21 @@ import 'info_parser_service.dart';
 /// connection populates [current], subsequent $INFO responses overwrite
 /// fields they touch (last-wins), and disconnects reset [current] to empty.
 ///
+/// **Consumers** (subscribe to [infoStream] or read [current] directly):
+/// - `CommandInterfaceViewModel` — exposes `firmwareName` for the FW chip and
+///   the full `latestDeviceInfo` for the wizard launcher.
+/// - `QuickSetupWizardView` — seeds the 4-step form with the current snapshot
+///   via `_viewModel.initializeWithInfo(widget.initialInfo)`.
+/// - `wizard_execution_page.dart` — reads `info.imei` etc. for the
+///   "did the values change?" summary.
+///
+/// **Field readers worth knowing about** (so future grep audits don't
+/// false-positive these as unread):
+/// - `firmwareName`: `command_interface_view_model.dart`
+/// - `apn` / `addr` / `ftpAddr` / `rebootHour`: `quick_setup_view_model.dart`
+///   (form pre-fill + `getOriginalValue`)
+/// - `imei`: `wizard_execution_page.dart`
+///
 /// Lifecycle: register as a singleton in the service locator. The tracker
 /// subscribes lazily on first construction; nothing else needs to drive it.
 class DeviceInfoTracker {
