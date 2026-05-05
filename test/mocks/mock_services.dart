@@ -8,6 +8,7 @@ import 'package:cg500_blueteeth_app/services/download_manager.dart';
 import 'package:cg500_blueteeth_app/services/install_manager.dart';
 import 'package:cg500_blueteeth_app/models/download_progress.dart';
 import 'package:cg500_blueteeth_app/models/update_info.dart';
+import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
@@ -534,6 +535,7 @@ class MockUpdateChecker implements UpdateChecker {
   @override
   Future<UpdateInfo?> checkForUpdates({
     List<String> skippedVersions = const [],
+    UpdateChannel channel = UpdateChannel.stable,
   }) async {
     final pending = _pendingUpdate;
     if (pending == null) return null;

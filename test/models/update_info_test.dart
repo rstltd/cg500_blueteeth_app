@@ -310,7 +310,10 @@ void main() {
         expect(() => info.hasUpdate, returnsNormally);
       });
 
-      test('should handle version with many segments', () {
+      test('should compare all segments, not just the first three', () {
+        // CalVer can have a fourth-or-greater segment via hotfixes (`26.05.1`),
+        // and SemVer pre-release counters effectively act like extra segments.
+        // The comparator must look past the major.minor.patch trio.
         final info = UpdateInfo(
           latestVersion: '1.2.3.4.5',
           currentVersion: '1.2.3.4.4',
@@ -320,8 +323,7 @@ void main() {
           releaseDate: DateTime.now(),
         );
 
-        // Only first 3 segments are compared
-        expect(info.hasUpdate, isFalse);
+        expect(info.hasUpdate, isTrue);
       });
 
       test('should handle large version numbers', () {
