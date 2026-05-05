@@ -251,10 +251,7 @@ The application uses a custom lightweight ViewModelProvider pattern for View-spe
 |-----------|---------|
 | `BaseViewModel` | Base class with lifecycle management, stream subscriptions, loading/error states |
 | `ViewModelProvider<T>` | Widget that creates, provides, and disposes ViewModels |
-| `ViewModelBuilder<T>` | Consumes ViewModel from ancestor provider |
-| `ViewModelSelector<T, S>` | Fine-grained rebuilds based on selected value |
-| `ViewModelConsumer<T>` | Built-in loading/error state handling |
-| `ViewModelListener<T>` | Side effects without rebuilds |
+| `ViewModelBuilder<T>` | Consumes ViewModel from ancestor provider (for nested widgets) |
 | `MountedAwareMixin` | Safe widget mount state tracking |
 
 #### Creating a ViewModel:
@@ -352,31 +349,6 @@ final vm = context.viewModel<MyViewModel>();
 
 // Method 3: Safe access (returns null if not found)
 final vm = ViewModelProvider.maybeOf<MyViewModel>(context);
-```
-
-#### Using ViewModelSelector for Optimized Rebuilds:
-
-```dart
-ViewModelSelector<MyViewModel, int>(
-  selector: (vm) => vm.items.length,  // Only rebuild when length changes
-  builder: (context, itemCount, child) {
-    return Text('Items: $itemCount');
-  },
-)
-```
-
-#### Using ViewModelListener for Side Effects:
-
-```dart
-ViewModelListener<MyViewModel>(
-  listenWhen: (vm) => vm.hasError,  // Only listen when has error
-  listener: (context, vm) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(vm.errorMessage!)),
-    );
-  },
-  child: MyContent(),
-)
 ```
 
 #### Key Features:

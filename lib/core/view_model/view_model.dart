@@ -7,9 +7,6 @@
 /// - [BaseViewModel]: Base class for all ViewModels with lifecycle management
 /// - [ViewModelProvider]: Widget that creates and provides ViewModels
 /// - [ViewModelBuilder]: Widget for consuming ViewModels from ancestors
-/// - [ViewModelSelector]: Widget for fine-grained rebuilds
-/// - [ViewModelConsumer]: Widget with built-in loading/error states
-/// - [ViewModelListener]: Widget for side effects without rebuilds
 ///
 /// Example usage:
 /// ```dart
