@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 
 """
-CG500 BLE App Simple Release Script (Windows Compatible)
+CG500 BLE App Release Script (CalVer-aware)
 
-A simplified version without emoji characters for Windows compatibility.
-Automatically builds and publishes releases to GitHub.
+Builds and publishes releases to GitHub. Versioning policy is documented in
+docs/VERSIONING.md — read it before changing anything in this file.
+
+Format: vYY.0M[.MICRO][-beta.N | -rc.N] (+BUILD in pubspec.yaml only).
+
+Modes:
+  release  Stable monthly release            (e.g. 26.05+31 -> 26.06+32)
+  hotfix   Same-month hotfix on stable       (e.g. 26.05+31 -> 26.05.1+32)
+  beta     Pre-release (GitHub prerelease=true)
+  rc       Release candidate (GitHub prerelease=true)
+  build    Bump build number only (no version change)
 
 Prerequisites:
-1. Install GitHub CLI: https://cli.github.com/
-2. Authenticate with GitHub: gh auth login
-3. Install Flutter SDK
-
-Usage:
-  python simple_release.py patch       # Build and release patch version
-  python simple_release.py minor       # Build and release minor version
-  python simple_release.py major       # Build and release major version
-  python simple_release.py build       # Build and release with build number increment
+  1. GitHub CLI (https://cli.github.com/) authenticated via `gh auth login`
+  2. Flutter SDK on PATH
 
 Options:
-  --force    Skip uncommitted changes check
-  --clean    Run flutter clean before build
-  --yes      Skip confirmation prompt (for CI)
+  --force        Skip uncommitted changes check
+  --clean        Run `flutter clean` before build
+  --yes          Skip confirmation prompt (required for non-interactive shells)
+  --notes-file   Path to a markdown file with user-facing release notes
 """
 
 import os
@@ -28,9 +31,213 @@ import sys
 import subprocess
 import hashlib
 import argparse
-from pathlib import Path
-from datetime import datetime
 import re
+from dataclasses import dataclass, replace
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+# --- Version parsing ---------------------------------------------------------
+
+CALVER_RE = re.compile(
+    r'^(\d{2,})\.(\d{2})(?:\.(\d+))?(?:-(beta|rc)\.(\d+))?(?:\+(\d+))?$'
+)
+LEGACY_RE = re.compile(r'^(\d+)\.(\d+)\.(\d+)(?:\+(\d+))?$')
+
+# Two-digit year range that is unambiguously CalVer. The first CalVer release
+# is May 2026, so we accept 24..99 to leave room for older imports without
+# colliding with legacy `3.x.y` tags. Years <20 are always parsed as legacy.
+_CALVER_YEAR_MIN = 24
+_CALVER_YEAR_MAX = 99
+
+VALID_CHANNELS = ('stable', 'beta', 'rc')
+
+
+@dataclass
+class Version:
+    """Versioning model that handles both CalVer and legacy semver.
+
+    CalVer fields (`year`, `month`, `micro`, `channel`, `channel_n`) are valid
+    when `fmt == 'calver'`. Legacy fields (`major`, `minor`, `patch`) are valid
+    when `fmt == 'legacy'`. `build` and `fmt` are always set.
+    """
+
+    fmt: str = 'calver'  # 'calver' | 'legacy'
+    # CalVer
+    year: Optional[int] = None
+    month: Optional[int] = None
+    micro: int = 0  # 0 means "no .MICRO in tag"
+    channel: str = 'stable'  # 'stable' | 'beta' | 'rc'
+    channel_n: int = 0  # 0 means stable; otherwise -beta.N / -rc.N
+    # Legacy semver
+    major: Optional[int] = None
+    minor: Optional[int] = None
+    patch: Optional[int] = None
+    # Both
+    build: int = 0
+
+    @classmethod
+    def parse(cls, raw: str) -> 'Version':
+        s = raw.strip()
+        m = CALVER_RE.match(s)
+        if m:
+            year = int(m.group(1))
+            if _CALVER_YEAR_MIN <= year <= _CALVER_YEAR_MAX:
+                channel = m.group(4) or 'stable'
+                channel_n = int(m.group(5)) if m.group(5) else 0
+                return cls(
+                    fmt='calver',
+                    year=year,
+                    month=int(m.group(2)),
+                    micro=int(m.group(3)) if m.group(3) else 0,
+                    channel=channel,
+                    channel_n=channel_n,
+                    build=int(m.group(6)) if m.group(6) else 0,
+                )
+        m = LEGACY_RE.match(s)
+        if m:
+            return cls(
+                fmt='legacy',
+                major=int(m.group(1)),
+                minor=int(m.group(2)),
+                patch=int(m.group(3)),
+                build=int(m.group(4)) if m.group(4) else 0,
+            )
+        raise ValueError(
+            f"Invalid version format: {raw!r}. Expected vYY.0M[.MICRO][-beta.N|-rc.N][+BUILD] "
+            f"or legacy MAJOR.MINOR.PATCH[+BUILD]"
+        )
+
+    def to_tag(self) -> str:
+        """Git-tag form (with `v` prefix, no build number)."""
+        if self.fmt == 'legacy':
+            return f"v{self.major}.{self.minor}.{self.patch}"
+        s = f"v{self.year}.{self.month:02d}"
+        if self.micro > 0:
+            s += f".{self.micro}"
+        if self.channel != 'stable':
+            s += f"-{self.channel}.{self.channel_n}"
+        return s
+
+    def to_pubspec(self) -> str:
+        """`pubspec.yaml` form (no `v` prefix, build appended after `+`)."""
+        if self.fmt == 'legacy':
+            base = f"{self.major}.{self.minor}.{self.patch}"
+        else:
+            base = f"{self.year}.{self.month:02d}"
+            if self.micro > 0:
+                base += f".{self.micro}"
+            if self.channel != 'stable':
+                base += f"-{self.channel}.{self.channel_n}"
+        return f"{base}+{self.build}" if self.build > 0 else base
+
+    @property
+    def is_prerelease(self) -> bool:
+        return self.fmt == 'calver' and self.channel != 'stable'
+
+
+def _today_yy_mm():
+    now = datetime.now()
+    return (now.year % 100), now.month
+
+
+def next_version(current: Version, mode: str) -> Version:
+    """Compute the next version for `mode` based on the current pubspec version.
+
+    Raises ValueError with an actionable hint when the mode is not applicable to
+    the current state (e.g. hotfix on a beta).
+    """
+    next_build = current.build + 1
+    today_y, today_m = _today_yy_mm()
+
+    if mode == 'release':
+        if (
+            current.fmt == 'calver'
+            and current.year == today_y
+            and current.month == today_m
+            and current.channel == 'stable'
+        ):
+            raise ValueError(
+                f"Current version {current.to_tag()} is already a stable release for "
+                f"{today_y:02d}.{today_m:02d}. Use 'hotfix' to bump the micro counter, "
+                f"or wait for next month."
+            )
+        return Version(
+            fmt='calver',
+            year=today_y,
+            month=today_m,
+            micro=0,
+            channel='stable',
+            channel_n=0,
+            build=next_build,
+        )
+
+    if mode == 'hotfix':
+        if current.fmt == 'legacy':
+            raise ValueError(
+                f"Cannot hotfix legacy version {current.to_tag()}. Use 'release' to cut "
+                f"the first CalVer release for this month."
+            )
+        if current.channel != 'stable':
+            raise ValueError(
+                f"Hotfix requires a stable base. Current version {current.to_tag()} is "
+                f"on the '{current.channel}' channel. Use 'release' to ship a stable "
+                f"first, or stay on '{current.channel}' to keep iterating."
+            )
+        if current.year != today_y or current.month != today_m:
+            raise ValueError(
+                f"Hotfix month mismatch: current is {current.year:02d}.{current.month:02d} "
+                f"but today is {today_y:02d}.{today_m:02d}. A hotfix patches the *current "
+                f"month's* stable. For a new month, use 'release' instead."
+            )
+        return Version(
+            fmt='calver',
+            year=current.year,
+            month=current.month,
+            micro=current.micro + 1,
+            channel='stable',
+            channel_n=0,
+            build=next_build,
+        )
+
+    if mode == 'beta':
+        if current.fmt == 'calver' and current.channel == 'beta':
+            return replace(current, channel_n=current.channel_n + 1, build=next_build)
+        # Start a fresh beta cycle for today's month.
+        return Version(
+            fmt='calver',
+            year=today_y,
+            month=today_m,
+            micro=0,
+            channel='beta',
+            channel_n=1,
+            build=next_build,
+        )
+
+    if mode == 'rc':
+        if current.fmt == 'calver' and current.channel == 'rc':
+            return replace(current, channel_n=current.channel_n + 1, build=next_build)
+        if current.fmt == 'calver' and current.channel == 'beta':
+            # Promote: keep target year/month/micro, fresh rc counter.
+            return replace(current, channel='rc', channel_n=1, build=next_build)
+        return Version(
+            fmt='calver',
+            year=today_y,
+            month=today_m,
+            micro=0,
+            channel='rc',
+            channel_n=1,
+            build=next_build,
+        )
+
+    if mode == 'build':
+        return replace(current, build=next_build)
+
+    raise ValueError(f"Unknown mode: {mode}")
+
+
+# --- Release manager ---------------------------------------------------------
+
 
 class SimpleReleaseManager:
     def __init__(self):
@@ -38,136 +245,74 @@ class SimpleReleaseManager:
         self.pubspec_path = self.project_root / 'pubspec.yaml'
         self.build_dir = self.project_root / 'build' / 'app' / 'outputs' / 'flutter-apk'
 
-    def get_current_version(self):
-        """Get current version from pubspec.yaml"""
+    # --- Pubspec I/O ---
+
+    def get_current_version(self) -> Version:
         if not self.pubspec_path.exists():
             raise FileNotFoundError("pubspec.yaml not found")
-
         with open(self.pubspec_path, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.startswith('version:'):
-                    return line.split(':', 1)[1].strip()
-
+                    return Version.parse(line.split(':', 1)[1].strip())
         raise ValueError("Version not found in pubspec.yaml")
 
-    def parse_version(self, version_string):
-        """Parse version string into components"""
-        match = re.match(r'^(\d+)\.(\d+)\.(\d+)\+(\d+)$', version_string)
-        if not match:
-            raise ValueError(f"Invalid version format: {version_string}")
-
-        return {
-            'major': int(match.group(1)),
-            'minor': int(match.group(2)),
-            'patch': int(match.group(3)),
-            'build': int(match.group(4))
-        }
-
-    def format_version(self, version_dict):
-        """Format version dictionary into string"""
-        return f"{version_dict['major']}.{version_dict['minor']}.{version_dict['patch']}+{version_dict['build']}"
-
-    def semver_tag(self, version_string):
-        """Extract semver part (without build number) for use as git tag"""
-        match = re.match(r'^(\d+\.\d+\.\d+)', version_string)
-        if not match:
-            raise ValueError(f"Cannot extract semver from: {version_string}")
-        return f"v{match.group(1)}"
-
-    def update_version_in_pubspec(self, new_version):
-        """Update version in pubspec.yaml"""
+    def update_version_in_pubspec(self, new_version: Version):
         with open(self.pubspec_path, 'r', encoding='utf-8') as f:
             content = f.read()
-
-        # Replace version line
         new_content = re.sub(
             r'^version:\s*.+$',
-            f'version: {new_version}',
+            f'version: {new_version.to_pubspec()}',
             content,
-            flags=re.MULTILINE
+            flags=re.MULTILINE,
         )
-
         with open(self.pubspec_path, 'w', encoding='utf-8') as f:
             f.write(new_content)
+        print(f"[OK] Updated version to {new_version.to_pubspec()} in {self.pubspec_path.name}")
 
-        print(f"[OK] Updated version to {new_version} in {self.pubspec_path.name}")
-
-    def increment_version(self, increment_type):
-        """Increment version based on type"""
-        current_version_str = self.get_current_version()
-        print(f"[INFO] Current version: {current_version_str}")
-
-        version = self.parse_version(current_version_str)
-
-        if increment_type == 'major':
-            version['major'] += 1
-            version['minor'] = 0
-            version['patch'] = 0
-            version['build'] += 1
-        elif increment_type == 'minor':
-            version['minor'] += 1
-            version['patch'] = 0
-            version['build'] += 1
-        elif increment_type == 'patch':
-            version['patch'] += 1
-            version['build'] += 1
-        elif increment_type == 'build':
-            version['build'] += 1
-        else:
-            raise ValueError(f"Invalid increment type: {increment_type}")
-
-        new_version_str = self.format_version(version)
-        print(f"[INFO] New version: {new_version_str}")
-
-        return new_version_str
-
-    def update_version(self, increment_type):
-        """Update version in pubspec.yaml only (no commit yet)"""
-        print(f"[INFO] Incrementing {increment_type} version...")
-
-        new_version = self.increment_version(increment_type)
+    def update_version(self, mode: str) -> Version:
+        current = self.get_current_version()
+        print(f"[INFO] Current version: {current.to_pubspec()}")
+        new_version = next_version(current, mode)
+        print(f"[INFO] New version    : {new_version.to_pubspec()} (tag {new_version.to_tag()})")
+        if new_version.is_prerelease:
+            print(f"[INFO] Channel        : {new_version.channel} (will be marked as GitHub pre-release)")
         self.update_version_in_pubspec(new_version)
-
-        print(f"[OK] Version updated to: {new_version}")
         return new_version
 
+    # --- Subprocess helpers ---
+
     def _run(self, cmd, **kwargs):
-        """Run a subprocess with UTF-8 encoding to avoid cp950 errors on Windows."""
+        """Run subprocess with UTF-8 to avoid Windows cp950 errors."""
         kwargs.setdefault('shell', True)
         kwargs.setdefault('encoding', 'utf-8')
         kwargs.setdefault('errors', 'replace')
         return subprocess.run(cmd, **kwargs)
 
+    # --- Quality gates ---
+
     def run_quality_checks(self):
-        """Run flutter analyze and flutter test before building."""
         os.chdir(self.project_root)
 
         print("[INFO] Running flutter analyze...")
-        result = self._run(
-            ['flutter', 'analyze'], capture_output=True
-        )
+        result = self._run(['flutter', 'analyze'], capture_output=True)
         if result.returncode != 0:
             print(result.stdout)
             print(result.stderr)
             raise RuntimeError("flutter analyze failed -- fix issues before releasing")
-
         print("[OK] Static analysis passed")
 
         print("[INFO] Running flutter test...")
-        result = self._run(
-            ['flutter', 'test'], capture_output=True
-        )
+        result = self._run(['flutter', 'test'], capture_output=True)
         if result.returncode != 0:
             print(result.stdout)
             print(result.stderr)
             raise RuntimeError("flutter test failed -- fix tests before releasing")
-
         print("[OK] All tests passed")
 
-    def build_release_apk(self, clean=False):
-        """Build release APK"""
-        print("[INFO] Building release APK...")
+    # --- Build ---
 
+    def build_release_apk(self, clean: bool = False) -> Path:
+        print("[INFO] Building release APK...")
         os.chdir(self.project_root)
 
         if clean:
@@ -176,18 +321,14 @@ class SimpleReleaseManager:
 
         self._run(['flutter', 'pub', 'get'], check=True)
 
-        # Build APK
         print("[INFO] Building APK (this may take a few minutes)...")
-        result = self._run([
-            'flutter', 'build', 'apk', '--release'
-        ], capture_output=True)
-
+        result = self._run(['flutter', 'build', 'apk', '--release'], capture_output=True)
         if result.returncode != 0:
             raise RuntimeError(f"APK build failed: {result.stderr}")
 
-        # Find the release APK specifically — the build directory may also
-        # contain stale debug APKs from previous flutter run sessions.
-        # glob('*.apk') would pick app-debug.apk first alphabetically.
+        # Pick the release APK explicitly — the build dir may also contain
+        # stale debug APKs from prior `flutter run` sessions, and glob('*.apk')
+        # would pick app-debug.apk first alphabetically.
         release_apk = self.build_dir / 'app-release.apk'
         if release_apk.exists():
             apk_path = release_apk
@@ -198,25 +339,23 @@ class SimpleReleaseManager:
             apk_path = apk_files[0]
         size_mb = apk_path.stat().st_size / 1024 / 1024
         print(f"[OK] APK built: {apk_path} ({size_mb:.1f} MB)")
-
         return apk_path
 
-    def rename_apk_for_release(self, apk_path, version):
-        """Rename APK with version number"""
-        semver = self.semver_tag(version).lstrip('v')
-        new_name = f"cg500_ble_app_v{semver}.apk"
+    def rename_apk_for_release(self, apk_path: Path, version: Version) -> Path:
+        # Strip the `v` for the filename (kept consistent with existing artifact
+        # naming so older release assets remain searchable).
+        tag_no_v = version.to_tag().lstrip('v')
+        new_name = f"cg500_ble_app_v{tag_no_v}.apk"
         new_path = apk_path.parent / new_name
-
         if new_path.exists():
             new_path.unlink()
-
         apk_path.rename(new_path)
         print(f"[OK] APK renamed to: {new_name}")
-
         return new_path
 
-    def calculate_sha256(self, file_path):
-        """Calculate SHA256 checksum of a file"""
+    # --- Release notes ---
+
+    def calculate_sha256(self, file_path: Path) -> str:
         sha256_hash = hashlib.sha256()
         with open(file_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
@@ -226,55 +365,49 @@ class SimpleReleaseManager:
         return checksum
 
     def _find_gh_command(self):
-        """Find GitHub CLI command path"""
-        # Try common paths
         possible_paths = [
             'gh',
             'C:\\Program Files\\GitHub CLI\\gh.exe',
             'C:\\Program Files (x86)\\GitHub CLI\\gh.exe',
         ]
-
         for gh_path in possible_paths:
             try:
                 self._run([gh_path, '--version'], capture_output=True, check=True)
                 return gh_path
             except (subprocess.CalledProcessError, FileNotFoundError):
                 continue
-
         return None
 
-    def generate_release_notes(self, version, sha256_checksum=None, apk_size_mb=None):
-        """Generate release notes from git commits since last tag"""
+    def generate_release_notes(self, version: Version, sha256_checksum=None, apk_size_mb=None) -> str:
+        """Auto-generate release notes from git commit log. Used as a fallback when
+        no `--notes-file` is provided. Quality is poor (raw commit subjects); prefer
+        a curated `release_notes.md`.
+        """
         try:
-            # Get last tag
-            result = subprocess.run([
-                'git', 'describe', '--tags', '--abbrev=0'
-            ], capture_output=True, text=True, cwd=self.project_root)
-
+            result = subprocess.run(
+                ['git', 'describe', '--tags', '--abbrev=0'],
+                capture_output=True, text=True, cwd=self.project_root,
+            )
             last_tag = result.stdout.strip() if result.returncode == 0 else None
 
-            # Get commits since last tag
             if last_tag:
                 cmd = ['git', 'log', f'{last_tag}..HEAD', '--oneline']
             else:
-                cmd = ['git', 'log', '--oneline', '-10']  # Last 10 commits
-
+                cmd = ['git', 'log', '--oneline', '-10']
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.project_root)
             commits = result.stdout.strip().split('\n') if result.stdout.strip() else []
 
-            semver = self.semver_tag(version).lstrip('v')
-
-            # Format release notes
+            tag = version.to_tag()
+            channel_label = ' (pre-release)' if version.is_prerelease else ''
             notes = [
-                f"## CG500 BLE App v{semver}",
+                f"## CG500 BLE App {tag}{channel_label}",
                 "",
                 f"Released: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}",
                 "",
                 "### Changes in this version:",
             ]
-
             if commits:
-                for commit in commits[:10]:  # Limit to 10 commits
+                for commit in commits[:10]:
                     if commit.strip():
                         notes.append(f"* {commit}")
             else:
@@ -295,7 +428,6 @@ class SimpleReleaseManager:
             if apk_size_mb is not None:
                 notes.append(f"**APK Size**: {apk_size_mb:.1f} MB")
 
-            # Add SHA256 checksum for APK verification (used by app auto-update)
             if sha256_checksum:
                 notes.extend([
                     "",
@@ -307,76 +439,76 @@ class SimpleReleaseManager:
 
         except Exception as e:
             print(f"[WARNING] Could not generate detailed release notes: {e}")
-            return f"CG500 BLE App v{version}\n\nBug fixes and improvements."
+            return f"CG500 BLE App {version.to_tag()}\n\nBug fixes and improvements."
 
-    def create_github_release(self, version, apk_path, custom_notes=None):
-        """Create GitHub release using GitHub CLI"""
-        tag = self.semver_tag(version)
+    # --- GitHub release ---
+
+    def create_github_release(self, version: Version, apk_path: Path, custom_notes: Optional[str] = None) -> str:
+        tag = version.to_tag()
         print(f"[INFO] Creating GitHub release {tag}...")
 
-        # Check if gh CLI is available
         gh_cmd = self._find_gh_command()
         if not gh_cmd:
             raise RuntimeError(
-                "GitHub CLI not found. Please install from https://cli.github.com/ "
-                "and authenticate with 'gh auth login'"
+                "GitHub CLI not found. Install from https://cli.github.com/ and "
+                "authenticate with 'gh auth login'."
             )
 
-        # Calculate SHA256 checksum for APK verification
         sha256_checksum = self.calculate_sha256(apk_path)
-
-        # Actual APK size
         apk_size_mb = apk_path.stat().st_size / 1024 / 1024
 
-        # Use custom notes if provided, otherwise auto-generate
         if custom_notes:
-            # Append verification info to custom notes
-            release_notes = custom_notes + f"\n\n---\n**APK Size**: {apk_size_mb:.1f} MB\n\n### Verification:\nSHA256: {sha256_checksum}"
+            release_notes = (
+                custom_notes
+                + f"\n\n---\n**APK Size**: {apk_size_mb:.1f} MB"
+                + f"\n\n### Verification:\nSHA256: {sha256_checksum}"
+            )
         else:
             release_notes = self.generate_release_notes(version, sha256_checksum, apk_size_mb)
 
-        # Create release
-        semver = tag.lstrip('v')
+        title_suffix = ' (pre-release)' if version.is_prerelease else ''
         cmd = [
             gh_cmd, 'release', 'create', tag,
             str(apk_path),
-            '--title', f"CG500 BLE App v{semver}",
+            '--title', f"CG500 BLE App {tag}{title_suffix}",
             '--notes', release_notes,
         ]
+        if version.is_prerelease:
+            cmd.append('--prerelease')
 
         result = self._run(cmd, cwd=self.project_root, capture_output=True)
-
         if result.returncode != 0:
             raise RuntimeError(f"GitHub release failed: {result.stderr}")
 
         print(f"[OK] GitHub release created: {tag}")
         print(f"[INFO] Release URL: https://github.com/rstltd/cg500_blueteeth_app/releases/tag/{tag}")
-
         return tag
 
-    def commit_version_change(self, version):
-        """Commit version change to git"""
+    # --- Git ---
+
+    def commit_version_change(self, version: Version):
         try:
             subprocess.run(['git', 'add', 'pubspec.yaml'], check=True, cwd=self.project_root)
-            subprocess.run([
-                'git', 'commit', '-m', f'Bump version to {version}'
-            ], check=True, cwd=self.project_root)
-            print(f"[OK] Version change committed")
+            subprocess.run(
+                ['git', 'commit', '-m', f'Bump version to {version.to_pubspec()}'],
+                check=True, cwd=self.project_root,
+            )
+            print("[OK] Version change committed")
         except subprocess.CalledProcessError as e:
             print(f"[WARNING] Could not commit version change: {e}")
 
     def push_changes(self):
-        """Push changes and tags to GitHub"""
         try:
             subprocess.run(['git', 'push'], check=True, cwd=self.project_root)
             subprocess.run(['git', 'push', '--tags'], check=True, cwd=self.project_root)
-            print(f"[OK] Changes pushed to GitHub")
+            print("[OK] Changes pushed to GitHub")
         except subprocess.CalledProcessError as e:
             print(f"[WARNING] Could not push changes: {e}")
 
-    def confirm_release(self, version, apk_path, release_notes, skip_confirm=False):
-        """Prompt user to confirm before publishing."""
-        tag = self.semver_tag(version)
+    # --- Confirmation ---
+
+    def confirm_release(self, version: Version, apk_path: Path, release_notes: str, skip_confirm=False):
+        tag = version.to_tag()
         apk_size_mb = apk_path.stat().st_size / 1024 / 1024
         sha256 = self.calculate_sha256(apk_path)
 
@@ -384,8 +516,10 @@ class SimpleReleaseManager:
         print("=" * 50)
         print("RELEASE SUMMARY")
         print("=" * 50)
-        print(f"  Version : {version}")
+        print(f"  Version : {version.to_pubspec()}")
         print(f"  Tag     : {tag}")
+        print(f"  Channel : {version.channel if version.fmt == 'calver' else 'stable (legacy)'}")
+        print(f"  GitHub  : {'pre-release' if version.is_prerelease else 'latest'}")
         print(f"  APK     : {apk_path.name}")
         print(f"  Size    : {apk_size_mb:.1f} MB")
         print(f"  SHA256  : {sha256}")
@@ -403,25 +537,18 @@ class SimpleReleaseManager:
         if answer != 'y':
             raise RuntimeError("Release cancelled by user")
 
-    def release(self, increment_type, clean=False, skip_confirm=False, notes_file=None):
-        """Complete release process"""
-        print(f"[START] Starting release process: {increment_type}")
+    # --- Pipeline ---
+
+    def release(self, mode: str, clean: bool = False, skip_confirm: bool = False, notes_file: Optional[str] = None):
+        print(f"[START] Starting release process: {mode}")
         print("=" * 50)
 
         try:
-            # 1. Update version in pubspec only (no commit yet)
-            new_version = self.update_version(increment_type)
-
-            # 2. Quality gates
+            new_version = self.update_version(mode)
             self.run_quality_checks()
-
-            # 3. Build APK
             apk_path = self.build_release_apk(clean=clean)
-
-            # 4. Rename APK for release
             release_apk_path = self.rename_apk_for_release(apk_path, new_version)
 
-            # 5. Load or generate release notes, then confirm
             apk_size_mb = release_apk_path.stat().st_size / 1024 / 1024
             if notes_file:
                 notes_path = Path(notes_file)
@@ -435,59 +562,53 @@ class SimpleReleaseManager:
             preview_notes = custom_notes or self.generate_release_notes(new_version, apk_size_mb=apk_size_mb)
             self.confirm_release(new_version, release_apk_path, preview_notes, skip_confirm)
 
-            # 6. Commit version change (only after build succeeds)
             self.commit_version_change(new_version)
-
-            # 7. Create GitHub release
             tag = self.create_github_release(new_version, release_apk_path, custom_notes=custom_notes)
-
-            # 8. Push changes
             self.push_changes()
 
             print("=" * 50)
             print("[SUCCESS] Release completed successfully!")
-            print(f"Version: {new_version}")
+            print(f"Version: {new_version.to_pubspec()}")
             print(f"Tag: {tag}")
             print(f"APK: {release_apk_path.name}")
-            print(f"Download: https://github.com/rstltd/cg500_blueteeth_app/releases/latest")
-
+            if new_version.is_prerelease:
+                print("Channel: pre-release (only beta-channel users will see this)")
+                print("All releases: https://github.com/rstltd/cg500_blueteeth_app/releases")
+            else:
+                print(f"Download: https://github.com/rstltd/cg500_blueteeth_app/releases/latest")
             return True
 
         except Exception as e:
             print(f"[ERROR] Release failed: {e}")
             return False
 
+
+# --- CLI ---------------------------------------------------------------------
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description='CG500 BLE App Release Script',
+        description='CG500 BLE App Release Script (CalVer)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python simple_release.py patch          # Patch release (1.0.0 -> 1.0.1)
-  python simple_release.py minor          # Minor release (1.0.1 -> 1.1.0)
-  python simple_release.py major          # Major release (1.1.0 -> 2.0.0)
-  python simple_release.py patch --clean  # Clean build before release
-  python simple_release.py patch --force  # Ignore uncommitted changes
-  python simple_release.py patch --yes    # Skip confirmation (CI mode)
+  python simple_release.py release --notes-file release_notes.md
+  python simple_release.py hotfix  --notes-file release_notes.md
+  python simple_release.py beta    --notes-file release_notes.md
+  python simple_release.py rc      --notes-file release_notes.md --yes
+  python simple_release.py build                                # build-number bump only
+
+Versioning policy: docs/VERSIONING.md
         """,
     )
     parser.add_argument(
-        'increment_type',
-        choices=['patch', 'minor', 'major', 'build'],
-        help='Version increment type',
+        'mode',
+        choices=['release', 'hotfix', 'beta', 'rc', 'build'],
+        help='Release mode (see docs/VERSIONING.md)',
     )
-    parser.add_argument(
-        '--force', action='store_true',
-        help='Skip uncommitted changes check',
-    )
-    parser.add_argument(
-        '--clean', action='store_true',
-        help='Run flutter clean before build',
-    )
-    parser.add_argument(
-        '--yes', action='store_true',
-        help='Skip confirmation prompt (for CI)',
-    )
+    parser.add_argument('--force', action='store_true', help='Skip uncommitted changes check')
+    parser.add_argument('--clean', action='store_true', help='Run flutter clean before build')
+    parser.add_argument('--yes', action='store_true', help='Skip confirmation prompt (for CI)')
     parser.add_argument(
         '--notes-file', type=str, default=None,
         help='Path to a markdown file with release notes (overrides auto-generated notes)',
@@ -495,15 +616,12 @@ Examples:
 
     args = parser.parse_args()
 
-    # Check prerequisites
     print("[INFO] Checking prerequisites...")
 
-    # Check if we're in a git repository
     if not Path('.git').exists():
         print("[ERROR] Not in a git repository")
         sys.exit(1)
 
-    # Check for uncommitted changes
     result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
     if result.stdout.strip():
         if args.force:
@@ -517,16 +635,15 @@ Examples:
             print("Use --force to override this check.")
             sys.exit(1)
 
-    # Create release manager and start release
     manager = SimpleReleaseManager()
     success = manager.release(
-        args.increment_type,
+        args.mode,
         clean=args.clean,
         skip_confirm=args.yes,
         notes_file=args.notes_file,
     )
-
     sys.exit(0 if success else 1)
+
 
 if __name__ == '__main__':
     main()
