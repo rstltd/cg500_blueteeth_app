@@ -10,7 +10,6 @@ import '../services/notification_service.dart';
 import '../services/smart_notification_service.dart';
 import '../services/permission_service.dart';
 import '../services/ble_service.dart';
-import '../services/update_service.dart';
 import '../services/update_checker.dart';
 import '../services/update_preferences_store.dart';
 import '../services/download_manager.dart';
@@ -138,7 +137,7 @@ Future<void> setupServiceLocator() async {
 
   // UpdatePreferencesStore - single owner of user update settings.
   // Mutations save to disk and are broadcast via changeStream so every
-  // consumer (UpdateService, settings VM, network info widget) sees the
+  // consumer (UpdateController, settings VM, network info widget) sees the
   // same value without holding its own copy.
   getIt.registerLazySingleton<UpdatePreferencesStore>(
     () => UpdatePreferencesStore(),
@@ -156,18 +155,6 @@ Future<void> setupServiceLocator() async {
   getIt.registerLazySingleton<InstallManager>(
     () => InstallManager.withDependencies(
       notificationService: getIt<NotificationService>(),
-    ),
-  );
-
-  // UpdateService - coordinated update operations (facade)
-  getIt.registerLazySingleton<UpdateService>(
-    () => UpdateService.withDependencies(
-      networkService: getIt<NetworkService>(),
-      notificationService: getIt<NotificationService>(),
-      updateChecker: getIt<UpdateChecker>(),
-      downloadManager: getIt<DownloadManager>(),
-      installManager: getIt<InstallManager>(),
-      preferencesStore: getIt<UpdatePreferencesStore>(),
     ),
   );
 

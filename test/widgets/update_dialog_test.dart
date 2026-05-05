@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
+import 'package:cg500_blueteeth_app/models/update_info.dart';
+import 'package:cg500_blueteeth_app/models/update_type.dart';
 import 'package:cg500_blueteeth_app/widgets/update/update_dialog.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
@@ -16,9 +17,6 @@ void main() {
     // Register mock services so UpdateDialog (which pulls UpdateController
     // from getIt) can resolve every dependency.
     final getIt = GetIt.instance;
-    if (!getIt.isRegistered<UpdateService>()) {
-      getIt.registerSingleton<UpdateService>(MockUpdateService());
-    }
     if (!getIt.isRegistered<NetworkService>()) {
       getIt.registerSingleton<NetworkService>(MockNetworkService());
     }

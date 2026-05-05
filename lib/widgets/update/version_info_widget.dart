@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_strings.dart';
-import '../../services/update_service.dart';
+import '../../models/update_info.dart';
 import '../../services/theme_service.dart';
 
 /// Simplified version info widget for the update dialog.

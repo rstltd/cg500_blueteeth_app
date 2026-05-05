@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/update_service.dart' show UpdateInfo;
+import '../../models/update_info.dart';
 import '../../controllers/update_controller.dart';
 import '../../core/service_locator.dart' show getIt;
 import '../layout/responsive_layout.dart';

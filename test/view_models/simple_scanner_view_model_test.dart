@@ -9,7 +9,7 @@ import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/theme_service.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
+import 'package:cg500_blueteeth_app/models/update_info.dart';
 import 'package:cg500_blueteeth_app/services/update_checker.dart';
 import 'package:cg500_blueteeth_app/services/download_manager.dart';
 import 'package:cg500_blueteeth_app/services/install_manager.dart';

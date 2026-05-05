@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../controllers/update_controller.dart';
 import '../../design/design_system.dart';
-import '../../services/update_service.dart';
+import '../../models/update_info.dart';
+import '../../models/update_type.dart';
 import '../../utils/logger.dart';
 import '../../l10n/app_strings.dart';
 

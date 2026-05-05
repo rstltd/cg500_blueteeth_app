@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/ble_service.dart';
-import 'package:cg500_blueteeth_app/services/update_service.dart';
 import 'package:cg500_blueteeth_app/services/update_checker.dart';
 import 'package:cg500_blueteeth_app/services/download_manager.dart';
 import 'package:cg500_blueteeth_app/services/install_manager.dart';
+import 'package:cg500_blueteeth_app/models/download_progress.dart';
+import 'package:cg500_blueteeth_app/models/update_info.dart';
 import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/update_ui_delegate.dart';
 import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
-import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/permission_service.dart';
 
 // Re-export MockBleController for convenience
@@ -501,183 +501,6 @@ class MockBleService implements BleService {
     _scanningController.close();
     _connectedDeviceController.close();
     _commandResponseController.close();
-  }
-}
-
-/// Mock implementation of UpdateService for testing
-class MockUpdateService implements UpdateService {
-  final StreamController<UpdateInfo> _updateController =
-      StreamController<UpdateInfo>.broadcast();
-  final StreamController<DownloadProgress> _downloadController =
-      StreamController<DownloadProgress>.broadcast();
-
-  UpdatePreferences? _preferences;
-  UpdateInfo? _pendingUpdate;
-
-  // Configurable behavior for testing different scenarios
-  bool _shouldDownloadSucceed = true;
-  bool _shouldInstallSucceed = true;
-  bool _canInstall = true;
-  List<DownloadProgress>? _downloadProgressSequence;
-  Duration _downloadDelay = Duration.zero;
-  String _mockApkPath = '/mock/path/app.apk';
-  final List<String> _skippedVersions = [];
-  int _downloadAttempts = 0;
-  int _installAttempts = 0;
-  bool _isDownloading = false;
-
-  @override
-  Stream<UpdateInfo> get updateStream => _updateController.stream;
-  @override
-  Stream<DownloadProgress> get downloadStream => _downloadController.stream;
-  @override
-  UpdatePreferences? get preferences => _preferences;
-  @override
-  bool get isDownloading => _isDownloading;
-
-  // Test inspection getters
-  List<String> get skippedVersions => List.unmodifiable(_skippedVersions);
-  int get downloadAttempts => _downloadAttempts;
-  int get installAttempts => _installAttempts;
-
-  void setPendingUpdate(UpdateInfo? update) {
-    _pendingUpdate = update;
-    if (update != null) {
-      _updateController.add(update);
-    }
-  }
-
-  /// Configure download behavior for testing
-  void configureDownload({
-    bool succeed = true,
-    List<DownloadProgress>? progressSequence,
-    Duration delay = Duration.zero,
-    String apkPath = '/mock/path/app.apk',
-  }) {
-    _shouldDownloadSucceed = succeed;
-    _downloadProgressSequence = progressSequence;
-    _downloadDelay = delay;
-    _mockApkPath = apkPath;
-  }
-
-  /// Configure install behavior for testing
-  void configureInstall({
-    bool succeed = true,
-    bool canInstall = true,
-  }) {
-    _shouldInstallSucceed = succeed;
-    _canInstall = canInstall;
-  }
-
-  /// Emit a download progress event (for testing stream listeners)
-  void emitDownloadProgress(DownloadProgress progress) {
-    _downloadController.add(progress);
-  }
-
-  /// Reset all mock state
-  void reset() {
-    _pendingUpdate = null;
-    _shouldDownloadSucceed = true;
-    _shouldInstallSucceed = true;
-    _canInstall = true;
-    _downloadProgressSequence = null;
-    _downloadDelay = Duration.zero;
-    _mockApkPath = '/mock/path/app.apk';
-    _skippedVersions.clear();
-    _downloadAttempts = 0;
-    _installAttempts = 0;
-    _preferences = null;
-    _isDownloading = false;
-  }
-
-  @override
-  Future<bool> initialize() async {
-    _preferences = UpdatePreferences();
-    return true;
-  }
-
-  @override
-  Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
-    return _pendingUpdate;
-  }
-
-  @override
-  Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
-    _downloadAttempts++;
-    _isDownloading = true;
-
-    if (_downloadDelay > Duration.zero) {
-      await Future.delayed(_downloadDelay);
-    }
-
-    if (_downloadProgressSequence != null) {
-      // Emit custom progress sequence
-      for (final progress in _downloadProgressSequence!) {
-        _downloadController.add(progress);
-        await Future.delayed(const Duration(milliseconds: 10));
-      }
-    } else {
-      // Default: emit single completion progress
-      _downloadController.add(DownloadProgress(
-        progress: 1.0,
-        downloadedBytes: updateInfo.downloadSize,
-        totalBytes: updateInfo.downloadSize,
-        status: 'Complete',
-        filePath: _mockApkPath,
-      ));
-    }
-
-    _isDownloading = false;
-    return _shouldDownloadSucceed ? _mockApkPath : null;
-  }
-
-  @override
-  Future<void> cleanupDownloads({String? keepVersion}) async {}
-
-  @override
-  Future<bool> installUpdate(String apkPath) async {
-    _installAttempts++;
-    return _shouldInstallSucceed;
-  }
-
-  @override
-  Future<bool> canInstallApks() async => _canInstall;
-
-  @override
-  Future<void> requestInstallPermission() async {}
-
-  @override
-  Future<Map<String, dynamic>> diagnosePermissions() async {
-    return {'supported': true};
-  }
-
-  @override
-  Map<String, String> getCurrentVersionInfo() {
-    return {
-      'version': '1.0.0',
-      'buildNumber': '1',
-    };
-  }
-
-  @override
-  Future<void> skipVersion(String version) async {
-    _skippedVersions.add(version);
-  }
-
-  @override
-  Future<void> updatePreferences(UpdatePreferences newPreferences) async {
-    _preferences = newPreferences;
-  }
-
-  @override
-  bool shouldAutoDownload(UpdateInfo updateInfo) {
-    return _preferences?.autoDownloadEnabled ?? false;
-  }
-
-  @override
-  void dispose() {
-    _updateController.close();
-    _downloadController.close();
   }
 }
 

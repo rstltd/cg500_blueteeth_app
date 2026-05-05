@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/update_service.dart';
+import '../../models/update_info.dart';
+import '../../models/update_type.dart';
 import '../../l10n/app_strings.dart';
 
 /// Widget for update dialog header with type-specific styling
