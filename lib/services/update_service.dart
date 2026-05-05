@@ -6,6 +6,7 @@ import '../models/download_progress.dart';
 import 'notification_service.dart';
 import 'network_service.dart';
 import 'update_checker.dart';
+import 'update_preferences_store.dart';
 import 'download_manager.dart';
 import 'install_manager.dart';
 
@@ -36,6 +37,7 @@ class UpdateService {
     UpdateChecker? updateChecker,
     DownloadManager? downloadManager,
     InstallManager? installManager,
+    UpdatePreferencesStore? preferencesStore,
   })  : _notificationService = notificationService,
         _networkService = networkService,
         _updateChecker = updateChecker ?? UpdateChecker.withDependencies(),
@@ -47,15 +49,15 @@ class UpdateService {
         _installManager = installManager ??
             InstallManager.withDependencies(
               notificationService: notificationService,
-            );
+            ),
+        _preferencesStore = preferencesStore ?? UpdatePreferencesStore();
 
   final NotificationService _notificationService;
   final NetworkService _networkService;
   final UpdateChecker _updateChecker;
   final DownloadManager _downloadManager;
   final InstallManager _installManager;
-
-  UpdatePreferences? _preferences;
+  final UpdatePreferencesStore _preferencesStore;
 
   // Update state
   final StreamController<UpdateInfo> _updateController =
@@ -76,8 +78,8 @@ class UpdateService {
       // Initialize update checker
       await _updateChecker.initialize();
 
-      // Load user preferences
-      _preferences = await UpdatePreferences.load();
+      // Load user preferences via the shared store
+      await _preferencesStore.load();
 
       // Initialize network service
       await _networkService.initialize();
@@ -85,7 +87,7 @@ class UpdateService {
       final versionInfo = _updateChecker.getCurrentVersionInfo();
       Logger.info(
           'Update Service initialized - Version: ${versionInfo['version']} (${versionInfo['buildNumber']})');
-      Logger.info('Update preferences loaded: $_preferences');
+      Logger.info('Update preferences loaded: ${_preferencesStore.current}');
       return true;
     } catch (e) {
       Logger.error('Failed to initialize Update Service', error: e);
@@ -96,16 +98,16 @@ class UpdateService {
   /// Check for available updates via GitHub Releases
   Future<UpdateInfo?> checkForUpdates({bool showNotification = true}) async {
     try {
+      final prefs = _preferencesStore.current;
+
       // Check if auto check is enabled
-      if (_preferences != null &&
-          !_preferences!.autoCheckEnabled &&
-          showNotification) {
+      if (prefs != null && !prefs.autoCheckEnabled && showNotification) {
         Logger.debug('Auto check disabled by user preferences');
         return null;
       }
 
       final updateInfo = await _updateChecker.checkForUpdates(
-        skippedVersions: _preferences?.skippedVersions ?? [],
+        skippedVersions: prefs?.skippedVersions ?? [],
       );
 
       if (updateInfo != null) {
@@ -146,7 +148,8 @@ class UpdateService {
   /// Download APK update with real-time progress tracking
   Future<String?> downloadUpdate(UpdateInfo updateInfo) async {
     // Check preferences before download
-    if (_preferences == null) {
+    final prefs = _preferencesStore.current;
+    if (prefs == null) {
       Logger.error(
           'Update preferences not loaded, cannot check network suitability');
       _notificationService.showError(
@@ -158,7 +161,7 @@ class UpdateService {
 
     return _downloadManager.downloadUpdate(
       updateInfo,
-      wifiOnly: _preferences!.wifiOnlyDownload,
+      wifiOnly: prefs.wifiOnlyDownload,
     );
   }
 
@@ -194,31 +197,30 @@ class UpdateService {
 
   /// Skip a specific version
   Future<void> skipVersion(String version) async {
-    if (_preferences != null) {
-      _preferences!.skipVersion(version);
-      await _preferences!.save();
+    if (_preferencesStore.current != null) {
+      await _preferencesStore.skipVersion(version);
       Logger.info('Version $version added to skip list');
     }
   }
 
   /// Get current update preferences
-  UpdatePreferences? get preferences => _preferences;
+  UpdatePreferences? get preferences => _preferencesStore.current;
 
   /// Update preferences and save
   Future<void> updatePreferences(UpdatePreferences newPreferences) async {
-    _preferences = newPreferences;
-    await _preferences!.save();
-    Logger.info('Update preferences saved: $_preferences');
+    await _preferencesStore.replace(newPreferences);
+    Logger.info('Update preferences saved: $newPreferences');
   }
 
   /// Check if auto download is enabled and suitable
   bool shouldAutoDownload(UpdateInfo updateInfo) {
-    if (_preferences == null || !_preferences!.autoDownloadEnabled) {
+    final prefs = _preferencesStore.current;
+    if (prefs == null || !prefs.autoDownloadEnabled) {
       return false;
     }
 
     return _networkService.isSuitableForDownload(
-      wifiOnly: _preferences!.wifiOnlyDownload,
+      wifiOnly: prefs.wifiOnlyDownload,
     );
   }
 

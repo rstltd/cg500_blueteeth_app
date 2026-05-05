@@ -12,6 +12,7 @@ import '../services/permission_service.dart';
 import '../services/ble_service.dart';
 import '../services/update_service.dart';
 import '../services/update_checker.dart';
+import '../services/update_preferences_store.dart';
 import '../services/download_manager.dart';
 import '../services/install_manager.dart';
 import '../services/theme_service.dart';
@@ -135,6 +136,14 @@ Future<void> setupServiceLocator() async {
     () => UpdateChecker.withDependencies(),
   );
 
+  // UpdatePreferencesStore - single owner of user update settings.
+  // Mutations save to disk and are broadcast via changeStream so every
+  // consumer (UpdateService, settings VM, network info widget) sees the
+  // same value without holding its own copy.
+  getIt.registerLazySingleton<UpdatePreferencesStore>(
+    () => UpdatePreferencesStore(),
+  );
+
   // DownloadManager - APK download with progress tracking
   getIt.registerLazySingleton<DownloadManager>(
     () => DownloadManager.withDependencies(
@@ -158,6 +167,7 @@ Future<void> setupServiceLocator() async {
       updateChecker: getIt<UpdateChecker>(),
       downloadManager: getIt<DownloadManager>(),
       installManager: getIt<InstallManager>(),
+      preferencesStore: getIt<UpdatePreferencesStore>(),
     ),
   );
 
