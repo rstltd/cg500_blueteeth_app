@@ -37,6 +37,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+# Force UTF-8 for stdout/stderr on Windows. Without this, printing captured
+# flutter / pub output that contains box-drawing or other non-ASCII characters
+# crashes with "'cp950' codec can't encode character" on Traditional Chinese
+# Windows builds. Mirrors the same fix in update_version.py.
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[attr-defined]
+    except AttributeError:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(), errors='replace')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach(), errors='replace')
+
 # --- Version parsing ---------------------------------------------------------
 
 CALVER_RE = re.compile(
