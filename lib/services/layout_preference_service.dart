@@ -34,6 +34,13 @@ class LayoutPreferenceService {
     return _instance!;
   }
 
+  /// Independent instance for testing — bypasses the singleton so unit
+  /// tests can isolate preference state across tests by pairing this with
+  /// `SharedPreferences.setMockInitialValues({})` in `setUp`.
+  factory LayoutPreferenceService.forTesting() {
+    return LayoutPreferenceService._internal();
+  }
+
   LayoutPreferenceService._internal();
 
   /// Initialize the service

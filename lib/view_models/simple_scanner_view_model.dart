@@ -10,6 +10,7 @@ import '../models/ble_device.dart';
 import '../models/connection_state.dart';
 import '../services/device_type_classifier.dart';
 import '../services/error_handling_service.dart';
+import '../services/layout_preference_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
 
@@ -42,20 +43,33 @@ class SimpleScannerViewModel extends BaseViewModel {
     ThemeService? themeService,
     UpdateController? updateManager,
     ErrorHandlingService? errorHandlingService,
+    LayoutPreferenceService? layoutPreferenceService,
   })  : _injectedController = controller,
         _injectedThemeService = themeService,
         _injectedUpdateManager = updateManager,
-        _injectedErrorHandlingService = errorHandlingService;
+        _injectedErrorHandlingService = errorHandlingService,
+        _injectedLayoutPreferenceService = layoutPreferenceService;
 
   final BleControllerInterface? _injectedController;
   final ThemeService? _injectedThemeService;
   final UpdateController? _injectedUpdateManager;
   final ErrorHandlingService? _injectedErrorHandlingService;
+  final LayoutPreferenceService? _injectedLayoutPreferenceService;
 
   late final BleControllerInterface _controller;
   late final ThemeService _themeService;
   late final UpdateController _updateManager;
   late final ErrorHandlingService _errorHandlingService;
+  late final LayoutPreferenceService _layoutPreferenceService;
+
+  /// Persistent-preference key for the RST whitelist filter (ADR-0008).
+  static const String _whitelistPrefKey = 'scannerWhitelistEnabled';
+
+  /// Whether the scanner list filters out devices whose [BleDeviceModel.deviceType]
+  /// is `RstDeviceType.unknown`. Default is `true` (filter on); persisted via
+  /// [LayoutPreferenceService] across app launches per ADR-0008.
+  bool _scannerWhitelistEnabled = true;
+  bool get scannerWhitelistEnabled => _scannerWhitelistEnabled;
 
   // Local state
   List<BleDeviceModel> _devices = [];
@@ -123,11 +137,12 @@ class SimpleScannerViewModel extends BaseViewModel {
 
   /// Filtered + ordered list of devices.
   ///
-  /// Pipeline (per ADR-0008): apply the search-name filter, then group by
-  /// device type. Group order is GNSS → accelerometer → inclinometer →
-  /// unknown; within each group, intra-group order matches discovery
-  /// order (Dart's `List.sort` is stable, so equal keys preserve their
-  /// relative position from the underlying device list).
+  /// Pipeline (per ADR-0008): apply the search-name filter, optionally
+  /// drop unknown / non-RST devices when the whitelist toggle is on, then
+  /// group by device type. Group order is GNSS → accelerometer →
+  /// inclinometer → unknown; within each group, intra-group order matches
+  /// discovery order (Dart's `List.sort` is stable, so equal keys
+  /// preserve their relative position from the underlying device list).
   List<BleDeviceModel> get filteredDevices {
     Iterable<BleDeviceModel> pipeline = _devices;
 
@@ -140,10 +155,27 @@ class SimpleScannerViewModel extends BaseViewModel {
       });
     }
 
+    if (_scannerWhitelistEnabled) {
+      pipeline =
+          pipeline.where((d) => d.deviceType != RstDeviceType.unknown);
+    }
+
     final list = pipeline.toList()
       ..sort((a, b) =>
           _deviceTypeRank(a.deviceType).compareTo(_deviceTypeRank(b.deviceType)));
     return list;
+  }
+
+  /// Toggle the RST whitelist filter and persist the new value. ADR-0008
+  /// pins this as role-agnostic — same default and same behaviour
+  /// regardless of normal / developer mode.
+  Future<void> toggleScannerWhitelist() async {
+    _scannerWhitelistEnabled = !_scannerWhitelistEnabled;
+    safeNotifyListeners();
+    await _layoutPreferenceService.setBool(
+      _whitelistPrefKey,
+      _scannerWhitelistEnabled,
+    );
   }
 
   /// Sort key per group (lower = earlier in the list). Pinned by ADR-0008
@@ -201,6 +233,12 @@ class SimpleScannerViewModel extends BaseViewModel {
     _updateManager = _injectedUpdateManager ?? getIt<UpdateController>();
     _errorHandlingService =
         _injectedErrorHandlingService ?? getIt<ErrorHandlingService>();
+    _layoutPreferenceService =
+        _injectedLayoutPreferenceService ?? LayoutPreferenceService();
+
+    // Load persisted whitelist toggle (default on per ADR-0008).
+    final stored = await _layoutPreferenceService.getBool(_whitelistPrefKey);
+    _scannerWhitelistEnabled = stored ?? true;
 
     // Subscribe to AppError stream BEFORE initialize() so we can capture
     // any blocking error raised during startup.

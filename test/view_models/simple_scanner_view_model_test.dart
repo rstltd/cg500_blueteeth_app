@@ -7,8 +7,10 @@ import 'package:cg500_blueteeth_app/core/interfaces/ble_notification_delegate.da
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/services/error_handling_service.dart';
+import 'package:cg500_blueteeth_app/services/layout_preference_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/services/theme_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cg500_blueteeth_app/models/update_info.dart';
 import 'package:cg500_blueteeth_app/services/update_checker.dart';
 import 'package:cg500_blueteeth_app/services/download_manager.dart';
@@ -25,14 +27,18 @@ void main() {
     late _MockThemeService mockThemeService;
     late _MockUpdateController mockUpdateManager;
     late ErrorHandlingService errorHandlingService;
+    late LayoutPreferenceService layoutService;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       mockController = _MockBleController();
       mockThemeService = _MockThemeService();
       mockUpdateManager = _MockUpdateController();
       errorHandlingService = ErrorHandlingService.forTesting(
         notificationService: _MockNotificationService(),
       );
+      layoutService = LayoutPreferenceService.forTesting();
+      await layoutService.init();
     });
 
     tearDown(() {
@@ -48,6 +54,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         expect(viewModel.isInitialized, isFalse);
@@ -66,6 +73,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -84,6 +92,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -109,6 +118,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -134,6 +144,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -162,6 +173,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -184,6 +196,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -202,6 +215,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -219,6 +233,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -238,6 +253,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -255,6 +271,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -272,6 +289,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -298,6 +316,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -315,6 +334,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -332,6 +352,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -351,6 +372,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -370,6 +392,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -385,6 +408,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -400,6 +424,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -415,6 +440,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -430,6 +456,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();
@@ -441,14 +468,19 @@ void main() {
     });
 
     group('filteredDevices — type-grouped ordering (ADR-0008)', () {
+      // Sort tests focus on ordering across groups including unknown,
+      // so they disable the whitelist filter (which would otherwise hide
+      // unknown devices). Whitelist behaviour is covered by its own group.
       Future<SimpleScannerViewModel> initVm() async {
         final viewModel = SimpleScannerViewModel(
           controller: mockController,
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
         await viewModel.initialize();
+        await viewModel.toggleScannerWhitelist(); // off — show all
         return viewModel;
       }
 
@@ -541,6 +573,116 @@ void main() {
       });
     });
 
+    group('scanner whitelist filter (ADR-0008)', () {
+      // Uses the outer setUp's layoutService and reset SharedPreferences.
+
+      Future<SimpleScannerViewModel> initVm() async {
+        final viewModel = SimpleScannerViewModel(
+          controller: mockController,
+          themeService: mockThemeService,
+          updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
+        );
+        await viewModel.initialize();
+        return viewModel;
+      }
+
+      BleDeviceModel mk(String id, String name) =>
+          BleDeviceModel(id: id, name: name, displayName: name);
+
+      test('default is enabled — list excludes unknown / non-RST devices',
+          () async {
+        final viewModel = await initVm();
+
+        expect(viewModel.scannerWhitelistEnabled, isTrue,
+            reason: 'ADR-0008 default is whitelist on.');
+
+        mockController.emitDevices([
+          mk('g1', 'A01LT00001'),
+          mk('u1', 'GenericBLE'),
+          mk('a1', 'B01LT00001'),
+          mk('u2', 'AnotherBLE'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        final ids = viewModel.filteredDevices.map((d) => d.id).toList();
+        expect(ids, ['g1', 'a1'],
+            reason: 'Unknown devices must be hidden when whitelist is on.');
+
+        viewModel.dispose();
+      });
+
+      test(
+          'toggleScannerWhitelist flips state and surfaces unknown devices',
+          () async {
+        final viewModel = await initVm();
+
+        mockController.emitDevices([
+          mk('g1', 'A01LT00001'),
+          mk('u1', 'GenericBLE'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        // Whitelist on by default — unknown hidden.
+        expect(viewModel.filteredDevices.map((d) => d.id), ['g1']);
+
+        await viewModel.toggleScannerWhitelist();
+
+        expect(viewModel.scannerWhitelistEnabled, isFalse);
+        // Order: GNSS first, then unknown.
+        expect(
+          viewModel.filteredDevices.map((d) => d.id).toList(),
+          ['g1', 'u1'],
+        );
+
+        viewModel.dispose();
+      });
+
+      test('toggle persists across VM instances (cold-start preservation)',
+          () async {
+        final viewModel1 = await initVm();
+        await viewModel1.toggleScannerWhitelist(); // -> false
+        expect(viewModel1.scannerWhitelistEnabled, isFalse);
+        viewModel1.dispose();
+
+        // Recreate the VM (simulating cold start) sharing the same
+        // LayoutPreferenceService — the persisted preference must stick.
+        final viewModel2 = await initVm();
+        expect(viewModel2.scannerWhitelistEnabled, isFalse);
+        viewModel2.dispose();
+      });
+
+      test('search + whitelist filters compose without one breaking the other',
+          () async {
+        final viewModel = await initVm();
+        await viewModel.toggleScannerWhitelist(); // off — show all
+
+        mockController.emitDevices([
+          mk('g1', 'A01LT-Apple'),
+          mk('u1', 'AppleHeadphones'),
+          mk('g2', 'A01LT-Banana'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        viewModel.setSearchQuery('apple');
+
+        // Both Apples match the search; whitelist is off so unknown
+        // is included. GNSS group first.
+        final ids = viewModel.filteredDevices.map((d) => d.id).toList();
+        expect(ids, ['g1', 'u1']);
+
+        // Re-enable whitelist; AppleHeadphones (unknown) drops out.
+        await viewModel.toggleScannerWhitelist();
+        expect(
+          viewModel.filteredDevices.map((d) => d.id).toList(),
+          ['g1'],
+        );
+
+        viewModel.dispose();
+      });
+    });
+
     group('dispose', () {
       test('should cancel subscriptions on dispose', () async {
         final viewModel = SimpleScannerViewModel(
@@ -548,6 +690,7 @@ void main() {
           themeService: mockThemeService,
           updateManager: mockUpdateManager,
           errorHandlingService: errorHandlingService,
+          layoutPreferenceService: layoutService,
         );
 
         await viewModel.initialize();

@@ -23,6 +23,7 @@ import '../widgets/ble/quick_stats_widget.dart';
 import '../widgets/ble/device_grid_widget.dart';
 import '../widgets/ble/device_details_dialog.dart';
 import '../widgets/ble/device_search_widget.dart';
+import '../widgets/ble/scanner_whitelist_toggle_button.dart';
 import 'command_interface_view.dart';
 import 'developer_options_view.dart';
 import 'update_settings_view.dart';
@@ -292,6 +293,15 @@ class _SimpleScannerContentState extends State<_SimpleScannerContent>
         DeviceSearchWidget(
           onSearchChanged: viewModel.setSearchQuery,
           onSearchClosed: viewModel.clearSearch,
+        ),
+
+        // RST whitelist filter toggle (ADR-0008). Visible in the AppBar
+        // because the opt-out scenarios (inclinometer users, B Company
+        // lab tests, ad-hoc debug) need fast access — Settings page is
+        // too deep for what is otherwise a per-session toggle.
+        ScannerWhitelistToggleButton(
+          enabled: viewModel.scannerWhitelistEnabled,
+          onPressed: viewModel.toggleScannerWhitelist,
         ),
 
         // More Settings Menu

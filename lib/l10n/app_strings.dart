@@ -993,6 +993,9 @@ abstract class AppStrings {
   static String stepNOfTotal(int n, int total) => '步驟 $n / $total';
   static const String currentValue = '目前值';
   static const String noChange = '未變更';
+  static const String scannerWhitelistFilterEnabledTooltip = 'RST 設備過濾：開啟（點擊以顯示所有 BLE 設備）';
+  static const String scannerWhitelistFilterDisabledTooltip = 'RST 設備過濾：關閉（點擊以僅顯示 RST 設備）';
+
   static const String confirmChanges = '確認變更';
   static const String noChangesDetected = '沒有需要變更的設定';
   static const String executing = '正在設定...';
