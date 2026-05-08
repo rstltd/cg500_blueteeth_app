@@ -108,6 +108,21 @@ to be in `$INFO` payload contents and possibly a small number of
 device-specific commands. Strategic direction is **one app for the
 whole family**, not one app per device.
 
+**Device-name prefix convention** (BLE advertising name, as of 2026-05):
+- **GNSS receiver** → `A01LT…`
+- **Accelerometer** → `B01LT…`
+- **Inclinometer** → **prefix not yet defined** (see Flagged
+  ambiguities); v26.06's RST-whitelist scanner filter must be
+  toggleable specifically because of this gap.
+
+The prefix is matched case-insensitively (`startsWith` after
+`toUpperCase`) so future firmware variations don't silently break
+classification. Device-type identification by prefix is **scanner-display
+only** in v26.06 — it drives the leading icon, the type-grouped list
+order, and the whitelist filter, but **does not** drive command-surface
+differences, `$INFO` parsing variants, or wizard-step variants. See
+ADR-0008 for why this scope is deliberately narrow.
+
 **Important operational asymmetry between device types**:
 - **GNSS receivers** allow BLE connections **while online** (4G SIM
   active). An RST engineer can drive up to a deployed CG500 and
@@ -359,3 +374,11 @@ and shape almost every UX trade-off:
   maintenance visit may include a commissioning task if a fresh device
   is encountered. Don't model them as separate flows in the UI without
   first establishing why; the same wizard currently serves both.
+- **Inclinometer device-name prefix** is undefined as of 2026-05. GNSS
+  uses `A01LT…` and accelerometer uses `B01LT…`, but no prefix has been
+  assigned to inclinometers — they currently ship under whatever name
+  the deployment happens to set. This is **why the v26.06 RST-whitelist
+  scanner filter must be toggleable**: a strict-default-on filter
+  would render inclinometers invisible to their own users. Resolve when
+  a prefix is assigned (likely alongside CG501 spec finalisation per
+  ADR-0002), at which point the filter default can be re-evaluated.
