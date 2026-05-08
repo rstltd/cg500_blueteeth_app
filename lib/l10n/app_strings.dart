@@ -1000,7 +1000,14 @@ abstract class AppStrings {
   static const String setupFailed = '設定失敗';
   static String failedAt(String command) => '在「$command」處失敗';
   static const String backToModify = '返回修改';
-  static const String confirmAndExecute = '確認執行';
+  static const String confirmAndExecute = '套用變更';
+  static const String confirmAndExecuteWithReboot = '套用變更並重啟';
+  static const String wizardRebootRowLabel = '重新啟動設備';
+  static const String wizardRebootRowSubtitle = '~30 秒無法連線';
+  static const String wizardDoneWithRebootBanner =
+      '設備已套用變更並開始重啟（~30 秒後可重新連線）';
+  static const String wizardRebootFailedMessage =
+      r'設定已套用、但重啟指令未送出 — 請手動下 $STARTX 或重試';
   static const String previousStep = '上一步';
   static const String nextStep = '下一步';
   static const String finish = '完成';

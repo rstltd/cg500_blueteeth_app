@@ -1,5 +1,6 @@
 import '../controllers/command_manager.dart';
 import '../core/view_model/view_model.dart';
+import '../l10n/app_strings.dart';
 import '../models/device_info.dart';
 import '../utils/logger.dart';
 
@@ -79,6 +80,12 @@ class QuickSetupViewModel extends BaseViewModel {
 
   /// Whether any step has a modification.
   bool get hasAnyChange => _pendingCommandsFromState().isNotEmpty;
+
+  /// Whether [executeChanges] will dispatch a `$STARTX` after the diffed
+  /// commands. Per ADR-0007 the reboot only fires when at least one
+  /// configuration change is actually being sent — a review-only run
+  /// (zero diffs) sends nothing, including no reboot.
+  bool get willReboot => hasAnyChange;
 
   // ---- Initialization ----
 
@@ -168,13 +175,29 @@ class QuickSetupViewModel extends BaseViewModel {
 
   // ---- Execution ----
 
-  /// Execute all pending (changed) commands in order, then send $INFO.
+  /// Execute all pending (changed) commands in order, then send `$INFO`,
+  /// then `$STARTX` to apply the new configuration. ADR-0007 governs the
+  /// dispatch shape: zero diffs send nothing at all (preserves the
+  /// review-only path of ADR-0006); one or more diffs run the full chain
+  /// `[diffed commands] → $INFO → $STARTX`.
   Future<void> executeChanges() async {
     _phase = WizardPhase.executing;
     _executingIndex = 0;
     _failureMessage = null;
     safeNotifyListeners();
 
+    // Defensive guard: review-only runs short-circuit to done without
+    // any device traffic. The summary page hides the Apply button when
+    // there are zero diffs, so this branch is normally unreachable —
+    // it exists to honour the ADR-0006 zero-commands invariant if a
+    // future caller ever invokes this method on an empty queue.
+    if (_pendingCommands.isEmpty) {
+      _phase = WizardPhase.done;
+      safeNotifyListeners();
+      return;
+    }
+
+    // 1. Send each diffed config command in order.
     for (var i = 0; i < _pendingCommands.length; i++) {
       _executingIndex = i;
       safeNotifyListeners();
@@ -197,11 +220,29 @@ class QuickSetupViewModel extends BaseViewModel {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    // All commands sent — now fetch updated info
-    _executingIndex = _pendingCommands.length; // visual: past the last one
+    // 2. Verification: $INFO returns the new on-device values pre-reboot.
+    _executingIndex = _pendingCommands.length;
     safeNotifyListeners();
-
     await _fetchUpdatedInfo();
+
+    // 3. $STARTX: trigger the full MCU reboot so APN / ADDR / FTPADDR
+    //    actually take effect. Has to come after $INFO because BLE drops
+    //    within ~30 s of $STARTX and may never come back during this
+    //    session for accelerometers / inclinometers (CONTEXT.md
+    //    operational asymmetry).
+    _executingIndex = _pendingCommands.length + 1;
+    safeNotifyListeners();
+    Logger.ui(r'Wizard sending: $STARTX');
+    final rebootSuccess =
+        await _commandManager.sendPredefinedCommand(r'$STARTX');
+    if (!rebootSuccess) {
+      // Distinct failure wording so the engineer knows the prior config
+      // writes succeeded — only the reboot dispatch failed (per ADR-0007).
+      _failureMessage = AppStrings.wizardRebootFailedMessage;
+      _phase = WizardPhase.failed;
+      safeNotifyListeners();
+      return;
+    }
 
     _phase = WizardPhase.done;
     safeNotifyListeners();

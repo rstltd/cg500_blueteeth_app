@@ -118,6 +118,7 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
         return WizardSummaryPage(
           commands: _viewModel.pendingCommands,
           hasAnyChange: _viewModel.hasAnyChange,
+          willReboot: _viewModel.willReboot,
           onConfirm: _viewModel.executeChanges,
           onBack: _viewModel.backToForm,
         );
@@ -128,6 +129,7 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
           phase: _viewModel.phase,
           commands: _viewModel.pendingCommands,
           executingIndex: _viewModel.executingIndex,
+          willReboot: _viewModel.willReboot,
           failureMessage: _viewModel.failureMessage,
           updatedInfo: _viewModel.phase == WizardPhase.done
               ? _buildUpdatedInfo()

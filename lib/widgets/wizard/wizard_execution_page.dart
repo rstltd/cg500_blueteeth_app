@@ -8,7 +8,8 @@ import '../../view_models/quick_setup_view_model.dart';
 ///
 /// During [WizardPhase.executing]: shows a list of commands with checkmarks,
 /// spinners, and greyed-out states.
-/// During [WizardPhase.done]: shows the updated device info summary.
+/// During [WizardPhase.done]: shows the updated device info summary; when
+///   [willReboot] is true, also shows the reboot-in-progress banner.
 /// During [WizardPhase.failed]: shows the failure message with a retry hint.
 class WizardExecutionPage extends StatelessWidget {
   const WizardExecutionPage({
@@ -16,6 +17,7 @@ class WizardExecutionPage extends StatelessWidget {
     required this.phase,
     required this.commands,
     required this.executingIndex,
+    this.willReboot = false,
     this.failureMessage,
     this.updatedInfo,
     this.onFinish,
@@ -25,6 +27,7 @@ class WizardExecutionPage extends StatelessWidget {
   final WizardPhase phase;
   final List<SetupCommand> commands;
   final int executingIndex;
+  final bool willReboot;
   final String? failureMessage;
   final DeviceInfo? updatedInfo;
   final VoidCallback? onFinish;
@@ -39,6 +42,10 @@ class WizardExecutionPage extends StatelessWidget {
         children: [
           _buildHeader(context),
           SizedBox(height: DesignTokens.spacingL),
+          if (phase == WizardPhase.done && willReboot) ...[
+            _buildRebootBanner(context),
+            SizedBox(height: DesignTokens.spacingM),
+          ],
           if (phase == WizardPhase.done && updatedInfo != null)
             Expanded(child: _buildDeviceInfoSummary(context))
           else
@@ -108,17 +115,30 @@ class WizardExecutionPage extends StatelessWidget {
   }
 
   Widget _buildCommandList(BuildContext context) {
-    // Commands + final $INFO
-    final totalItems = commands.length + 1;
+    // Commands + $INFO + (optionally) $STARTX. When the run has zero
+    // diffed commands, we never reach this method (the VM short-circuits
+    // straight to `done` per ADR-0007).
+    final infoStepIndex = commands.length;
+    final rebootStepIndex = commands.length + 1;
+    final totalItems = commands.length + 1 + (willReboot ? 1 : 0);
 
     return ListView.separated(
       itemCount: totalItems,
       separatorBuilder: (_, __) => SizedBox(height: DesignTokens.spacingS),
       itemBuilder: (context, index) {
-        final isInfoStep = index == commands.length;
-        final label = isInfoStep ? r'$INFO（確認結果）' : commands[index].label;
-        final cmdStr =
-            isInfoStep ? r'$INFO' : commands[index].commandString;
+        final String label;
+        final String cmdStr;
+
+        if (index == rebootStepIndex && willReboot) {
+          label = AppStrings.wizardRebootRowLabel;
+          cmdStr = r'$STARTX';
+        } else if (index == infoStepIndex) {
+          label = r'$INFO（確認結果）';
+          cmdStr = r'$INFO';
+        } else {
+          label = commands[index].label;
+          cmdStr = commands[index].commandString;
+        }
 
         final _StepStatus status;
         if (index < executingIndex) {
@@ -137,6 +157,37 @@ class WizardExecutionPage extends StatelessWidget {
           status: status,
         );
       },
+    );
+  }
+
+  /// Banner surfaced on the done screen explaining that the device is
+  /// already rebooting (per ADR-0007). Only shown when the run actually
+  /// dispatched a `$STARTX`.
+  Widget _buildRebootBanner(BuildContext context) {
+    final color = AppColors.warningColor(context);
+    return Container(
+      padding: EdgeInsets.all(DesignTokens.spacingM),
+      decoration: BoxDecoration(
+        color: AppColors.warningContainer(context),
+        borderRadius: DesignTokens.borderRadiusM,
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.power_settings_new, color: color),
+          SizedBox(width: DesignTokens.spacingSM),
+          Expanded(
+            child: Text(
+              AppStrings.wizardDoneWithRebootBanner,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: DesignTokens.fontS,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
