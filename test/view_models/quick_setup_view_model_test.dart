@@ -23,7 +23,7 @@ void main() {
     ));
     commandManager = CommandManager(controller: controller);
     vm = QuickSetupViewModel(commandManager: commandManager);
-    await vm.onInit();
+    await vm.initialize();
   });
 
   tearDown(() {

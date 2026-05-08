@@ -440,6 +440,107 @@ void main() {
       });
     });
 
+    group('filteredDevices — type-grouped ordering (ADR-0008)', () {
+      Future<SimpleScannerViewModel> initVm() async {
+        final viewModel = SimpleScannerViewModel(
+          controller: mockController,
+          themeService: mockThemeService,
+          updateManager: mockUpdateManager,
+          errorHandlingService: errorHandlingService,
+        );
+        await viewModel.initialize();
+        return viewModel;
+      }
+
+      BleDeviceModel mk(String id, String name) =>
+          BleDeviceModel(id: id, name: name, displayName: name);
+
+      test(
+          'cross-group: GNSS → accel → unknown regardless of discovery order',
+          () async {
+        final viewModel = await initVm();
+
+        // Discovered out of order: unknown, GNSS, accel, unknown, GNSS.
+        mockController.emitDevices([
+          mk('u1', 'GenericBLE-1'),
+          mk('g1', 'A01LT00001'),
+          mk('a1', 'B01LT00001'),
+          mk('u2', 'SonyHeadphones'),
+          mk('g2', 'A01LT00002'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        final ids = viewModel.filteredDevices.map((d) => d.id).toList();
+        // GNSS (g1, g2) → accel (a1) → unknown (u1, u2). Intra-group
+        // discovery order: g1 before g2 (both GNSS); u1 before u2.
+        expect(ids, ['g1', 'g2', 'a1', 'u1', 'u2']);
+
+        viewModel.dispose();
+      });
+
+      test('intra-group order matches discovery order (stable sort)',
+          () async {
+        final viewModel = await initVm();
+
+        // Two devices of the same group, discovered in a specific order.
+        mockController.emitDevices([
+          mk('g2', 'A01LT00002'),
+          mk('g1', 'A01LT00001'),
+          mk('g3', 'A01LT00003'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        // Intra-GNSS order matches the order they were emitted: g2, g1, g3.
+        expect(
+          viewModel.filteredDevices.map((d) => d.id).toList(),
+          ['g2', 'g1', 'g3'],
+        );
+
+        viewModel.dispose();
+      });
+
+      test('search-name filter composes with type-grouped sort', () async {
+        final viewModel = await initVm();
+
+        mockController.emitDevices([
+          mk('u1', 'GenericBLE'),
+          mk('g1', 'A01LT-Apple'),
+          mk('a1', 'B01LT-Banana'),
+          mk('g2', 'A01LT-Avocado'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        // Search "lt" matches all three RST devices and excludes GenericBLE.
+        viewModel.setSearchQuery('lt');
+
+        final ids = viewModel.filteredDevices.map((d) => d.id).toList();
+        // Order after search: GNSS group first, then accel.
+        expect(ids, ['g1', 'g2', 'a1']);
+
+        viewModel.dispose();
+      });
+
+      test(
+          'all-same-type list keeps discovery order without spurious '
+          'reordering', () async {
+        final viewModel = await initVm();
+
+        mockController.emitDevices([
+          mk('g3', 'A01LT-Charlie'),
+          mk('g1', 'A01LT-Alpha'),
+          mk('g2', 'A01LT-Bravo'),
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          viewModel.filteredDevices.map((d) => d.id).toList(),
+          ['g3', 'g1', 'g2'],
+        );
+
+        viewModel.dispose();
+      });
+    });
+
     group('dispose', () {
       test('should cancel subscriptions on dispose', () async {
         final viewModel = SimpleScannerViewModel(

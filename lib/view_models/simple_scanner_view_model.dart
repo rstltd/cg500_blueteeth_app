@@ -8,6 +8,7 @@ import '../core/service_locator.dart' show getIt;
 import '../core/view_model/view_model.dart';
 import '../models/ble_device.dart';
 import '../models/connection_state.dart';
+import '../services/device_type_classifier.dart';
 import '../services/error_handling_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
@@ -120,16 +121,45 @@ class SimpleScannerViewModel extends BaseViewModel {
   /// Whether search is active.
   bool get isSearching => _searchQuery.isNotEmpty;
 
-  /// Filtered list of devices based on search query.
+  /// Filtered + ordered list of devices.
+  ///
+  /// Pipeline (per ADR-0008): apply the search-name filter, then group by
+  /// device type. Group order is GNSS → accelerometer → inclinometer →
+  /// unknown; within each group, intra-group order matches discovery
+  /// order (Dart's `List.sort` is stable, so equal keys preserve their
+  /// relative position from the underlying device list).
   List<BleDeviceModel> get filteredDevices {
-    if (_searchQuery.isEmpty) return _devices;
+    Iterable<BleDeviceModel> pipeline = _devices;
 
-    final lowerQuery = _searchQuery.toLowerCase();
-    return _devices.where((device) {
-      final name = device.displayName.toLowerCase();
-      final id = device.id.toLowerCase();
-      return name.contains(lowerQuery) || id.contains(lowerQuery);
-    }).toList();
+    if (_searchQuery.isNotEmpty) {
+      final lowerQuery = _searchQuery.toLowerCase();
+      pipeline = pipeline.where((device) {
+        final name = device.displayName.toLowerCase();
+        final id = device.id.toLowerCase();
+        return name.contains(lowerQuery) || id.contains(lowerQuery);
+      });
+    }
+
+    final list = pipeline.toList()
+      ..sort((a, b) =>
+          _deviceTypeRank(a.deviceType).compareTo(_deviceTypeRank(b.deviceType)));
+    return list;
+  }
+
+  /// Sort key per group (lower = earlier in the list). Pinned by ADR-0008
+  /// — order tracks RST deployed-volume priority (GNSS dominant) with
+  /// `unknown` last so non-RST noise sinks to the bottom.
+  static int _deviceTypeRank(RstDeviceType type) {
+    switch (type) {
+      case RstDeviceType.gnss:
+        return 0;
+      case RstDeviceType.accelerometer:
+        return 1;
+      case RstDeviceType.inclinometer:
+        return 2;
+      case RstDeviceType.unknown:
+        return 3;
+    }
   }
 
   /// Whether scanning is in progress.
