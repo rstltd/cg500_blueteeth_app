@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
+import '../../services/device_type_classifier.dart';
 
 /// Status card for a connected device. Hosts the only action entry points
 /// into the command interface and the device info dialog — previously these
@@ -34,7 +35,7 @@ class ConnectedDeviceCardWidget extends StatelessWidget {
           Row(
             children: [
               ResponsiveIcon(
-                Icons.bluetooth_connected,
+                iconForDeviceType(device.deviceType, connected: true),
                 size: 24,
                 color: AppColors.successColor(context),
               ),

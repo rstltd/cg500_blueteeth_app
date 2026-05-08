@@ -392,4 +392,63 @@ void main() {
       expect(find.text('Test Device'), findsOneWidget);
     });
   });
+
+  group('DeviceListWidget - Device-type leading icon (ADR-0008)', () {
+    BleDeviceModel makeDevice(String name) => BleDeviceModel(
+          id: 'id-$name',
+          name: name,
+          displayName: name,
+          rssi: -60,
+        );
+
+    testWidgets('A01LT prefix renders satellite_alt icon', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeviceListWidget(controller: mockController),
+          ),
+        ),
+      );
+
+      mockController.emitDevices([makeDevice('A01LT12345')]);
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.satellite_alt), findsOneWidget);
+      expect(find.byIcon(Icons.bluetooth), findsNothing);
+    });
+
+    testWidgets('B01LT prefix renders vibration icon', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeviceListWidget(controller: mockController),
+          ),
+        ),
+      );
+
+      mockController.emitDevices([makeDevice('B01LT99999')]);
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.vibration), findsOneWidget);
+    });
+
+    testWidgets('non-RST device falls back to bluetooth icon', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeviceListWidget(controller: mockController),
+          ),
+        ),
+      );
+
+      mockController.emitDevices([makeDevice('SonyHeadphones')]);
+      await tester.pumpAndSettle();
+
+      // Default fallback for unknown / non-RST devices preserves the
+      // pre-ADR-0008 behaviour.
+      expect(find.byIcon(Icons.bluetooth), findsOneWidget);
+      expect(find.byIcon(Icons.satellite_alt), findsNothing);
+      expect(find.byIcon(Icons.vibration), findsNothing);
+    });
+  });
 }

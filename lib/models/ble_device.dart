@@ -1,4 +1,5 @@
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import '../services/device_type_classifier.dart';
 import 'ble_service.dart';
 import 'connection_state.dart';
 
@@ -108,6 +109,11 @@ class BleDeviceModel {
     }
     return DateTime.now().difference(connectedAt!);
   }
+
+  /// RST device family classification derived from the BLE advertising
+  /// [name]. See ADR-0008 for the scope of this classification — it is
+  /// scanner-display only and must not drive command-surface behaviour.
+  RstDeviceType get deviceType => classifyDeviceType(name);
 
   // Adjusted thresholds based on real-world BLE testing:
   // -60 dBm at ~10cm, -80 dBm at ~1m

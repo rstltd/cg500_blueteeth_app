@@ -4,6 +4,7 @@ import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
 import '../../models/connection_state.dart' as model;
+import '../../services/device_type_classifier.dart';
 import '../common/animated_widgets.dart';
 
 /// A reusable widget for displaying BLE device list with animations.
@@ -266,9 +267,11 @@ class _DeviceListWidgetState extends State<DeviceListWidget> {
         ),
         child: Row(
           children: [
-            // Leading Bluetooth icon
+            // Leading device-type icon (per ADR-0008): GNSS / accelerometer /
+            // inclinometer get a type-specific icon; non-RST devices keep the
+            // historical bluetooth / bluetooth_connected swap.
             Icon(
-              isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
+              iconForDeviceType(device.deviceType, connected: isConnected),
               color: isConnected
                   ? AppColors.successColor(context)
                   : AppColors.infoColor(context),

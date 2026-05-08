@@ -114,5 +114,38 @@ void main() {
       );
       expect(find.byType(ConnectedDeviceCardWidget), findsOneWidget);
     });
+
+    testWidgets(
+      'shows satellite_alt icon for A01LT (GNSS) connected device',
+      (tester) async {
+        await pumpCard(
+          tester,
+          createTestDevice(name: 'A01LT00042', displayName: 'A01LT00042'),
+        );
+        expect(find.byIcon(Icons.satellite_alt), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'shows vibration icon for B01LT (accelerometer) connected device',
+      (tester) async {
+        await pumpCard(
+          tester,
+          createTestDevice(name: 'B01LT00042', displayName: 'B01LT00042'),
+        );
+        expect(find.byIcon(Icons.vibration), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'falls back to bluetooth_connected for non-RST connected device',
+      (tester) async {
+        await pumpCard(
+          tester,
+          createTestDevice(name: 'GenericBLE', displayName: 'GenericBLE'),
+        );
+        expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
+      },
+    );
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/services/device_type_classifier.dart';
 
 void main() {
   group('BleDeviceModel', () {
@@ -1062,6 +1063,44 @@ void main() {
         expect(toggled.rssi, -55);
         expect(toggled.connectionState, BleConnectionState.connected);
         expect(toggled.id, device.id);
+      });
+    });
+
+    group('deviceType (RST family classification)', () {
+      test('A01LT name resolves to GNSS', () {
+        const device = BleDeviceModel(
+          id: 'x',
+          name: 'A01LT00042',
+          displayName: 'A01LT00042',
+        );
+        expect(device.deviceType, RstDeviceType.gnss);
+      });
+
+      test('B01LT name resolves to accelerometer', () {
+        const device = BleDeviceModel(
+          id: 'x',
+          name: 'B01LT00042',
+          displayName: 'B01LT00042',
+        );
+        expect(device.deviceType, RstDeviceType.accelerometer);
+      });
+
+      test('non-matching name resolves to unknown', () {
+        const device = BleDeviceModel(
+          id: 'x',
+          name: 'Random BLE Speaker',
+          displayName: 'Random BLE Speaker',
+        );
+        expect(device.deviceType, RstDeviceType.unknown);
+      });
+
+      test('empty name resolves to unknown', () {
+        const device = BleDeviceModel(
+          id: 'x',
+          name: '',
+          displayName: 'Unknown Device',
+        );
+        expect(device.deviceType, RstDeviceType.unknown);
       });
     });
   });
