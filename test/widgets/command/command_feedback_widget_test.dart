@@ -132,8 +132,22 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byType(FadeTransition), findsOneWidget);
-      expect(find.byType(SlideTransition), findsOneWidget);
+      // Scoped to CommandFeedbackOverlay: MaterialApp's page route contributes
+      // framework FadeTransitions of its own above this subtree.
+      expect(
+        find.descendant(
+          of: find.byType(CommandFeedbackOverlay),
+          matching: find.byType(FadeTransition),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(CommandFeedbackOverlay),
+          matching: find.byType(SlideTransition),
+        ),
+        findsOneWidget,
+      );
 
       await tester.pumpAndSettle();
     });

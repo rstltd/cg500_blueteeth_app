@@ -278,7 +278,16 @@ void main() {
         ),
       );
 
-      expect(find.byType(FadeTransition), findsOneWidget);
+      // Scoped to the StatefulBuilder subtree: MaterialApp's own page route
+      // sits above it and contributes several framework FadeTransitions of its
+      // own, so an unscoped find.byType would count those too.
+      expect(
+        find.descendant(
+          of: find.byType(StatefulBuilder),
+          matching: find.byType(FadeTransition),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Test'), findsOneWidget);
 
       controller.dispose();
@@ -312,7 +321,13 @@ void main() {
         ),
       );
 
-      expect(find.byType(FadeTransition), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(StatefulBuilder),
+          matching: find.byType(FadeTransition),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Custom'), findsOneWidget);
 
       controller.dispose();
@@ -345,7 +360,13 @@ void main() {
         ),
       );
 
-      expect(find.byType(SlideTransition), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(StatefulBuilder),
+          matching: find.byType(SlideTransition),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Slide Test'), findsOneWidget);
 
       controller.dispose();
@@ -378,7 +399,13 @@ void main() {
         ),
       );
 
-      expect(find.byType(SlideTransition), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(StatefulBuilder),
+          matching: find.byType(SlideTransition),
+        ),
+        findsOneWidget,
+      );
 
       controller.dispose();
     });

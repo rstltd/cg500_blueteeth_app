@@ -205,8 +205,22 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(FadeTransition), findsOneWidget);
-      expect(find.byType(SlideTransition), findsOneWidget);
+      // Scoped to AnimatedListItem: MaterialApp's page route contributes
+      // framework FadeTransitions of its own above this subtree.
+      expect(
+        find.descendant(
+          of: find.byType(AnimatedListItem),
+          matching: find.byType(FadeTransition),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AnimatedListItem),
+          matching: find.byType(SlideTransition),
+        ),
+        findsOneWidget,
+      );
     });
   });
 
