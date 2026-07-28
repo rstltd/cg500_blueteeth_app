@@ -1,0 +1,22 @@
+# Normalise all text files to LF, both in the repository and in the working
+# tree. Without this the LF guarantee depends on every contributor's local
+# core.autocrlf setting, which is exactly the kind of per-machine assumption
+# that broke when this project moved from Windows to Linux.
+#
+# Verified 2026-07-28 with `git ls-files --eol`: all 312 tracked text files
+# were already i/lf w/lf (zero crlf, zero mixed), so this introduces no
+# renormalisation churn.
+* text=auto eol=lf
+
+# Binary assets - never touch line endings.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.ttf    binary
+*.otf    binary
+*.jar    binary
+*.apk    binary
+*.keystore binary
+*.jks    binary
