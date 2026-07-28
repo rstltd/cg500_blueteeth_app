@@ -43,19 +43,19 @@ gh repo view rstltd/cg500_blueteeth_app
 
 ```pwsh
 # 月度 stable release  (e.g. 26.05+31 -> 26.06+33)
-python scripts/simple_release.py release --notes-file release_notes.md --yes
+python3 scripts/simple_release.py release --notes-file release_notes.md --yes
 
 # 同月 hotfix          (e.g. 26.05+31 -> 26.05.1+32)
-python scripts/simple_release.py hotfix  --notes-file release_notes.md --yes
+python3 scripts/simple_release.py hotfix  --notes-file release_notes.md --yes
 
 # Beta pre-release     (e.g. 26.05+31 -> 26.06-beta.1+32)
-python scripts/simple_release.py beta    --notes-file release_notes.md --yes
+python3 scripts/simple_release.py beta    --notes-file release_notes.md --yes
 
 # Release candidate    (rarely used, only when feature-freeze step is wanted)
-python scripts/simple_release.py rc      --notes-file release_notes.md --yes
+python3 scripts/simple_release.py rc      --notes-file release_notes.md --yes
 
 # 僅 build number 升一級 (no version change)
-python scripts/simple_release.py build   --yes
+python3 scripts/simple_release.py build   --yes
 ```
 
 `--yes` 在非互動 shell（CI、Claude Code 的 Bash tool）必填，否則會卡在

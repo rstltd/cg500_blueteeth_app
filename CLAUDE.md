@@ -33,13 +33,13 @@ disagrees with `docs/VERSIONING.md`, the doc wins.
 The project uses **CalVer** (`vYY.0M[.MICRO][-beta.N]`, e.g. `v26.05`,
 `v26.05.1`, `v26.05-beta.1`) with two channels — `stable` and `beta`.
 
-- `python scripts/simple_release.py release` — monthly stable release (`26.05+31 → 26.06+33`)
-- `python scripts/simple_release.py hotfix`  — same-month hotfix (`26.05+31 → 26.05.1+32`)
-- `python scripts/simple_release.py beta`    — beta pre-release (`26.05+31 → 26.06-beta.1+32`)
-- `python scripts/simple_release.py rc`      — release candidate (rarely used)
-- `python scripts/simple_release.py build`   — build-number-only bump
-- `python scripts/update_version.py current` — show current version
-- `python scripts/update_version.py release|hotfix|beta|rc|build` — bump version without releasing
+- `python3 scripts/simple_release.py release` — monthly stable release (`26.05+31 → 26.06+33`)
+- `python3 scripts/simple_release.py hotfix`  — same-month hotfix (`26.05+31 → 26.05.1+32`)
+- `python3 scripts/simple_release.py beta`    — beta pre-release (`26.05+31 → 26.06-beta.1+32`)
+- `python3 scripts/simple_release.py rc`      — release candidate (rarely used)
+- `python3 scripts/simple_release.py build`   — build-number-only bump
+- `python3 scripts/update_version.py current` — show current version
+- `python3 scripts/update_version.py release|hotfix|beta|rc|build` — bump version without releasing
 
 ### Release Notes Workflow (IMPORTANT)
 **Before every release**, AI must generate a user-facing `release_notes.md` file in the project root summarizing all changes since the last release. This file is used by the release script via `--notes-file`.
@@ -49,7 +49,7 @@ The project uses **CalVer** (`vYY.0M[.MICRO][-beta.N]`, e.g. `v26.05`,
 2. Decide the mode (`release` / `hotfix` / `beta` / `rc`) using the rules in `docs/VERSIONING.md` §5.
 3. Write a clear, user-facing `release_notes.md` (in the project root) with sections like "New Features", "Improvements", "Bug Fixes" as appropriate. Write in English. Do not include commit hashes. Do not include the version number in the title — the release script supplies it.
 4. Show the content to the user for approval
-5. User runs: `python scripts/simple_release.py <mode> --notes-file release_notes.md`
+5. User runs: `python3 scripts/simple_release.py <mode> --notes-file release_notes.md`
 
 **AI must proactively do this whenever the user asks to release/publish/deploy** — do not wait for the user to ask for release notes separately. **Never edit `pubspec.yaml` by hand to change the version** — the release script is the only authorized writer.
 
@@ -478,7 +478,7 @@ RSSI thresholds optimized based on real-world BLE testing (-60 dBm at ~10cm, -80
 The application uses a complete GitHub Releases-based deployment system that eliminates the need for additional servers:
 
 #### Automated Release Process:
-- **One-command release**: `python scripts/simple_release.py release|hotfix|beta|rc` (see `docs/VERSIONING.md`)
+- **One-command release**: `python3 scripts/simple_release.py release|hotfix|beta|rc` (see `docs/VERSIONING.md`)
 - **Automatic version management**: Updates `pubspec.yaml` using CalVer (`vYY.0M[.MICRO][-beta.N]+BUILD`)
 - **APK building**: Clean Flutter release build with optimized size
 - **GitHub Release creation**: Automated release notes and APK upload; `beta`/`rc` modes mark the release as `prerelease=true`

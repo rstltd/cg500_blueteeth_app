@@ -71,13 +71,13 @@ authoritative spec.
 
 ```bash
 # Stable monthly release  (e.g. 26.05+31 → 26.06+33)
-python scripts/simple_release.py release --notes-file release_notes.md
+python3 scripts/simple_release.py release --notes-file release_notes.md
 
 # Same-month hotfix       (e.g. 26.05+31 → 26.05.1+32)
-python scripts/simple_release.py hotfix  --notes-file release_notes.md
+python3 scripts/simple_release.py hotfix  --notes-file release_notes.md
 
 # Beta pre-release        (e.g. 26.05+31 → 26.06-beta.1+32)
-python scripts/simple_release.py beta    --notes-file release_notes.md
+python3 scripts/simple_release.py beta    --notes-file release_notes.md
 ```
 
 See [GITHUB_DEPLOYMENT.md](GITHUB_DEPLOYMENT.md) for the GitHub CLI

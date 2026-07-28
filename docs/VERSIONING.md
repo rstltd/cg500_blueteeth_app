@@ -138,9 +138,9 @@ The script always increments the build number. Beta and RC modes pass
 ### Common command
 
 ```pwsh
-python scripts/simple_release.py release --notes-file release_notes.md --yes
-python scripts/simple_release.py hotfix  --notes-file release_notes.md --yes
-python scripts/simple_release.py beta    --notes-file release_notes.md --yes
+python3 scripts/simple_release.py release --notes-file release_notes.md --yes
+python3 scripts/simple_release.py hotfix  --notes-file release_notes.md --yes
+python3 scripts/simple_release.py beta    --notes-file release_notes.md --yes
 ```
 
 `--yes` skips the confirmation prompt and is required when running from
