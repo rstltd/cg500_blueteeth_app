@@ -203,43 +203,45 @@ class _UpdateChannelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final prefs = viewModel.preferences!;
 
-    return _SettingsSection(
-      title: AppStrings.updateChannel,
-      icon: Icons.alt_route,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            DesignTokens.spacingM,
-            DesignTokens.spacingS,
-            DesignTokens.spacingM,
-            0,
-          ),
-          child: Text(
-            AppStrings.updateChannelDesc,
-            style: AppTextStyles.bodySmall(context).copyWith(
-              color: AppColors.textSecondary(context),
+    // RadioListTile's own groupValue/onChanged were deprecated after Flutter
+    // v3.32.0 in favour of a RadioGroup ancestor. RadioGroup only wraps its
+    // child in Semantics / Shortcuts / FocusTraversalGroup, so putting it
+    // outside _SettingsSection keeps the Column layout untouched.
+    return RadioGroup<UpdateChannel>(
+      groupValue: prefs.updateChannel,
+      onChanged: (v) {
+        if (v != null) viewModel.setUpdateChannel(v);
+      },
+      child: _SettingsSection(
+        title: AppStrings.updateChannel,
+        icon: Icons.alt_route,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              DesignTokens.spacingM,
+              DesignTokens.spacingS,
+              DesignTokens.spacingM,
+              0,
+            ),
+            child: Text(
+              AppStrings.updateChannelDesc,
+              style: AppTextStyles.bodySmall(context).copyWith(
+                color: AppColors.textSecondary(context),
+              ),
             ),
           ),
-        ),
-        RadioListTile<UpdateChannel>(
-          title: const Text(AppStrings.updateChannelStable),
-          subtitle: const Text(AppStrings.updateChannelStableDesc),
-          value: UpdateChannel.stable,
-          groupValue: prefs.updateChannel,
-          onChanged: (v) {
-            if (v != null) viewModel.setUpdateChannel(v);
-          },
-        ),
-        RadioListTile<UpdateChannel>(
-          title: const Text(AppStrings.updateChannelBeta),
-          subtitle: const Text(AppStrings.updateChannelBetaDesc),
-          value: UpdateChannel.beta,
-          groupValue: prefs.updateChannel,
-          onChanged: (v) {
-            if (v != null) viewModel.setUpdateChannel(v);
-          },
-        ),
-      ],
+          RadioListTile<UpdateChannel>(
+            title: const Text(AppStrings.updateChannelStable),
+            subtitle: const Text(AppStrings.updateChannelStableDesc),
+            value: UpdateChannel.stable,
+          ),
+          RadioListTile<UpdateChannel>(
+            title: const Text(AppStrings.updateChannelBeta),
+            subtitle: const Text(AppStrings.updateChannelBetaDesc),
+            value: UpdateChannel.beta,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -262,7 +264,7 @@ class _DownloadSettingsCard extends StatelessWidget {
           subtitle: const Text(AppStrings.wifiOnlyDownloadDesc),
           value: prefs.wifiOnlyDownload,
           onChanged: viewModel.setWifiOnlyDownload,
-          activeColor: Colors.blue.shade600,
+          activeThumbColor: Colors.blue.shade600,
         ),
       ],
     );

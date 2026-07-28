@@ -52,7 +52,7 @@ class _DeveloperOptionsViewState extends State<DeveloperOptionsView> {
                       : AppStrings.developerModeDisabled,
                 ),
                 value: isDev,
-                activeColor: Colors.orange.shade700,
+                activeThumbColor: Colors.orange.shade700,
                 onChanged: (value) async {
                   if (value) {
                     await DevModePasswordDialog.show(context: context);

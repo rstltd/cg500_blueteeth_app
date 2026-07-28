@@ -31,7 +31,11 @@ linter:
     unnecessary_statements: true
     
     # Documentation and comments
-    package_api_docs: false  # Disabled for private app
+    # package_api_docs was removed in Dart 3.7.0 — leaving it here made
+    # `flutter analyze` emit a `removed_lint` warning. Note this alone does NOT
+    # unblock run_quality_checks() in scripts/simple_release.py: `flutter
+    # analyze` also exits non-zero on info-level issues (--fatal-infos defaults
+    # to on, unlike `dart analyze`), and 6 deprecated_member_use infos remain.
     public_member_api_docs: false
     
     # Error prevention
