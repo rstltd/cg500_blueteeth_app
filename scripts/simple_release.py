@@ -32,23 +32,25 @@ import subprocess
 import hashlib
 import argparse
 import re
+import shutil
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Force UTF-8 for stdout/stderr on Windows. Without this, printing captured
-# flutter / pub output that contains box-drawing or other non-ASCII characters
-# crashes with "'cp950' codec can't encode character" on Traditional Chinese
-# Windows builds. Mirrors the same fix in update_version.py.
-if sys.platform == 'win32':
-    try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[attr-defined]
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[attr-defined]
-    except AttributeError:
-        import codecs
-        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(), errors='replace')
-        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach(), errors='replace')
+# Force UTF-8 for stdout/stderr on every platform. On Traditional Chinese
+# Windows this avoids "'cp950' codec can't encode character" when printing
+# captured flutter / pub output containing box-drawing characters. On Linux the
+# same crash happens under a C/POSIX locale (minimal cron or systemd units),
+# because generate_release_notes() embeds raw git commit subjects and this
+# repo's history contains em dashes. Mirrors the same fix in update_version.py.
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[attr-defined]
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[attr-defined]
+except AttributeError:
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(), errors='replace')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach(), errors='replace')
 
 # --- Version parsing ---------------------------------------------------------
 
@@ -298,10 +300,23 @@ class SimpleReleaseManager:
     # --- Subprocess helpers ---
 
     def _run(self, cmd, **kwargs):
-        """Run subprocess with UTF-8 to avoid Windows cp950 errors."""
-        kwargs.setdefault('shell', True)
+        """Run subprocess with UTF-8 to avoid Windows cp950 errors.
+
+        Every caller passes an argv list, so `shell` must stay False. On POSIX,
+        subprocess.run(list, shell=True) executes only cmd[0] and demotes the
+        rest to $0/$1... of /bin/sh -- which turns `gh release create ...` into
+        a bare `gh` that prints its help banner and exits 0, i.e. a release that
+        reports success but never happened. shell=True was originally there so
+        Windows could resolve `flutter.bat`; shutil.which() honours PATHEXT and
+        returns that full path, which works fine with shell=False.
+        """
+        kwargs.setdefault('shell', False)
         kwargs.setdefault('encoding', 'utf-8')
         kwargs.setdefault('errors', 'replace')
+        if not kwargs['shell'] and isinstance(cmd, (list, tuple)) and cmd:
+            resolved = shutil.which(cmd[0])
+            if resolved:
+                cmd = [resolved, *cmd[1:]]
         return subprocess.run(cmd, **kwargs)
 
     # --- Quality gates ---
@@ -309,8 +324,13 @@ class SimpleReleaseManager:
     def run_quality_checks(self):
         os.chdir(self.project_root)
 
+        # --no-fatal-infos: `flutter analyze` (unlike `dart analyze`) exits
+        # non-zero for info-level issues too. Errors and warnings still block a
+        # release; style hints and deprecation notices should not.
         print("[INFO] Running flutter analyze...")
-        result = self._run(['flutter', 'analyze'], capture_output=True)
+        result = self._run(
+            ['flutter', 'analyze', '--no-fatal-infos'], capture_output=True
+        )
         if result.returncode != 0:
             print(result.stdout)
             print(result.stderr)
@@ -381,11 +401,12 @@ class SimpleReleaseManager:
         return checksum
 
     def _find_gh_command(self):
-        possible_paths = [
-            'gh',
-            'C:\\Program Files\\GitHub CLI\\gh.exe',
-            'C:\\Program Files (x86)\\GitHub CLI\\gh.exe',
-        ]
+        possible_paths = ['gh']
+        if sys.platform == 'win32':
+            possible_paths += [
+                'C:\\Program Files\\GitHub CLI\\gh.exe',
+                'C:\\Program Files (x86)\\GitHub CLI\\gh.exe',
+            ]
         for gh_path in possible_paths:
             try:
                 self._run([gh_path, '--version'], capture_output=True, check=True)
@@ -632,11 +653,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python simple_release.py release --notes-file release_notes.md
-  python simple_release.py hotfix  --notes-file release_notes.md
-  python simple_release.py beta    --notes-file release_notes.md
-  python simple_release.py rc      --notes-file release_notes.md --yes
-  python simple_release.py build                                # build-number bump only
+  python3 simple_release.py release --notes-file release_notes.md
+  python3 simple_release.py hotfix  --notes-file release_notes.md
+  python3 simple_release.py beta    --notes-file release_notes.md
+  python3 simple_release.py rc      --notes-file release_notes.md --yes
+  python3 simple_release.py build                                # build-number bump only
 
 Versioning policy: docs/VERSIONING.md
         """,

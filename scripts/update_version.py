@@ -7,13 +7,13 @@ Bumps `pubspec.yaml` to the next version without building or releasing.
 Versioning policy is documented in docs/VERSIONING.md.
 
 Usage:
-  python update_version.py current                   # Show current version
-  python update_version.py release                   # Bump to next stable (e.g. 26.05+31 -> 26.06+32)
-  python update_version.py hotfix                    # Bump to next hotfix (e.g. 26.05+31 -> 26.05.1+32)
-  python update_version.py beta                      # Bump to next beta
-  python update_version.py rc                        # Bump to next release candidate
-  python update_version.py build                     # Bump build number only
-  python update_version.py set <version>             # Set explicit version (e.g. 26.05.1+32)
+  python3 update_version.py current                   # Show current version
+  python3 update_version.py release                   # Bump to next stable (e.g. 26.05+31 -> 26.06+32)
+  python3 update_version.py hotfix                    # Bump to next hotfix (e.g. 26.05+31 -> 26.05.1+32)
+  python3 update_version.py beta                      # Bump to next beta
+  python3 update_version.py rc                        # Bump to next release candidate
+  python3 update_version.py build                     # Bump build number only
+  python3 update_version.py set <version>             # Set explicit version (e.g. 26.05.1+32)
 """
 
 import sys
@@ -24,10 +24,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from simple_release import Version, next_version  # noqa: E402
 
-if sys.platform == 'win32':
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
+# NOTE: no stdout/stderr UTF-8 setup here on purpose. Importing simple_release
+# above already reconfigures both streams to UTF-8 with errors='replace' on
+# every platform; repeating it here would detach an already-reconfigured stream.
 
 
 def get_pubspec_path() -> Path:
@@ -95,7 +94,7 @@ def main():
                 update_version_in_pubspec(new_version)
                 print("\n[INFO] Next steps:")
                 print(f"  1. git add pubspec.yaml && git commit -m 'Bump version to {new_version.to_pubspec()}'")
-                print(f"  2. python scripts/simple_release.py {command} --notes-file release_notes.md")
+                print(f"  2. python3 scripts/simple_release.py {command} --notes-file release_notes.md")
                 print("     (Or use simple_release.py directly — it bumps and releases in one go.)")
             else:
                 print("[CANCELLED] Version update cancelled")
@@ -103,7 +102,7 @@ def main():
 
         if command == 'set':
             if len(sys.argv) < 3:
-                print("[ERROR] Specify version: python update_version.py set 26.05.1+32")
+                print("[ERROR] Specify version: python3 update_version.py set 26.05.1+32")
                 sys.exit(1)
             new_version = Version.parse(sys.argv[2])
             current = read_current_version()
