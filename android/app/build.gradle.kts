@@ -37,6 +37,19 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    packaging {
+        jniLibs {
+            // AGP 8.x stores .so files uncompressed by default: better on-device
+            // footprint and startup, at the cost of a much larger APK. That
+            // trade-off assumes Play Store delivery, which re-compresses for
+            // transport. This app ships the APK directly through its own in-app
+            // OTA updater, and field crews may update over mobile data, so the
+            // download size is what matters. Measured on Flutter 3.44.8:
+            // 54.4 MB uncompressed vs 24.0 MB compressed, identical contents.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 flutter {
