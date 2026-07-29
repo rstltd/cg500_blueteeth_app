@@ -238,7 +238,7 @@ class CommandParameter {
 
     switch (type) {
       case ParameterType.text:
-        return null; // Text accepts any value
+        return _validateText(value);
 
       case ParameterType.ipPort:
         return _validateIpPort(value);
@@ -258,6 +258,17 @@ class CommandParameter {
       case ParameterType.dropdown:
         return _validateDropdown(value);
     }
+  }
+
+  /// Validates a text value. The device protocol is comma-delimited (e.g.
+  /// `$APN,internet`), so a comma inside a single text parameter would split
+  /// into extra protocol fields once joined; CR/LF would split the command
+  /// itself.
+  String? _validateText(String value) {
+    if (value.contains(',') || value.contains('\r') || value.contains('\n')) {
+      return AppStrings.textParameterContainsDelimiter;
+    }
+    return null;
   }
 
   String? _validateIpPort(String value) {

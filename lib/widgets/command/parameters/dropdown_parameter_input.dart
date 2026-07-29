@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../design/design_system.dart';
+import '../../../l10n/app_strings.dart';
 import '../../../models/command/command_parameter.dart';
 
 /// A dropdown widget for selecting from predefined options.
@@ -16,12 +17,25 @@ class DropdownParameterInput extends StatefulWidget {
   /// Whether the input is enabled.
   final bool enabled;
 
+  /// When [initialValue] is non-empty but doesn't match any option, whether
+  /// to leave the selection empty (with a warning hint) instead of silently
+  /// falling back to the first option.
+  ///
+  /// Defaults to false so existing callers (e.g. `command_form_sheet.dart`,
+  /// where `initialValue` may just be an unset saved/default value) keep
+  /// their current "select the first option" behavior. Callers that prefill
+  /// from a real device-reported value — where highlighting an option the
+  /// device did not actually report would mislead the user — should pass
+  /// true.
+  final bool warnOnUnmatchedInitialValue;
+
   const DropdownParameterInput({
     super.key,
     required this.parameter,
     required this.onChanged,
     this.initialValue,
     this.enabled = true,
+    this.warnOnUnmatchedInitialValue = false,
   });
 
   @override
@@ -30,6 +44,11 @@ class DropdownParameterInput extends StatefulWidget {
 
 class _DropdownParameterInputState extends State<DropdownParameterInput> {
   late String? _selectedValue;
+
+  /// True when [widget.warnOnUnmatchedInitialValue] is set and the
+  /// device-reported [widget.initialValue] didn't match any option — used to
+  /// render the "value not in list" hint instead of highlighting a guess.
+  bool _initialValueUnmatched = false;
 
   List<DropdownOption> get _options => widget.parameter.dropdownOptions ?? [];
 
@@ -44,6 +63,12 @@ class _DropdownParameterInputState extends State<DropdownParameterInput> {
     if (value != null && _options.any((o) => o.value == value)) {
       return value;
     }
+
+    if (widget.warnOnUnmatchedInitialValue && value != null && value.isNotEmpty) {
+      _initialValueUnmatched = true;
+      return null;
+    }
+
     // Default to first option if available
     return _options.isNotEmpty ? _options.first.value : null;
   }
@@ -132,6 +157,42 @@ class _DropdownParameterInputState extends State<DropdownParameterInput> {
                     style: TextStyle(
                       fontSize: DesignTokens.fontS,
                       color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Warning: device-reported value doesn't match any option
+        if (_initialValueUnmatched) ...[
+          SizedBox(height: DesignTokens.spacingS),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingM,
+              vertical: DesignTokens.spacingSM,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.errorContainer.withValues(alpha: 0.3),
+              borderRadius: DesignTokens.borderRadiusS,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: DesignTokens.iconS,
+                  color: colorScheme.error,
+                ),
+                SizedBox(width: DesignTokens.spacingS),
+                Expanded(
+                  child: Text(
+                    AppStrings.dropdownUnmatchedValueWarning(
+                      widget.initialValue ?? '',
+                    ),
+                    style: TextStyle(
+                      fontSize: DesignTokens.fontS,
+                      color: colorScheme.error,
                     ),
                   ),
                 ),

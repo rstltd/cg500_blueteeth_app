@@ -153,6 +153,28 @@ void main() {
           expect(param.validate('123'), isNull);
           expect(param.validate('a'), isNull);
         });
+
+        test('rejects values containing a comma', () {
+          final param = CommandParameter.text(id: 'test', label: 'Test');
+
+          expect(
+            param.validate('foo,bar'),
+            AppStrings.textParameterContainsDelimiter,
+          );
+        });
+
+        test('rejects values containing CR or LF', () {
+          final param = CommandParameter.text(id: 'test', label: 'Test');
+
+          expect(
+            param.validate('foo\rbar'),
+            AppStrings.textParameterContainsDelimiter,
+          );
+          expect(
+            param.validate('foo\nbar'),
+            AppStrings.textParameterContainsDelimiter,
+          );
+        });
       });
 
       group('IP:Port validation', () {

@@ -97,29 +97,46 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.quickSetup),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        leading: _viewModel.phase == WizardPhase.executing
-            ? null // prevent back during execution
-            : IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-        actions: [
-          // The wizard is full-screen, so it hides the connection status the
-          // views underneath show. Without this an operator can fill in all
-          // four steps without ever learning the device dropped.
-          ConnectionStatusWidget(
-            controller: widget.controller,
-            compact: true,
-            showDeviceInfo: false,
+    final isExecuting = _viewModel.phase == WizardPhase.executing;
+
+    // Hiding the AppBar close button is not enough: the Android system back
+    // gesture would pop the wizard while executeChanges() keeps writing the
+    // remaining settings to the device, so the operator believes they
+    // cancelled while the device is still being reconfigured.
+    return PopScope(
+      canPop: !isExecuting,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(AppStrings.cannotLeaveWhileExecuting),
           ),
-          SizedBox(width: DesignTokens.spacingM),
-        ],
+        );
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.quickSetup),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          leading: isExecuting
+              ? null // prevent back during execution
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+          actions: [
+            // The wizard is full-screen, so it hides the connection status the
+            // views underneath show. Without this an operator can fill in all
+            // four steps without ever learning the device dropped.
+            ConnectionStatusWidget(
+              controller: widget.controller,
+              compact: true,
+              showDeviceInfo: false,
+            ),
+            SizedBox(width: DesignTokens.spacingM),
+          ],
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 

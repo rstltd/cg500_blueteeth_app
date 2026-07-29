@@ -176,6 +176,12 @@ class QuickSetupViewModel extends BaseViewModel {
     safeNotifyListeners();
 
     for (var i = 0; i < _pendingCommands.length; i++) {
+      // The wizard can be torn down mid-run. PopScope blocks the ordinary
+      // exits, but a route removed from above still disposes us, and the
+      // user has every reason to believe they left. Stop writing settings
+      // into the device rather than finish a sequence nobody is watching.
+      if (isDisposed) return;
+
       _executingIndex = i;
       safeNotifyListeners();
 
@@ -196,6 +202,11 @@ class QuickSetupViewModel extends BaseViewModel {
       // Small delay between commands so the device can process
       await Future.delayed(const Duration(milliseconds: 500));
     }
+
+    // Same reasoning as the in-loop guard: the last command may have been
+    // sent just as the wizard went away, and there is nobody left to read
+    // the refreshed values.
+    if (isDisposed) return;
 
     // All commands sent — now fetch updated info
     _executingIndex = _pendingCommands.length; // visual: past the last one
