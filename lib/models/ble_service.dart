@@ -17,7 +17,7 @@ class BleServiceModel {
   factory BleServiceModel.fromBluetoothService(BluetoothService service) {
     return BleServiceModel(
       uuid: service.uuid.toString(),
-      displayName: _getServiceName(service.uuid.toString()),
+      displayName: serviceNameFor(service.uuid),
       characteristics: service.characteristics
           .map((char) => BleCharacteristicModel.fromBluetoothCharacteristic(char))
           .toList(),
@@ -58,7 +58,13 @@ class BleServiceModel {
   List<BleCharacteristicModel> get notifiableCharacteristics =>
       characteristics.where((char) => char.canNotify).toList();
 
-  static String _getServiceName(String uuid) {
+  /// Resolves a service UUID to a human-readable name.
+  ///
+  /// Public so it can be unit-tested directly: a real [BluetoothService] can
+  /// only be built from `BmBluetoothService`, which flutter_blue_plus does not
+  /// re-export, so the factory above is not reachable from a test. This method
+  /// had no coverage at all, which is how the UUID-form bug below shipped.
+  static String serviceNameFor(Guid uuid) {
     final Map<String, String> knownServices = {
       '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
       '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
@@ -67,17 +73,18 @@ class BleServiceModel {
       '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
       '00001809-0000-1000-8000-00805f9b34fb': 'Health Thermometer',
       '0000181a-0000-1000-8000-00805f9b34fb': 'Environmental Sensing',
+      '6e400001-b5a3-f393-e0a9-e50e24dcca9e': 'Nordic UART Service',
     };
 
-    return knownServices[uuid.toLowerCase()] ?? 
-           'Service ${_safeSubstring(uuid, 4, 8).toUpperCase()}';
-  }
-
-  static String _safeSubstring(String str, int start, int end) {
-    if (start >= str.length) return '';
-    if (end > str.length) end = str.length;
-    if (start >= end) return '';
-    return str.substring(start, end);
+    // Look up by str128, not toString(). Guid.toString() returns the SHORTEST
+    // form, so every standard SIG service collapses to its 16-bit form ('1800')
+    // and misses this 128-bit-keyed map. str128 always normalises to the full
+    // lowercase form, so the lookup matches whichever form the platform
+    // reported. Falling back to the raw UUID keeps unknown services
+    // identifiable -- the previous substring fallback produced a bare
+    // 'Service ' for short-form UUIDs and a meaningless mid-UUID slice
+    // ('Service 0001') for long ones.
+    return knownServices[uuid.str128] ?? 'Service (${uuid.str})';
   }
 
   @override

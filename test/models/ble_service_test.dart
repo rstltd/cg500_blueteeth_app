@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/models/ble_service.dart';
 import 'package:cg500_blueteeth_app/models/ble_characteristic.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' show Guid;
 
 void main() {
   group('BleServiceModel', () {
@@ -950,4 +951,39 @@ void main() {
       });
     });
   });
+
+  group('BleServiceModel.serviceNameFor', () {
+    // Regression cover for F-009. flutter_blue_plus reports SIG services in
+    // their SHORTEST form, so these arrive as Guid('1800'), not as the 128-bit
+    // string the lookup table is keyed by.
+    test('resolves a short-form SIG uuid', () {
+      expect(BleServiceModel.serviceNameFor(Guid('1800')), 'Generic Access');
+      expect(BleServiceModel.serviceNameFor(Guid('1801')), 'Generic Attribute');
+      expect(BleServiceModel.serviceNameFor(Guid('180a')), 'Device Information');
+    });
+
+    test('resolves the long form of the same uuid identically', () {
+      expect(
+        BleServiceModel.serviceNameFor(Guid('00001800-0000-1000-8000-00805f9b34fb')),
+        'Generic Access',
+      );
+    });
+
+    test('resolves the Nordic UART Service this app speaks', () {
+      expect(
+        BleServiceModel.serviceNameFor(Guid('6e400001-b5a3-f393-e0a9-e50e24dcca9e')),
+        'Nordic UART Service',
+      );
+    });
+
+    test('falls back to the raw uuid, never a bare "Service"', () {
+      final name = BleServiceModel.serviceNameFor(
+        Guid('12345678-1234-1234-1234-123456789abc'),
+      );
+      expect(name, contains('12345678-1234-1234-1234-123456789abc'));
+      expect(name, isNot('Service'));
+      expect(name.trim(), isNot('Service'));
+    });
+  });
+
 }
