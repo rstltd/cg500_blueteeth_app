@@ -128,8 +128,8 @@ class CommandParameter {
       defaultValue: defaultValue,
       required: required,
       options: {
-        if (min != null) 'min': min,
-        if (max != null) 'max': max,
+        'min': ?min,
+        'max': ?max,
       },
     );
   }

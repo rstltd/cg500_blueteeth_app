@@ -236,7 +236,7 @@ void main() {
                       onPressed: viewModel.increment,
                       child: const Text('Increment'),
                     ),
-                    if (child != null) child,
+                    ?child,
                   ],
                 );
               },
