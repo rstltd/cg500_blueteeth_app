@@ -157,6 +157,7 @@ class _CopyButtonState extends State<_CopyButton> {
 
   void _copyToClipboard() async {
     await Clipboard.setData(ClipboardData(text: widget.text));
+    if (!mounted) return;
     setState(() {
       _copied = true;
     });

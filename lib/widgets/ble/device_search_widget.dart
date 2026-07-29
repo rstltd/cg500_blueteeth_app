@@ -70,7 +70,9 @@ class _DeviceSearchWidgetState extends State<DeviceSearchWidget>
       _animationController.forward();
       // Request focus after animation starts
       Future.delayed(const Duration(milliseconds: 100), () {
-        _focusNode.requestFocus();
+        if (mounted) {
+          _focusNode.requestFocus();
+        }
       });
     } else {
       _animationController.reverse();
