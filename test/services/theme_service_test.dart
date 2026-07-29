@@ -92,11 +92,6 @@ void main() {
       test('currentThemeMode should be system by default', () {
         expect(themeService.currentThemeMode, AppThemeMode.system);
       });
-
-      test('systemIsDarkMode should return a boolean value', () {
-        // systemIsDarkMode reflects the platform's dark mode setting
-        expect(themeService.systemIsDarkMode, isA<bool>());
-      });
     });
 
     group('setThemeMode', () {
@@ -242,18 +237,6 @@ void main() {
       test('should have specific scaffold background color', () {
         final theme = ThemeService.darkTheme;
         expect(theme.scaffoldBackgroundColor, const Color(0xFF121212));
-      });
-    });
-
-    group('isDarkMode', () {
-      test('should be false when theme is light', () {
-        themeService.setThemeMode(AppThemeMode.light);
-        expect(themeService.isDarkMode, false);
-      });
-
-      test('should be true when theme is dark', () {
-        themeService.setThemeMode(AppThemeMode.dark);
-        expect(themeService.isDarkMode, true);
       });
     });
   });

@@ -83,7 +83,7 @@ The app is a comprehensive Bluetooth Low Energy (BLE GATT) scanner and communica
 - **Nordic UART Service Communication**: Text command communication via standardized BLE UART protocol
 - **Modern Responsive UI**: Material Design 3 with dark/light themes and responsive layouts for mobile/tablet/desktop
 - **Advanced Update Management**: User-controlled update preferences with network awareness and retry mechanisms
-- **Smart Notification System**: Unified notification control with ConfigurableBleNotificationDelegate for source-level filtering
+- **Smart Notification System**: `BleNotificationDelegate` filters BLE-originated notifications at the source; verbosity is fixed at `minimal` (errors only) — deciding what's worth a SnackBar is a developer call, not a user setting (see commit `5fc6aee`)
 - **BLE Device Scanning**: Automatic discovery with animated scanning indicators and signal strength visualization
 - **Chat-Style Command Interface**: Real-time bidirectional communication with command history and message bubbles
 - **Connection Management**: Visual connection states with duration tracking and automatic reconnection
@@ -142,9 +142,8 @@ The application follows an MVC (Model-View-Controller) architecture enhanced wit
 - **`permission_service.dart`** - Bluetooth and location permission management
 - **`network_service.dart`** - Network connectivity monitoring (`connectivity_plus`)
 - **`error_handling_service.dart`** - Comprehensive error categorization and user feedback
-- **`theme_service.dart`** - Dark/light theme management with persistence
+- **`theme_service.dart`** - Dark/light theme management, in-memory only; defaults to following the OS theme, and a manual override lasts only for the current session
 - **`animation_service.dart`** - Page transitions and custom animation effects
-- **`layout_preference_service.dart`** - Persists user layout/density choices
 - **`role_service.dart`** - Role lifecycle (normal / developer) + password hashing; broadcasts via `roleStream`
 - **`custom_command_service.dart`** - Persists user-defined BLE commands (SharedPreferences, JSON)
 - **`command_parameter_storage_service.dart`** - Persists last-used command parameter values
@@ -166,7 +165,7 @@ The application follows an MVC (Model-View-Controller) architecture enhanced wit
 - **`service_locator.dart`** - GetIt-based dependency injection container
 - **`view_model/`** - ViewModelProvider pattern implementation (see ViewModelProvider Guide below)
 - **`mixins/notification_listener_mixin.dart`** - Simplified mixin for displaying SnackBar notifications
-- **`interfaces/ble_notification_delegate.dart`** - Notification delegate interface with `BleNotificationVerbosity` enum and `ConfigurableBleNotificationDelegate`
+- **`interfaces/ble_notification_delegate.dart`** - Notification delegate interface with `BleNotificationVerbosity` enum and `BleNotificationDelegate` (the `verbosity` is fixed at `minimal` in production; there is no user-facing setting for it)
 
 #### 5. **ViewModels Layer** (`lib/view_models/`)
 - **`simple_scanner_view_model.dart`** - ViewModel for BLE scanner with device/theme/update management
@@ -427,17 +426,15 @@ The codebase follows strict single responsibility principles with highly modular
 ### Responsive Design System
 - **Breakpoints**: Mobile (<600px), Tablet (600-1024px), Desktop (>1024px)
 - **Adaptive Layouts**: Different UI arrangements for each screen size
-- **Theme System**: Persistent dark/light mode with comprehensive color palette
+- **Theme System**: In-memory dark/light mode (follows the OS theme by default; a manual override lasts only for the current session) with comprehensive color palette
 - **Animation Framework**: Smooth transitions, scanning effects, and micro-interactions
 
 ### Smart Notification System
-- **Unified Notification Control**: Single "Notification Level" setting for simplified user experience
-- **ConfigurableBleNotificationDelegate**: Runtime-configurable notification filtering at source level
-- **Four Verbosity Levels**:
-  - `Errors Only` (minimal) - Only show error notifications (recommended)
-  - `Errors & Warnings` (normal) - Show errors and warnings
-  - `All Details` (verbose) - Show all notifications including info and success
-  - `Silent` - Don't generate any notifications
+- **Fixed Verbosity**: `BleNotificationDelegate` supports four `BleNotificationVerbosity` levels
+  (`verbose` / `normal` / `minimal` / `silent`) as an API, but there is no user-facing setting to
+  choose one — production is wired to `minimal` (errors only) always. This was a deliberate
+  removal (commit `5fc6aee`): deciding which BLE events are worth interrupting the user is a
+  developer call, and exposing it as a setting only confused field engineers.
 - **Intelligent Filtering**: Prevents notification spam through debouncing and deduplication
 - **Statistics**: Track filtered vs shown notifications for optimization
 - **Silent Operations**: Internal processes (MTU config, etc.) don't spam users

@@ -14,9 +14,6 @@ enum BleNotificationVerbosity {
   silent,
 }
 
-/// SharedPreferences key for BLE notification verbosity
-const String bleNotificationVerbosityKey = 'ble_notification_verbosity';
-
 /// BLE event types for notification handling.
 /// Each event has properties that determine when it should be shown.
 enum BleEvent {

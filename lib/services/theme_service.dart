@@ -1,7 +1,6 @@
 import 'dart:async';
 import '../l10n/app_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 // Re-export AppColors for backward compatibility
 // New code should import from '../utils/app_colors.dart' directly
@@ -19,66 +18,24 @@ enum AppThemeMode {
 /// for production use.
 class ThemeService {
   /// Default constructor for dependency injection via service locator.
-  ThemeService()
-      : _themeModeController = StreamController<AppThemeMode>.broadcast(),
-        _isDarkModeController = StreamController<bool>.broadcast();
+  ThemeService() : _themeModeController = StreamController<AppThemeMode>.broadcast();
 
   /// Named constructor for testing that creates a fresh instance.
-  ThemeService.forTesting()
-      : _themeModeController = StreamController<AppThemeMode>.broadcast(),
-        _isDarkModeController = StreamController<bool>.broadcast();
+  ThemeService.forTesting() : _themeModeController = StreamController<AppThemeMode>.broadcast();
 
   final StreamController<AppThemeMode> _themeModeController;
-  final StreamController<bool> _isDarkModeController;
 
   Stream<AppThemeMode> get themeModeStream => _themeModeController.stream;
-  Stream<bool> get isDarkModeStream => _isDarkModeController.stream;
 
   AppThemeMode _currentThemeMode = AppThemeMode.system;
-  bool _isDarkMode = false;
-  bool _systemIsDarkMode = false;
 
   AppThemeMode get currentThemeMode => _currentThemeMode;
-  bool get isDarkMode => _isDarkMode;
-  bool get systemIsDarkMode => _systemIsDarkMode;
 
-  void initialize() {
-    _updateSystemTheme();
-    _updateEffectiveTheme();
-  }
-
-  void _updateSystemTheme() {
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    _systemIsDarkMode = brightness == Brightness.dark;
-    _updateEffectiveTheme();
-  }
-
-  void _updateEffectiveTheme() {
-    bool newIsDarkMode;
-    
-    switch (_currentThemeMode) {
-      case AppThemeMode.light:
-        newIsDarkMode = false;
-        break;
-      case AppThemeMode.dark:
-        newIsDarkMode = true;
-        break;
-      case AppThemeMode.system:
-        newIsDarkMode = _systemIsDarkMode;
-        break;
-    }
-
-    if (_isDarkMode != newIsDarkMode) {
-      _isDarkMode = newIsDarkMode;
-      _isDarkModeController.add(_isDarkMode);
-      _updateSystemUIOverlay();
-    }
-  }
+  void initialize() {}
 
   void setThemeMode(AppThemeMode themeMode) {
     _currentThemeMode = themeMode;
     _themeModeController.add(_currentThemeMode);
-    _updateEffectiveTheme();
   }
 
   void toggleTheme() {
@@ -93,18 +50,6 @@ class ThemeService {
         setThemeMode(AppThemeMode.light);
         break;
     }
-  }
-
-  void _updateSystemUIOverlay() {
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: _isDarkMode ? Brightness.light : Brightness.dark,
-        statusBarBrightness: _isDarkMode ? Brightness.dark : Brightness.light,
-        systemNavigationBarColor: _isDarkMode ? const Color(0xFF212121) : Colors.white,
-        systemNavigationBarIconBrightness: _isDarkMode ? Brightness.light : Brightness.dark,
-      ),
-    );
   }
 
   // Light Theme
@@ -157,6 +102,5 @@ class ThemeService {
 
   void dispose() {
     _themeModeController.close();
-    _isDarkModeController.close();
   }
 }

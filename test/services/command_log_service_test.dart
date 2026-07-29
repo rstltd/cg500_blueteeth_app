@@ -132,4 +132,57 @@ void main() {
           log.messages.last.text, 'cmd ${CommandLogService.maxMessages + 9}');
     });
   });
+
+  group('CommandLogService response dedup', () {
+    MessageData response(String text) =>
+        MessageData(text: text, isCommand: false, timestamp: DateTime.now());
+
+    test('drops an identical response inside the dedup window', () {
+      log.add(response('OK'));
+      log.add(response('OK'));
+      expect(log.messages, hasLength(1));
+    });
+
+    test('keeps an identical response once the window has passed', () async {
+      log.add(response('OK'));
+      await Future<void>.delayed(
+          CommandLogService.responseDedupWindow + const Duration(milliseconds: 10));
+      log.add(response('OK'));
+      expect(log.messages, hasLength(2));
+    });
+
+    test('keeps back-to-back responses whose text differs', () {
+      log.add(response('OK'));
+      log.add(response('ERROR'));
+      expect(log.messages.map((m) => m.text), ['OK', 'ERROR']);
+    });
+
+    // Commands are deliberately exempt: sending the same command twice is a
+    // real user action both times, and collapsing them would hide the fact
+    // that the device was addressed twice.
+    test('never dedups commands, however fast they repeat', () {
+      log.add(command(r'$INFO'));
+      log.add(command(r'$INFO'));
+      expect(log.messages, hasLength(2));
+    });
+
+    // Documents the known trade-off recorded in CommandLogService: lines
+    // drained from one BLE chunk are emitted 0ms apart, so two genuinely
+    // repeated device lines in the same batch are indistinguishable from a
+    // double-emit and get merged. If this test ever needs to change, the
+    // dedup has to move to sequence numbers rather than a time window.
+    test('merges genuine repeats that arrive in the same drain batch', () {
+      log.add(response('SATS:07'));
+      log.add(response('SATS:07'));
+      expect(log.messages, hasLength(1),
+          reason: 'known limitation: a time window cannot separate a real '
+              'repeat from a double-emit within the same tick');
+    });
+
+    test('a response identical to the preceding command is still recorded', () {
+      log.add(command('PING'));
+      log.add(response('PING'));
+      expect(log.messages, hasLength(2));
+    });
+  });
 }

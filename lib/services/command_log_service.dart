@@ -69,11 +69,20 @@ class CommandLogService {
 
   // Defense-in-depth dedup state: suppress near-simultaneous identical
   // response messages, which would otherwise slip through if any upstream
-  // layer (e.g. an orphaned BLE subscription) double-emits. The window is
-  // tight so legitimate repeats stay visible.
+  // layer (e.g. an orphaned BLE subscription) double-emits.
+  //
+  // Known trade-off: `BleMessageAssembler._drainCompleteLines()` is a
+  // synchronous while-loop, so every complete line in the same BLE chunk is
+  // emitted within the same event-loop tick (0ms apart). That means two
+  // genuinely-repeated response lines arriving in the *same* assembler drain
+  // batch are indistinguishable from a double-emit here and get merged into
+  // one — this window cannot tell them apart by time alone. We accept that
+  // cost to keep double-emits from an orphaned subscription out of the log;
+  // if faithful line-by-line recording ever becomes a requirement, this
+  // needs a sequence-number-based dedup instead of a time window.
   MessageData? _lastResponseMessage;
   DateTime? _lastResponseAt;
-  static const Duration _responseDedupWindow = Duration(milliseconds: 50);
+  static const Duration responseDedupWindow = Duration(milliseconds: 50);
 
   /// Every message currently in the log, oldest first.
   List<MessageData> get messages => List.unmodifiable(_messages);
@@ -90,7 +99,7 @@ class CommandLogService {
         _lastResponseMessage != null &&
         _lastResponseAt != null &&
         _lastResponseMessage!.text == message.text &&
-        DateTime.now().difference(_lastResponseAt!) < _responseDedupWindow) {
+        DateTime.now().difference(_lastResponseAt!) < responseDedupWindow) {
       Logger.diagnostic(
         '[DEDUP] Suppressed near-simultaneous duplicate response: ${message.text}',
       );
