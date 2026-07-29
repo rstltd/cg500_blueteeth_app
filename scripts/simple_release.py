@@ -33,6 +33,7 @@ import hashlib
 import argparse
 import re
 import shutil
+import tempfile
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
@@ -504,27 +505,85 @@ class SimpleReleaseManager:
             release_notes = self.generate_release_notes(version, sha256_checksum, apk_size_mb)
 
         title_suffix = ' (pre-release)' if version.is_prerelease else ''
-        # `--verify-tag` tells gh to use the already-pushed remote tag instead
-        # of creating a new one. Without this, gh creates the tag against the
-        # default branch's *remote* HEAD, which may lag the just-pushed version
-        # bump (and produce a tag pointing at the wrong commit).
-        cmd = [
-            gh_cmd, 'release', 'create', tag,
-            str(apk_path),
-            '--title', f"CG500 BLE App {tag}{title_suffix}",
-            '--notes', release_notes,
-            '--verify-tag',
-        ]
-        if version.is_prerelease:
-            cmd.append('--prerelease')
 
-        result = self._run(cmd, cwd=self.project_root, capture_output=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"GitHub release failed: {result.stderr}")
+        # Hand the notes to gh as a FILE, never as an argument. Multi-line
+        # markdown on a command line is fragile in ways that fail silently and
+        # only on the publishing step, where nobody is watching:
+        #   - a shell splits on the first newline, so the release ships with
+        #     only the first line of the notes (this is what happened to
+        #     v26.05, whose entire body on GitHub reads "# Release Notes")
+        #   - Windows caps a command line at ~8191 characters
+        #   - cmd.exe eats % and ! through variable expansion
+        # --notes-file sidesteps all three. Written UTF-8 with LF endings so
+        # the rendered markdown matches the source file on every platform.
+        notes_file = tempfile.NamedTemporaryFile(
+            mode='w', encoding='utf-8', newline='\n',
+            suffix='.md', prefix='release-notes-', delete=False,
+        )
+        try:
+            notes_file.write(release_notes)
+            notes_file.close()
+
+            # `--verify-tag` tells gh to use the already-pushed remote tag
+            # instead of creating a new one. Without this, gh creates the tag
+            # against the default branch's *remote* HEAD, which may lag the
+            # just-pushed version bump (and produce a tag pointing at the
+            # wrong commit).
+            cmd = [
+                gh_cmd, 'release', 'create', tag,
+                str(apk_path),
+                '--title', f"CG500 BLE App {tag}{title_suffix}",
+                '--notes-file', notes_file.name,
+                '--verify-tag',
+            ]
+            if version.is_prerelease:
+                cmd.append('--prerelease')
+
+            result = self._run(cmd, cwd=self.project_root, capture_output=True)
+            if result.returncode != 0:
+                raise RuntimeError(f"GitHub release failed: {result.stderr}")
+        finally:
+            os.unlink(notes_file.name)
+
+        # Read the published body back and compare. A release whose notes were
+        # silently truncated still exits 0, and the only place that shows up is
+        # the in-app updater weeks later.
+        self._verify_published_notes(gh_cmd, tag, release_notes)
 
         print(f"[OK] GitHub release created: {tag}")
         print(f"[INFO] Release URL: https://github.com/rstltd/cg500_blueteeth_app/releases/tag/{tag}")
         return tag
+
+    def _verify_published_notes(self, gh_cmd: str, tag: str, expected: str):
+        """Read the published release body back and compare it with what we sent.
+
+        Truncated notes are the failure mode that matters here: `gh` still exits
+        0, the script still prints success, and the loss only becomes visible in
+        the in-app updater — which reads exactly this body — long after the
+        release. Verifying costs one API call.
+        """
+        result = self._run(
+            [gh_cmd, 'release', 'view', tag, '--json', 'body', '-q', '.body'],
+            cwd=self.project_root, capture_output=True,
+        )
+        if result.returncode != 0:
+            print('[WARN] Could not read the release body back to verify it: '
+                  f'{(result.stderr or "").strip()}')
+            return
+
+        published = (result.stdout or '').replace('\r\n', '\n').strip()
+        sent = expected.replace('\r\n', '\n').strip()
+        if published == sent:
+            print(f"[OK] Release notes verified on GitHub "
+                  f"({len(published.splitlines())} lines)")
+            return
+
+        print('[WARN] The published release notes do NOT match what was sent.')
+        print(f'[WARN]   sent     : {len(sent.splitlines())} lines, {len(sent)} chars')
+        print(f'[WARN]   published: {len(published.splitlines())} lines, '
+              f'{len(published)} chars')
+        print('[WARN] The in-app updater shows this body verbatim — fix it at')
+        print(f'[WARN] https://github.com/rstltd/cg500_blueteeth_app/releases/tag/{tag}')
 
     # --- Git ---
 
