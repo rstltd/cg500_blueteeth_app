@@ -6,10 +6,10 @@ import '../models/ble_device.dart';
 import '../models/ble_service.dart';
 import '../models/connection_state.dart';
 import '../utils/logger.dart';
-import 'ble_message_assembler.dart';
 import 'error_handling_service.dart';
 import 'notification_service.dart';
 import 'permission_service.dart';
+import 'response_channel.dart';
 
 /// Bluetooth Low Energy service for device scanning, connection, and communication.
 ///
@@ -77,8 +77,10 @@ class BleService {
   // BluetoothDevice? _connectedBluetoothDevice; // Unused - using _bluetoothDevicesCache instead
   BluetoothCharacteristic? _commandCharacteristic;
   BluetoothCharacteristic? _responseCharacteristic;
-  StreamSubscription<List<int>>? _responseSubscription;
-  BleMessageAssembler? _assembler;
+  /// Owns the response subscription and its message assembler as one unit.
+  /// Re-attaching always cancels the previous listener first — see
+  /// [ResponseChannel] for why that invariant keeps being violated by hand.
+  final ResponseChannel _responseChannel = ResponseChannel();
   static const int targetMtu = 517;
 
   Future<bool> initialize() async {
@@ -692,24 +694,20 @@ class BleService {
                   }
                 }
                 
-                // Subscribe to responses (cancel any stale subscription first
-                // to avoid orphaned listeners on reconnect / re-discover).
-                await _responseSubscription?.cancel();
-                _responseSubscription = null;
-                _assembler?.dispose();
-                _assembler = BleMessageAssembler(
+                // Subscribe to responses. attach() cancels any stale
+                // subscription first, so reconnecting or re-discovering
+                // services cannot leave an orphaned listener behind.
+                await _responseChannel.attach(
+                  characteristic.lastValueStream,
                   onMessage: (message) {
                     Logger.command('Received Nordic UART response: $message');
                     _commandResponseController.add(message);
                   },
+                  onError: (error) {
+                    Logger.error('Error in response stream', error: error);
+                  },
                 );
-                _responseSubscription =
-                    characteristic.lastValueStream.listen((data) {
-                  _assembler?.addChunk(data);
-                }, onError: (error) {
-                  Logger.error('Error in response stream', error: error);
-                });
-                
+
                 Logger.ble('Nordic UART TX characteristic setup complete: $charUuid');
               } catch (e) {
                 Logger.error('Error enabling TX notifications', error: e);
@@ -798,27 +796,25 @@ class BleService {
   ) async {
     _responseCharacteristic = characteristic;
 
-    // Subscribe to notifications (cancel any stale subscription
-    // first to avoid orphaned listeners on reconnect).
+    // Subscribe to notifications. attach() cancels any stale subscription
+    // first to avoid orphaned listeners on reconnect.
     await characteristic.setNotifyValue(true);
-    await _responseSubscription?.cancel();
-    _responseSubscription = null;
-    _assembler?.dispose();
-    _assembler = BleMessageAssembler(
-      onMessage: (message) {
-        Logger.command('Received response: $message');
-        _commandResponseController.add(message);
-      },
-    );
     // `onValueReceived`, not `lastValueStream`: the latter also emits
     // OnCharacteristicWritten, so when the second pass below shares the
     // command characteristic we would feed our own outgoing bytes straight
     // back into the assembler. Commands carry no CRLF, so such an echo would
     // not even surface as its own phantom message — it would sit in the
     // buffer and get glued onto the front of the device's first real reply.
-    _responseSubscription = characteristic.onValueReceived.listen((data) {
-      _assembler?.addChunk(data);
-    });
+    //
+    // No onError here, unlike the Nordic path: this fallback has always let
+    // stream errors reach the zone handler.
+    await _responseChannel.attach(
+      characteristic.onValueReceived,
+      onMessage: (message) {
+        Logger.command('Received response: $message');
+        _commandResponseController.add(message);
+      },
+    );
   }
 
   // Send text command to device
@@ -881,10 +877,9 @@ class BleService {
     _connectionListenTimer?.cancel();
     _connectionListenTimer = null;
     _dropConnectionStateSubscription();
-    _responseSubscription?.cancel();
-    _responseSubscription = null;
-    _assembler?.dispose();
-    _assembler = null;
+    // detach() clears its own fields and disposes the assembler synchronously
+    // before awaiting the cancel, so this stays a synchronous method.
+    unawaited(_responseChannel.detach());
     _commandCharacteristic = null;
     _responseCharacteristic = null;
     Logger.debug('Command characteristics cleaned up');
@@ -896,8 +891,7 @@ class BleService {
     _adapterStateSubscription?.cancel();
     _scanResultsSubscription?.cancel();
     _connectionStateSubscription?.cancel();
-    _responseSubscription?.cancel();
-    _assembler?.dispose();
+    unawaited(_responseChannel.detach());
     _devicesController.close();
     _scanningController.close();
     _connectedDeviceController.close();
