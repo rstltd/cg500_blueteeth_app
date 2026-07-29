@@ -193,6 +193,12 @@ abstract class AppStrings {
   /// Command input placeholder (connected but not in developer mode)
   static const String needDeveloperMode = '需開啟開發者模式才能手動輸入指令';
 
+  /// Shown in the response log in place of a long run of U+FFFD replacement
+  /// characters — i.e. raw/undecodable bytes the firmware sent for a field
+  /// (e.g. an unset Gateway on a factory-fresh device). Short runs are left
+  /// visible on purpose; see CommandLogService._sanitizeUndecodableText.
+  static const String undecodableResponseField = '（無法解析）';
+
   // ============================================================
   // Developer Mode (Role-based access control)
   // ============================================================

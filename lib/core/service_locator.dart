@@ -5,6 +5,7 @@ import 'interfaces/command_repository_interface.dart';
 import '../controllers/ble_controller_interface.dart';
 
 // Implementation imports
+import '../services/command_log_service.dart';
 import '../services/network_service.dart';
 import '../services/notification_service.dart';
 import '../services/permission_service.dart';
@@ -178,6 +179,16 @@ Future<void> setupServiceLocator() async {
   // current device state, so no caller has to re-buffer raw lines.
   getIt.registerLazySingleton<DeviceInfoTracker>(
     () => DeviceInfoTracker(controller: getIt<BleControllerInterface>()),
+  );
+
+  // CommandLogService - app-wide chat log for the command interface.
+  // Singleton because CommandInterfaceViewModel is created and disposed with
+  // its route: a log owned by the VM is destroyed the moment the user
+  // navigates back to the scanner, even though the connection is still up.
+  // Only the clear_all button and a connection to a *different* device may
+  // clear it; navigation and transient disconnects must not.
+  getIt.registerLazySingleton<CommandLogService>(
+    () => CommandLogService(controller: getIt<BleControllerInterface>()),
   );
 
   // UpdateController - app-wide update flow coordinator. Owns every

@@ -11,11 +11,17 @@ import '../models/command/custom_command.dart';
 import '../models/connection_state.dart';
 import '../models/device_info.dart';
 import '../models/role/user_role.dart';
+import '../services/command_log_service.dart';
 import '../services/custom_command_service.dart';
 import '../services/device_info_tracker.dart';
 import '../services/role_service.dart';
 import '../utils/logger.dart';
 import '../widgets/message/message_filter_widget.dart';
+
+// MessageData moved to command_log_service.dart when the chat log became an
+// app-wide service (a service must not import a view_model). Re-exported so
+// existing importers of this file keep compiling unchanged.
+export '../services/command_log_service.dart' show MessageData;
 
 /// ViewModel for the Command Interface View.
 ///
@@ -44,35 +50,37 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     CommandRepositoryInterface? commandRepository,
     CommandParameterStorageService? parameterStorageService,
     DeviceInfoTracker? deviceInfoTracker,
+    CommandLogService? commandLog,
   })  : _injectedController = controller,
         _injectedCommandRepository = commandRepository,
         _injectedParameterStorageService = parameterStorageService,
-        _injectedDeviceInfoTracker = deviceInfoTracker;
+        _injectedDeviceInfoTracker = deviceInfoTracker,
+        _injectedCommandLog = commandLog;
 
   final BleControllerInterface? _injectedController;
   final CommandRepositoryInterface? _injectedCommandRepository;
   final CommandParameterStorageService? _injectedParameterStorageService;
   final DeviceInfoTracker? _injectedDeviceInfoTracker;
+  final CommandLogService? _injectedCommandLog;
   late final BleControllerInterface _controller;
   late final CommandManager _commandManager;
   late final CommandRepositoryInterface _commandRepository;
   late final CommandParameterStorageService _parameterStorageService;
   late final DeviceInfoTracker _deviceInfoTracker;
   final ScrollController _scrollController = ScrollController();
-  final List<MessageData> _messages = [];
   MessageFilter _currentFilter = MessageFilter.all;
   String? _executingCommand;
   bool _isAutoScrollPaused = false;
   int _unreadCount = 0;
   static const double _nearBottomThreshold = 50.0;
 
-  // Defense-in-depth dedup state: suppress near-simultaneous identical
-  // response messages, which would otherwise slip through if any upstream
-  // layer (e.g. orphaned BLE subscription) double-emits. The window is
-  // tight (50ms) so legitimate repeats stay visible.
-  MessageData? _lastResponseMessage;
-  DateTime? _lastResponseAt;
-  static const Duration _responseDedupWindow = Duration(milliseconds: 50);
+  // The chat log itself is NOT owned here. This VM dies with its route, so a
+  // list held here is destroyed the moment the user navigates back to the
+  // scanner while still connected. Resolved lazily rather than in onInit()
+  // because several call sites reach the message API before initialize().
+  CommandLogService? _resolvedCommandLog;
+  CommandLogService get _commandLog =>
+      _resolvedCommandLog ??= _injectedCommandLog ?? getIt<CommandLogService>();
 
   /// The shared [DeviceInfoTracker] that maintains the connected device's
   /// parsed [DeviceInfo]. Exposed so the View can hand its current snapshot
@@ -111,41 +119,44 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
   ScrollController get scrollController => _scrollController;
 
   /// List of messages (commands and responses).
-  List<MessageData> get messages => List.unmodifiable(_messages);
+  /// Lives in [CommandLogService] so it survives this VM being disposed with
+  /// its route.
+  List<MessageData> get messages => _commandLog.messages;
 
   /// Whether there are any messages.
-  bool get hasMessages => _messages.isNotEmpty;
+  bool get hasMessages => _commandLog.messages.isNotEmpty;
 
   /// Number of messages.
-  int get messageCount => _messages.length;
+  int get messageCount => _commandLog.messages.length;
 
   /// Current message filter.
   MessageFilter get currentFilter => _currentFilter;
 
   /// Filtered messages based on current filter.
   List<MessageData> get filteredMessages {
+    final all = _commandLog.messages;
     switch (_currentFilter) {
       case MessageFilter.all:
-        return List.unmodifiable(_messages);
+        return all;
       case MessageFilter.commands:
-        return List.unmodifiable(
-            _messages.where((m) => m.isCommand).toList());
+        return List.unmodifiable(all.where((m) => m.isCommand).toList());
       case MessageFilter.responses:
         return List.unmodifiable(
-            _messages.where((m) => !m.isCommand && !m.isError).toList());
+            all.where((m) => !m.isCommand && !m.isError).toList());
       case MessageFilter.errors:
-        return List.unmodifiable(_messages.where((m) => m.isError).toList());
+        return List.unmodifiable(all.where((m) => m.isError).toList());
     }
   }
 
   /// Get counts for each filter type.
   Map<MessageFilter, int> get messageCounts {
+    final all = _commandLog.messages;
     return {
-      MessageFilter.all: _messages.length,
-      MessageFilter.commands: _messages.where((m) => m.isCommand).length,
+      MessageFilter.all: all.length,
+      MessageFilter.commands: all.where((m) => m.isCommand).length,
       MessageFilter.responses:
-          _messages.where((m) => !m.isCommand && !m.isError).length,
-      MessageFilter.errors: _messages.where((m) => m.isError).length,
+          all.where((m) => !m.isCommand && !m.isError).length,
+      MessageFilter.errors: all.where((m) => m.isError).length,
     };
   }
 
@@ -184,10 +195,12 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     // Initialize controller if needed
     await _ensureControllerInitialized();
 
-    // Subscribe to command responses for chat-log display.
-    subscribe<String>(
-      _controller.commandResponseStream,
-      _onCommandResponse,
+    // Subscribe to the shared chat log rather than to the raw response
+    // stream: CommandLogService owns that subscription, so response lines
+    // arriving while this route is off-screen are still recorded.
+    subscribe<CommandLogChange>(
+      _commandLog.changeStream,
+      _onLogChanged,
     );
 
     // Subscribe to the tracker so the firmware-name chip and any other
@@ -268,36 +281,33 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
     }
   }
 
-  void _onCommandResponse(String response) {
-    addMessage(MessageData(
-      text: response,
-      isCommand: false,
-      timestamp: DateTime.now(),
-    ));
-  }
-
   void _onMessageFromCommandManager(Map<String, dynamic> messageMap) {
     addMessage(MessageData.fromMap(messageMap));
   }
 
-  /// Add a message to the list.
+  /// Add a message to the shared log. Scroll and unread bookkeeping happens in
+  /// [_onLogChanged], which also covers messages the service appends itself
+  /// (device response lines).
   void addMessage(MessageData message) {
-    if (!message.isCommand &&
-        _lastResponseMessage != null &&
-        _lastResponseAt != null &&
-        _lastResponseMessage!.text == message.text &&
-        DateTime.now().difference(_lastResponseAt!) < _responseDedupWindow) {
-      Logger.diagnostic(
-        '[DEDUP] Suppressed near-simultaneous duplicate response: ${message.text}',
-      );
+    _commandLog.add(message);
+  }
+
+  /// Clear all messages. This is the clear_all button — the only user action
+  /// that may destroy the log. Navigation must never reach here.
+  void clearMessages() {
+    _commandLog.clear();
+    _isAutoScrollPaused = false;
+    _unreadCount = 0;
+    safeNotifyListeners();
+  }
+
+  void _onLogChanged(CommandLogChange change) {
+    if (change == CommandLogChange.cleared) {
+      _isAutoScrollPaused = false;
+      _unreadCount = 0;
+      safeNotifyListeners();
       return;
     }
-    if (!message.isCommand) {
-      _lastResponseMessage = message;
-      _lastResponseAt = DateTime.now();
-    }
-
-    _messages.add(message);
     if (_isAutoScrollPaused) {
       _unreadCount++;
       safeNotifyListeners();
@@ -305,14 +315,6 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
       safeNotifyListeners();
       _scrollToBottom();
     }
-  }
-
-  /// Clear all messages.
-  void clearMessages() {
-    _messages.clear();
-    _isAutoScrollPaused = false;
-    _unreadCount = 0;
-    safeNotifyListeners();
   }
 
   /// Resume auto-scroll, clear unread count, and scroll to bottom.
@@ -418,44 +420,12 @@ class CommandInterfaceViewModel extends BaseViewModel with MountedAwareMixin {
 
   @override
   void onDispose() {
+    // NOTE: _commandLog is a locator singleton and is deliberately NOT
+    // disposed or cleared here — doing so is exactly the bug this VM used to
+    // have, where the log died with the route while the BLE link stayed up.
     _commandManager.dispose();
     _scrollController.removeListener(_onScrollPositionChanged);
     _scrollController.dispose();
     super.onDispose();
-  }
-}
-
-/// Immutable data class for a message.
-class MessageData {
-  const MessageData({
-    required this.text,
-    required this.isCommand,
-    required this.timestamp,
-    this.isError = false,
-  });
-
-  /// Create from a Map (for compatibility with existing code).
-  factory MessageData.fromMap(Map<String, dynamic> map) {
-    return MessageData(
-      text: map['text'] as String? ?? '',
-      isCommand: map['isCommand'] as bool? ?? false,
-      timestamp: map['timestamp'] as DateTime? ?? DateTime.now(),
-      isError: map['isError'] as bool? ?? false,
-    );
-  }
-
-  final String text;
-  final bool isCommand;
-  final DateTime timestamp;
-  final bool isError;
-
-  /// Convert to Map for compatibility with existing widgets.
-  Map<String, dynamic> toMap() {
-    return {
-      'text': text,
-      'isCommand': isCommand,
-      'timestamp': timestamp,
-      'isError': isError,
-    };
   }
 }

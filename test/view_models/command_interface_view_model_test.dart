@@ -4,6 +4,7 @@ import 'package:cg500_blueteeth_app/view_models/command_interface_view_model.dar
 import 'package:cg500_blueteeth_app/core/interfaces/command_repository_interface.dart';
 import 'package:cg500_blueteeth_app/models/command/command_category.dart';
 import 'package:cg500_blueteeth_app/models/command/device_command.dart';
+import 'package:cg500_blueteeth_app/services/command_log_service.dart';
 import 'package:cg500_blueteeth_app/services/command_parameter_storage_service.dart';
 import 'package:cg500_blueteeth_app/services/device_info_tracker.dart';
 import 'package:cg500_blueteeth_app/widgets/message/message_filter_widget.dart';
@@ -43,6 +44,7 @@ void main() {
   late _MockCommandRepository mockRepo;
   late _MockParameterStorageService mockStorage;
   late DeviceInfoTracker tracker;
+  late CommandLogService commandLog;
 
   setUp(() async {
     mockController = MockBleController();
@@ -51,9 +53,11 @@ void main() {
     mockRepo = _MockCommandRepository();
     mockStorage = _MockParameterStorageService();
     tracker = DeviceInfoTracker(controller: mockController);
+    commandLog = CommandLogService(controller: mockController);
   });
 
   tearDown(() {
+    commandLog.dispose();
     tracker.dispose();
     mockController.dispose();
   });
@@ -63,6 +67,7 @@ void main() {
   Future<CommandInterfaceViewModel> createViewModel(WidgetTester tester) async {
     final vm = CommandInterfaceViewModel(
       controller: mockController,
+      commandLog: commandLog,
       commandRepository: mockRepo,
       parameterStorageService: mockStorage,
       deviceInfoTracker: tracker,
@@ -103,6 +108,7 @@ void main() {
     test('initial state: auto-scroll not paused, unread is 0', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -130,6 +136,7 @@ void main() {
     test('addMessage increments unreadCount when paused', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -150,6 +157,7 @@ void main() {
     test('addMessage suppresses near-simultaneous duplicate responses', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -171,6 +179,7 @@ void main() {
     test('addMessage does not dedup commands, only responses', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -194,6 +203,7 @@ void main() {
         () async {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -216,6 +226,7 @@ void main() {
     test('clearMessages resets scroll state', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -235,6 +246,7 @@ void main() {
     test('resumeAutoScroll resets pause state and unread count', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -249,6 +261,7 @@ void main() {
     test('messages list is unmodifiable', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -310,6 +323,7 @@ void main() {
     test('filteredMessages returns all by default', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -330,6 +344,7 @@ void main() {
     test('filter by commands only', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -347,6 +362,7 @@ void main() {
     test('filter by errors only', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -367,6 +383,7 @@ void main() {
     test('messageCounts returns correct counts', () {
       final vm = CommandInterfaceViewModel(
         controller: mockController,
+        commandLog: commandLog,
         commandRepository: mockRepo,
         parameterStorageService: mockStorage,
       );
@@ -417,4 +434,47 @@ void main() {
       expect(vm.messageCount, 2);
     });
   });
+
+  group('Chat log lifetime (F-005)', () {
+    // The reported symptom: press Back to the scanner while still connected,
+    // come back to the command interface, and every message was gone. The log
+    // used to be instance state on this route-scoped ViewModel.
+    testWidgets('messages survive the ViewModel being disposed',
+        (tester) async {
+      final first = await createViewModel(tester);
+      first.addMessage(MessageData(
+        text: r'$INFO',
+        isCommand: true,
+        timestamp: DateTime.now(),
+      ));
+      mockController.emitCommandResponse('MAC : B01LT0002');
+      await tester.pump();
+      expect(first.messageCount, 2);
+
+      // Route popped.
+      first.dispose();
+
+      // Route re-entered — a brand new ViewModel over the same log.
+      final second = await createViewModel(tester);
+      expect(second.messageCount, 2);
+      expect(second.messageCounts[MessageFilter.commands], 1);
+      expect(second.messageCounts[MessageFilter.responses], 1);
+      second.dispose();
+    });
+
+    testWidgets('clearMessages still empties the log', (tester) async {
+      final vm = await createViewModel(tester);
+      vm.addMessage(MessageData(
+        text: r'$INFO',
+        isCommand: true,
+        timestamp: DateTime.now(),
+      ));
+      expect(vm.messageCount, 1);
+
+      vm.clearMessages();
+      expect(vm.messageCount, 0);
+      vm.dispose();
+    });
+  });
+
 }
