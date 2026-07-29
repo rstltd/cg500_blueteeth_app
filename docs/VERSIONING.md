@@ -128,12 +128,18 @@ mode names. **Always use the script, never edit `pubspec.yaml` by hand.**
 | --------- | -------------------------------------------------------------------------------------------------- | ---------------------------- |
 | `release` | Stable release for the current month. If a stable already exists this month, fails with a hint.    | `26.05.1+32 → 26.06+33`     |
 | `hotfix`  | Same-month hotfix on top of the latest stable. Increments `MICRO` (or sets it to `1`).            | `26.05+31 → 26.05.1+32`     |
-| `beta`    | Pre-release for the *current* month. Auto-increments the `-beta.N` counter.                       | `26.05+31 → 26.06-beta.1+32`<br>`26.06-beta.1+32 → 26.06-beta.2+33` |
+| `beta`    | Pre-release for the *targeted* release month. Auto-increments the `-beta.N` counter.              | `26.05+31 → 26.06-beta.1+32`<br>`26.06-beta.1+32 → 26.06-beta.2+33` |
 | `rc`      | Pre-release candidate. Same logic as `beta`, but with `-rc.N`.                                    | `26.06-beta.3+35 → 26.06-rc.1+36` |
 | `build`   | Build-number-only bump (no version change). For local re-packaging; rarely used in releases.       | `26.05+31 → 26.05+32`        |
 
 The script always increments the build number. Beta and RC modes pass
 `--prerelease` to `gh release create`.
+
+The `YY.0M` in a pre-release names the month the release is *aimed at*, not
+the month it happened to be packaged in. An existing `26.06-beta.1` therefore
+keeps incrementing to `26.06-beta.2` even when that packaging happens in July
+— the target did not move just because time passed. Only starting a fresh
+cycle picks up a new month.
 
 ### Common command
 

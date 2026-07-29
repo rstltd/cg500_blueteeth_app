@@ -24,6 +24,7 @@ Options:
   --clean        Run `flutter clean` before build
   --yes          Skip confirmation prompt (required for non-interactive shells)
   --notes-file   Path to a markdown file with user-facing release notes
+  --allow-branch Skip the branch check and allow releasing from a non-main branch
 """
 
 import os
@@ -221,6 +222,14 @@ def next_version(current: Version, mode: str) -> Version:
 
     if mode == 'beta':
         if current.fmt == 'calver' and current.channel == 'beta':
+            # NOTE: `year`/`month` here are the *target release month*, not
+            # the month this beta build is being cut in (see docs/VERSIONING.md
+            # section 1, "PRERELEASE"). A beta cycle that spans a calendar-month
+            # boundary (e.g. `26.06-beta.1` cut in June, `26.06-beta.2` cut in
+            # July) intentionally keeps incrementing channel_n against the
+            # original target month rather than resetting -- mirrors the `rc`
+            # promotion branch below, which also carries the target
+            # year/month/micro forward unchanged.
             return replace(current, channel_n=current.channel_n + 1, build=next_build)
         # Start a fresh beta cycle for today's month.
         return Version(
@@ -259,8 +268,16 @@ def next_version(current: Version, mode: str) -> Version:
 
 
 class SimpleReleaseManager:
-    def __init__(self):
-        self.project_root = Path(__file__).parent.parent
+    def __init__(self, project_root: Optional[Path] = None):
+        # `main()` resolves this once (anchored to the script's own location,
+        # not the process CWD) and passes it in, so the prerequisite checks
+        # there and every git/build operation here agree on the same repo
+        # root. The fallback keeps direct instantiation (e.g. from a REPL or
+        # a future test) working the same way `main()` does.
+        self.project_root = (
+            project_root if project_root is not None
+            else Path(__file__).resolve().parent.parent
+        )
         self.pubspec_path = self.project_root / 'pubspec.yaml'
         self.build_dir = self.project_root / 'build' / 'app' / 'outputs' / 'flutter-apk'
 
@@ -601,7 +618,7 @@ class SimpleReleaseManager:
     def create_local_tag(self, version: Version):
         """Create the release tag locally, pointing at the just-committed
         version-bump commit. Created before push so the tag accompanies the
-        commit to the remote in [push_changes], guaranteeing the tag points
+        commit to the remote in [push_tag], guaranteeing the tag points
         at the right commit instead of whatever the remote default branch's
         HEAD happened to be when `gh release create` ran.
         """
@@ -612,13 +629,23 @@ class SimpleReleaseManager:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Could not create local tag {tag}: {e}") from e
 
-    def push_changes(self):
+    # Split from a single push_changes() so the caller can tell which of the
+    # two pushes succeeded. A commit on the remote without its tag needs
+    # different recovery advice from a tag that made it up there without a
+    # GitHub Release behind it.
+    def push_commit(self):
         try:
             subprocess.run(['git', 'push'], check=True, cwd=self.project_root)
-            subprocess.run(['git', 'push', '--tags'], check=True, cwd=self.project_root)
-            print("[OK] Changes pushed to GitHub")
+            print("[OK] Version-bump commit pushed to GitHub")
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Could not push changes: {e}") from e
+            raise RuntimeError(f"Could not push commit: {e}") from e
+
+    def push_tag(self):
+        try:
+            subprocess.run(['git', 'push', '--tags'], check=True, cwd=self.project_root)
+            print("[OK] Tag pushed to GitHub")
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Could not push tag: {e}") from e
 
     # --- Confirmation ---
 
@@ -658,6 +685,16 @@ class SimpleReleaseManager:
         print(f"[START] Starting release process: {mode}")
         print("=" * 50)
 
+        # Tracks how far the publish sequence got, so a later failure can give
+        # recovery advice that matches the actual remote state instead of
+        # pointing the caller at 'hotfix' (which would bump the version *again*
+        # on top of whatever is already up there). The two pushes are tracked
+        # separately because `git push` can succeed while `git push --tags`
+        # fails, which leaves the commit published but no tag to attach a
+        # release to.
+        pushed_commit = False
+        pushed_tag: Optional[str] = None
+
         try:
             new_version = self.update_version(mode)
             self.run_quality_checks()
@@ -683,7 +720,10 @@ class SimpleReleaseManager:
             # gh create the tag against the remote branch's stale HEAD.
             self.commit_version_change(new_version)
             self.create_local_tag(new_version)
-            self.push_changes()
+            self.push_commit()
+            pushed_commit = True
+            self.push_tag()
+            pushed_tag = new_version.to_tag()
             tag = self.create_github_release(new_version, release_apk_path, custom_notes=custom_notes)
 
             print("=" * 50)
@@ -700,6 +740,28 @@ class SimpleReleaseManager:
 
         except Exception as e:
             print(f"[ERROR] Release failed: {e}")
+            if pushed_tag:
+                print("")
+                print(f"[ERROR] The version-bump commit and tag '{pushed_tag}' were already")
+                print("[ERROR] pushed to GitHub before this failure -- the GitHub Release itself")
+                print("[ERROR] is the only thing missing. Do NOT run 'hotfix' (that bumps the")
+                print("[ERROR] version again on top of this). Instead, create the release for the")
+                print(f"[ERROR] existing tag manually once the underlying problem is fixed, e.g.:")
+                print(f"[ERROR]   gh release create {pushed_tag} \"{release_apk_path}\" \\")
+                print(f"[ERROR]     --title \"CG500 BLE App {pushed_tag}\" --notes-file release_notes.md \\")
+                print("[ERROR]     --verify-tag" + (" --prerelease" if new_version.is_prerelease else ""))
+            elif pushed_commit:
+                print("")
+                print("[ERROR] The version-bump commit was pushed to GitHub but its tag was")
+                print("[ERROR] not, so there is no orphaned release waiting -- only a version")
+                print("[ERROR] bump on the remote. Do NOT run 'hotfix' (that bumps the version")
+                print("[ERROR] again). Once the underlying problem is fixed, push the existing")
+                print("[ERROR] local tag and create the release for it, e.g.:")
+                print(f"[ERROR]   git push origin {new_version.to_tag()}")
+                print(f"[ERROR]   gh release create {new_version.to_tag()} \"{release_apk_path}\" \\")
+                print(f"[ERROR]     --title \"CG500 BLE App {new_version.to_tag()}\" \\")
+                print("[ERROR]     --notes-file release_notes.md --verify-tag"
+                      + (" --prerelease" if new_version.is_prerelease else ""))
             return False
 
 
@@ -733,16 +795,48 @@ Versioning policy: docs/VERSIONING.md
         '--notes-file', type=str, default=None,
         help='Path to a markdown file with release notes (overrides auto-generated notes)',
     )
+    parser.add_argument(
+        '--allow-branch', action='store_true',
+        help='Skip the branch check and allow releasing from a non-main branch',
+    )
 
     args = parser.parse_args()
 
     print("[INFO] Checking prerequisites...")
 
-    if not Path('.git').exists():
+    # Anchor prerequisite checks to the script's own location, not the
+    # process CWD -- the rest of this class always uses self.project_root,
+    # and invoking the script from a different directory should not change
+    # which repo gets checked.
+    project_root = Path(__file__).resolve().parent.parent
+
+    if not (project_root / '.git').exists():
         print("[ERROR] Not in a git repository")
         sys.exit(1)
 
-    result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
+    ALLOWED_RELEASE_BRANCHES = ('main',)
+    branch_result = subprocess.run(
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+        capture_output=True, text=True, cwd=project_root,
+    )
+    current_branch = branch_result.stdout.strip() if branch_result.returncode == 0 else None
+    if current_branch not in ALLOWED_RELEASE_BRANCHES:
+        if args.allow_branch:
+            print(f"[WARNING] Releasing from branch '{current_branch}' (continuing due to --allow-branch)")
+        else:
+            print(f"[ERROR] Releasing from branch '{current_branch}', expected one of {ALLOWED_RELEASE_BRANCHES}.")
+            print("")
+            print("A release tag cut here would point at commits that are not on main --")
+            print("switch back first:")
+            print("")
+            print("  git checkout main")
+            print("")
+            print("If this is intentional (e.g. an urgent out-of-band build), pass --allow-branch.")
+            sys.exit(1)
+
+    result = subprocess.run(
+        ['git', 'status', '--porcelain'], capture_output=True, text=True, cwd=project_root,
+    )
     if result.stdout.strip():
         if args.force:
             print("[WARNING] Uncommitted changes detected (continuing due to --force)")
@@ -755,7 +849,27 @@ Versioning policy: docs/VERSIONING.md
             print("Use --force to override this check.")
             sys.exit(1)
 
-    manager = SimpleReleaseManager()
+    manager = SimpleReleaseManager(project_root=project_root)
+
+    # Check GitHub CLI auth before doing any work. `gh` auth is only needed
+    # for the very last step (creating the GitHub Release), but by then the
+    # version bump has already been committed, tagged, and pushed -- so an
+    # unauthenticated `gh` would leave an orphaned tag with no matching
+    # release. Failing here keeps that failure mode at zero residual state.
+    print("[INFO] Checking GitHub CLI authentication...")
+    gh_cmd = manager._find_gh_command()
+    if not gh_cmd:
+        print("[ERROR] GitHub CLI not found. Install from https://cli.github.com/ and "
+              "authenticate with 'gh auth login'.")
+        sys.exit(1)
+    auth_result = manager._run([gh_cmd, 'auth', 'status'], capture_output=True)
+    if auth_result.returncode != 0:
+        print("[ERROR] GitHub CLI is not authenticated. Run 'gh auth login' before releasing.")
+        if auth_result.stderr:
+            print(auth_result.stderr)
+        sys.exit(1)
+    print("[OK] GitHub CLI authenticated")
+
     success = manager.release(
         args.mode,
         clean=args.clean,
