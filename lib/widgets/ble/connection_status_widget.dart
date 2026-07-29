@@ -3,6 +3,7 @@ import '../../controllers/ble_controller_interface.dart';
 import '../../design/design_system.dart';
 import '../../l10n/app_strings.dart';
 import '../../models/ble_device.dart';
+import '../../models/connection_state.dart';
 
 /// Widget for displaying BLE connection status and device information
 class ConnectionStatusWidget extends StatelessWidget {
@@ -23,7 +24,13 @@ class ConnectionStatusWidget extends StatelessWidget {
       stream: controller.connectedDeviceStream,
       builder: (context, snapshot) {
         final device = snapshot.data ?? controller.connectedDevice;
-        return device != null 
+        // Presence is not connectedness: BleService pushes the device into
+        // connectedDeviceStream with a `connecting` state before it even
+        // attempts the connect (ble_service.dart), so a null check alone
+        // showed "connected" for the whole 15s attempt — and for the entire
+        // duration of one that ultimately failed. An operator reading that
+        // would try to send a command into a link that does not exist yet.
+        return device != null && device.connectionState.isConnected
             ? _buildConnectedStatus(context, device)
             : _buildDisconnectedStatus(context);
       },

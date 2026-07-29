@@ -1,577 +1,441 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cg500_blueteeth_app/widgets/ble/connection_status_widget.dart';
 import 'package:cg500_blueteeth_app/models/ble_device.dart';
+import 'package:cg500_blueteeth_app/models/ble_service.dart';
+import 'package:cg500_blueteeth_app/models/connection_state.dart';
+import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
+import '../mocks/mock_ble_controller.dart';
 
+/// Tests for ConnectionStatusWidget using actual widget source code
+/// These tests import and use the real ConnectionStatusWidget to increase coverage
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Helper function to create test device
-  BleDeviceModel createTestDevice({
-    String id = 'device-1',
-    String name = 'Test Device',
-    String displayName = 'Test Device',
-    int rssi = -50,
-    DateTime? connectedAt,
-    List<dynamic>? services,
-  }) {
-    return BleDeviceModel(
-      id: id,
-      name: name,
-      displayName: displayName.isNotEmpty ? displayName : 'Unknown Device',
-      rssi: rssi,
-      connectedAt: connectedAt,
-      services: const [],
-    );
-  }
+  late MockBleController mockController;
 
-  group('ConnectionStatusWidget - Connected State', () {
-    testWidgets('should display "Device Connected" header when connected', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade50, Colors.blue.shade50],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.bluetooth_connected,
-                          color: Colors.green.shade700,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Device Connected',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.green.shade800,
-                              ),
-                            ),
-                            Text(
-                              'Ready to send commands',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
+  setUp(() {
+    mockController = MockBleController();
+  });
 
-      expect(find.text('Device Connected'), findsOneWidget);
-      expect(find.text('Ready to send commands'), findsOneWidget);
-      expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
-    });
-
-    testWidgets('should show device info when showDeviceInfo is true', (WidgetTester tester) async {
-      final device = createTestDevice(
-        displayName: 'My BLE Sensor',
-        id: 'AA:BB:CC:DD:EE:FF',
-        rssi: -45,
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade100),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoRow('Device', device.displayName),
-                  _buildInfoRow('ID', device.id),
-                  _buildInfoRow('RSSI', '${device.rssi} dBm'),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Device:'), findsOneWidget);
-      expect(find.text('My BLE Sensor'), findsOneWidget);
-      expect(find.text('ID:'), findsOneWidget);
-      expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
-      expect(find.text('RSSI:'), findsOneWidget);
-      expect(find.text('-45 dBm'), findsOneWidget);
-    });
+  tearDown(() {
+    mockController.dispose();
   });
 
   group('ConnectionStatusWidget - Disconnected State', () {
-    testWidgets('should display "No Device Connected" when disconnected', (WidgetTester tester) async {
+    testWidgets('should display disconnected status when no device connected', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.warning_rounded,
-                          color: Colors.orange.shade700,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'No Device Connected',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.orange.shade800,
-                              ),
-                            ),
-                            Text(
-                              'Connect a device first',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Please connect a BLE device to send commands',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.orange.shade700,
-                    ),
-                  ),
-                ],
-              ),
+            body: ConnectionStatusWidget(
+              controller: mockController,
             ),
           ),
         ),
       );
 
-      expect(find.text('No Device Connected'), findsOneWidget);
-      expect(find.text('Connect a device first'), findsOneWidget);
-      expect(find.text('Please connect a BLE device to send commands'), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.pleaseConnectFirst), findsOneWidget);
+      expect(find.text(AppStrings.pleaseConnectBleDevice), findsOneWidget);
       expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
     });
-  });
 
-  group('ConnectionStatusWidget - Compact Mode Connected', () {
-    testWidgets('should display compact connected status', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.bluetooth_connected,
-                  color: Colors.green,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Connected',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Connected'), findsOneWidget);
-      expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
-    });
-
-    testWidgets('should show device name in compact mode when showDeviceInfo is true', (WidgetTester tester) async {
-      final device = createTestDevice(displayName: 'Compact Sensor');
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.bluetooth_connected, color: Colors.green, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Connected',
-                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                ),
-                Text(' • ${device.displayName}'),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Connected'), findsOneWidget);
-      expect(find.text(' • Compact Sensor'), findsOneWidget);
-    });
-  });
-
-  group('ConnectionStatusWidget - Compact Mode Disconnected', () {
     testWidgets('should display compact disconnected status', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.bluetooth_disabled,
-                  color: Colors.red,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Disconnected',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              compact: true,
             ),
           ),
         ),
       );
 
-      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(AppStrings.disconnected), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_disabled), findsOneWidget);
     });
   });
 
-  group('ConnectionStatusWidget - Duration Formatting', () {
-    testWidgets('should format duration with hours', (WidgetTester tester) async {
-      String formatDuration(Duration duration) {
-        String twoDigits(int n) => n.toString().padLeft(2, '0');
-        String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-        String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+  group('ConnectionStatusWidget - Connected State', () {
+    testWidgets('should display connected status when device is connected', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'device-1',
+        name: 'Test Device',
+        displayName: 'Test Device',
+        rssi: -50,
+        connectionState: BleConnectionState.connected,
+      );
 
-        if (duration.inHours > 0) {
-          return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
-        } else {
-          return '$twoDigitMinutes:$twoDigitSeconds';
-        }
-      }
-
-      // 1 hour 30 minutes 45 seconds
-      final duration = const Duration(hours: 1, minutes: 30, seconds: 45);
-      expect(formatDuration(duration), '01:30:45');
-    });
-
-    testWidgets('should format duration without hours', (WidgetTester tester) async {
-      String formatDuration(Duration duration) {
-        String twoDigits(int n) => n.toString().padLeft(2, '0');
-        String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-        String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-
-        if (duration.inHours > 0) {
-          return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
-        } else {
-          return '$twoDigitMinutes:$twoDigitSeconds';
-        }
-      }
-
-      // 5 minutes 30 seconds
-      final duration = const Duration(minutes: 5, seconds: 30);
-      expect(formatDuration(duration), '05:30');
-    });
-
-    testWidgets('should format zero duration', (WidgetTester tester) async {
-      String formatDuration(Duration duration) {
-        String twoDigits(int n) => n.toString().padLeft(2, '0');
-        String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-        String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-
-        if (duration.inHours > 0) {
-          return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
-        } else {
-          return '$twoDigitMinutes:$twoDigitSeconds';
-        }
-      }
-
-      expect(formatDuration(Duration.zero), '00:00');
-    });
-
-    testWidgets('should format long duration', (WidgetTester tester) async {
-      String formatDuration(Duration duration) {
-        String twoDigits(int n) => n.toString().padLeft(2, '0');
-        String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-        String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-
-        if (duration.inHours > 0) {
-          return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
-        } else {
-          return '$twoDigitMinutes:$twoDigitSeconds';
-        }
-      }
-
-      // 12 hours 59 minutes 59 seconds
-      final duration = const Duration(hours: 12, minutes: 59, seconds: 59);
-      expect(formatDuration(duration), '12:59:59');
-    });
-
-    testWidgets('should format seconds only duration', (WidgetTester tester) async {
-      String formatDuration(Duration duration) {
-        String twoDigits(int n) => n.toString().padLeft(2, '0');
-        String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-        String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-
-        if (duration.inHours > 0) {
-          return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
-        } else {
-          return '$twoDigitMinutes:$twoDigitSeconds';
-        }
-      }
-
-      expect(formatDuration(const Duration(seconds: 45)), '00:45');
-    });
-  });
-
-  group('ConnectionStatusWidget - Info Rows', () {
-    testWidgets('should display info row with label and value', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 80,
-                    child: Text(
-                      'Device:',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Test Sensor',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
+            body: ConnectionStatusWidget(
+              controller: mockController,
             ),
           ),
         ),
       );
 
-      expect(find.text('Device:'), findsOneWidget);
-      expect(find.text('Test Sensor'), findsOneWidget);
-    });
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
 
-    testWidgets('should display ID with monospace font style', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Row(
-              children: [
-                const SizedBox(
-                  width: 80,
-                  child: Text('ID:'),
-                ),
-                const Expanded(
-                  child: Text(
-                    'AA:BB:CC:DD:EE:FF',
-                    style: TextStyle(fontFamily: 'monospace'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('ID:'), findsOneWidget);
-      expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
-    });
-
-    testWidgets('should display services count when available', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Row(
-              children: const [
-                SizedBox(width: 80, child: Text('Services:')),
-                Expanded(child: Text('5 available')),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Services:'), findsOneWidget);
-      expect(find.text('5 available'), findsOneWidget);
-    });
-
-    testWidgets('should display connected duration', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Row(
-              children: const [
-                SizedBox(width: 80, child: Text('Connected:')),
-                Expanded(child: Text('05:30')),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Connected:'), findsOneWidget);
-      expect(find.text('05:30'), findsOneWidget);
-    });
-  });
-
-  group('ConnectionStatusWidget - Styling', () {
-    testWidgets('should have gradient background for connected state', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade50, Colors.blue.shade50],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: const SizedBox(width: 100, height: 100),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byType(Container), findsWidgets);
-    });
-
-    testWidgets('should have orange background for disconnected state', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Container(
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: const SizedBox(width: 100, height: 100),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.byType(Container), findsWidgets);
-    });
-
-    testWidgets('should have green icon container for connected state', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.bluetooth_connected,
-                color: Colors.green.shade700,
-                size: 20,
-              ),
-            ),
-          ),
-        ),
-      );
-
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.readyToSendCommands), findsOneWidget);
       expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
     });
 
-    testWidgets('should have orange icon container for disconnected state', (WidgetTester tester) async {
+    testWidgets('should display compact connected status', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'device-1',
+        name: 'Compact Device',
+        displayName: 'Compact Device',
+        connectionState: BleConnectionState.connected,
+      );
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.warning_rounded,
-                color: Colors.orange.shade700,
-                size: 20,
-              ),
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              compact: true,
             ),
           ),
         ),
       );
 
-      expect(find.byIcon(Icons.warning_rounded), findsOneWidget);
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text(AppStrings.connected), findsOneWidget);
+      expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
+    });
+
+    testWidgets('should show device name in compact mode when showDeviceInfo is true', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'device-1',
+        displayName: 'My Sensor',
+        connectionState: BleConnectionState.connected,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              compact: true,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text(AppStrings.connected), findsOneWidget);
+      expect(find.textContaining('My Sensor'), findsOneWidget);
+    });
+
+    testWidgets('should not show device name in compact mode when showDeviceInfo is false', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'device-1',
+        displayName: 'Hidden Device',
+        connectionState: BleConnectionState.connected,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              compact: true,
+              showDeviceInfo: false,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text(AppStrings.connected), findsOneWidget);
+      expect(find.textContaining('Hidden Device'), findsNothing);
+    });
+  });
+
+  group('ConnectionStatusWidget - Device Info', () {
+    testWidgets('should display device info when showDeviceInfo is true', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'AA:BB:CC:DD:EE:FF',
+        displayName: 'Info Device',
+        rssi: -45,
+        connectionState: BleConnectionState.connected,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text('${AppStrings.device}:'), findsOneWidget);
+      expect(find.text('Info Device'), findsOneWidget);
+      expect(find.text('ID:'), findsOneWidget);
+      expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
+      expect(find.text('${AppStrings.rssi}:'), findsOneWidget);
+      expect(find.text('-45 dBm'), findsOneWidget);
+    });
+
+    testWidgets('should render the ID value in monospace and leave other values in the default font', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'AA:BB:CC:DD:EE:FF',
+        displayName: 'Info Device',
+        rssi: -45,
+        connectionState: BleConnectionState.connected,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      // _buildInfoRow picks the monospace face off the literal label 'ID',
+      // while every other label comes from AppStrings — renaming it to a
+      // constant compiles fine and silently drops the alignment. Note this
+      // card has no production call site today (both call sites pass
+      // showDeviceInfo: false), so this guards the widget's contract rather
+      // than a live screen.
+      final idValue = tester.widget<Text>(find.text('AA:BB:CC:DD:EE:FF'));
+      expect(idValue.style?.fontFamily, 'monospace');
+
+      final deviceNameValue = tester.widget<Text>(find.text('Info Device'));
+      expect(deviceNameValue.style?.fontFamily, isNull);
+    });
+
+    testWidgets('should not display device info when showDeviceInfo is false', (WidgetTester tester) async {
+      final device = createTestDevice(
+        id: 'AA:BB:CC:DD:EE:FF',
+        displayName: 'Hidden Info Device',
+        rssi: -45,
+        connectionState: BleConnectionState.connected,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: false,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text('${AppStrings.device}:'), findsNothing);
+      expect(find.text('ID:'), findsNothing);
+      expect(find.text('${AppStrings.rssi}:'), findsNothing);
+    });
+
+    testWidgets('should display services count when services are available', (WidgetTester tester) async {
+      final device = BleDeviceModel(
+        id: 'device-1',
+        name: 'Service Device',
+        displayName: 'Service Device',
+        rssi: -50,
+        services: [
+          BleServiceModel(uuid: '1800', displayName: 'Generic Access', characteristics: []),
+          BleServiceModel(uuid: '1801', displayName: 'Generic Attribute', characteristics: []),
+          BleServiceModel(uuid: '180f', displayName: 'Battery Service', characteristics: []),
+        ],
+        connectionState: BleConnectionState.connected,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text('${AppStrings.services}:'), findsOneWidget);
+      expect(find.text(AppStrings.servicesCount(3)), findsOneWidget);
+    });
+
+    testWidgets('should display connection duration when connectedAt is set', (WidgetTester tester) async {
+      final connectedAt = DateTime.now().subtract(const Duration(minutes: 5, seconds: 30));
+      final device = BleDeviceModel(
+        id: 'device-1',
+        name: 'Duration Device',
+        displayName: 'Duration Device',
+        rssi: -50,
+        connectedAt: connectedAt,
+        connectionState: BleConnectionState.connected,  // Required for connectionDuration to work
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text('${AppStrings.connectedFor}:'), findsOneWidget);
+      // Under an hour the widget's own formatter drops the hour segment, unlike
+      // FormattingUtils.formatDuration which always emits HH:MM:SS. The seconds
+      // move with test execution time; the minutes do not.
+      expect(find.textContaining(RegExp(r'^05:\d{2}$')), findsOneWidget);
+      expect(find.textContaining(RegExp(r'^\d{2}:\d{2}:\d{2}$')), findsNothing);
+    });
+
+    testWidgets('should format duration with hours', (WidgetTester tester) async {
+      final connectedAt = DateTime.now().subtract(const Duration(hours: 1, minutes: 30, seconds: 45));
+      final device = BleDeviceModel(
+        id: 'device-1',
+        name: 'Long Duration Device',
+        displayName: 'Long Duration Device',
+        rssi: -50,
+        connectedAt: connectedAt,
+        connectionState: BleConnectionState.connected,  // Required for connectionDuration to work
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+
+      expect(find.text('${AppStrings.connectedFor}:'), findsOneWidget);
+      // Once past an hour the hour segment must appear: "01:30:xx".
+      expect(find.textContaining(RegExp(r'^01:30:\d{2}$')), findsOneWidget);
+    });
+  });
+
+  group('ConnectionStatusWidget - Stream Updates', () {
+    testWidgets('should show the controller device when the stream has not emitted yet', (WidgetTester tester) async {
+      // The device connects before this widget is built - exactly what happens
+      // when the Quick Setup wizard opens over an already-connected device. The
+      // broadcast stream drops the event because nobody is listening yet, so
+      // the StreamBuilder starts with no data and the widget has to read
+      // controller.connectedDevice instead of rendering "no device".
+      mockController.emitConnectedDevice(
+        createTestDevice(id: 'AA:BB:CC:DD:EE:FF', displayName: 'Preconnected Device', connectionState: BleConnectionState.connected),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+              showDeviceInfo: true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsNothing);
+      // The rendered card is the controller's device, not a placeholder.
+      expect(find.text('Preconnected Device'), findsOneWidget);
+      expect(find.text('AA:BB:CC:DD:EE:FF'), findsOneWidget);
+    });
+
+    testWidgets('should update when device connects', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+            ),
+          ),
+        ),
+      );
+
+      // Initially disconnected
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+
+      // Connect a device
+      mockController.emitConnectedDevice(
+        createTestDevice(id: 'device-1', displayName: 'New Device', connectionState: BleConnectionState.connected),
+      );
+      await tester.pump();
+
+      // Should now show connected
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsNothing);
+    });
+
+    testWidgets('should update when device disconnects', (WidgetTester tester) async {
+      final device = createTestDevice(id: 'device-1', displayName: 'Connected Device', connectionState: BleConnectionState.connected);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+            ),
+          ),
+        ),
+      );
+
+      // Start connected
+      mockController.emitConnectedDevice(device);
+      await tester.pump();
+      await tester.pump(); // extra pump for stream to settle
+
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
+
+      // Disconnect
+      mockController.emitConnectedDevice(null);
+      await tester.pump();
+      await tester.pump(); // extra pump for stream to settle
+
+      // Should now show disconnected
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+      expect(find.text(AppStrings.deviceConnected), findsNothing);
     });
   });
 
@@ -580,22 +444,23 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            appBar: AppBar(
-              title: const Text('Command Interface'),
+            appBar: ConnectionStatusAppBar(
+              controller: mockController,
             ),
           ),
         ),
       );
 
-      expect(find.text('Command Interface'), findsOneWidget);
+      expect(find.text(AppStrings.commandInterface), findsOneWidget);
     });
 
     testWidgets('should display custom title', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            appBar: AppBar(
-              title: const Text('Custom Title'),
+            appBar: ConnectionStatusAppBar(
+              controller: mockController,
+              title: 'Custom Title',
             ),
           ),
         ),
@@ -604,18 +469,51 @@ void main() {
       expect(find.text('Custom Title'), findsOneWidget);
     });
 
-    testWidgets('should have correct preferredSize', (WidgetTester tester) async {
-      const preferredSize = Size.fromHeight(kToolbarHeight);
-
-      expect(preferredSize.height, kToolbarHeight);
-    });
-
-    testWidgets('should include actions widgets', (WidgetTester tester) async {
+    testWidgets('should include connection status in compact mode', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            appBar: AppBar(
-              title: const Text('Title'),
+            appBar: ConnectionStatusAppBar(
+              controller: mockController,
+            ),
+          ),
+        ),
+      );
+
+      // Should show disconnected status in app bar
+      expect(find.byIcon(Icons.bluetooth_disabled), findsOneWidget);
+    });
+
+    testWidgets('should update connection status when device connects', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: ConnectionStatusAppBar(
+              controller: mockController,
+            ),
+          ),
+        ),
+      );
+
+      // Initially disconnected
+      expect(find.byIcon(Icons.bluetooth_disabled), findsOneWidget);
+
+      // Connect
+      mockController.emitConnectedDevice(
+        createTestDevice(id: 'device-1', connectionState: BleConnectionState.connected),
+      );
+      await tester.pump();
+
+      // Should show connected
+      expect(find.byIcon(Icons.bluetooth_connected), findsOneWidget);
+    });
+
+    testWidgets('should include custom actions', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: ConnectionStatusAppBar(
+              controller: mockController,
               actions: [
                 IconButton(
                   icon: const Icon(Icons.settings),
@@ -629,147 +527,81 @@ void main() {
 
       expect(find.byIcon(Icons.settings), findsOneWidget);
     });
+
+    testWidgets('should have correct preferredSize', (WidgetTester tester) async {
+      final appBar = ConnectionStatusAppBar(
+        controller: mockController,
+      );
+
+      expect(appBar.preferredSize.height, kToolbarHeight);
+    });
   });
 
-  group('StreamBuilder Pattern for Connection Status', () {
-    testWidgets('should handle null device from stream', (WidgetTester tester) async {
-      final controller = StreamController<BleDeviceModel?>();
-
+  group('ConnectionStatusWidget - Theming', () {
+    testWidgets('should render in light theme', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData.light(),
           home: Scaffold(
-            body: StreamBuilder<BleDeviceModel?>(
-              stream: controller.stream,
-              builder: (context, snapshot) {
-                final device = snapshot.data;
-                return device != null
-                    ? const Text('Connected')
-                    : const Text('Disconnected');
-              },
+            body: ConnectionStatusWidget(
+              controller: mockController,
             ),
           ),
         ),
       );
 
-      // Initially no data
-      expect(find.text('Disconnected'), findsOneWidget);
-
-      await controller.close();
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
     });
 
-    testWidgets('should update when device connects', (WidgetTester tester) async {
-      final controller = StreamController<BleDeviceModel?>.broadcast();
-
+    testWidgets('should render in dark theme', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData.dark(),
           home: Scaffold(
-            body: StreamBuilder<BleDeviceModel?>(
-              stream: controller.stream,
-              builder: (context, snapshot) {
-                final device = snapshot.data;
-                return device != null
-                    ? Text('Connected to ${device.displayName}')
-                    : const Text('Disconnected');
-              },
+            body: ConnectionStatusWidget(
+              controller: mockController,
             ),
           ),
         ),
       );
 
-      expect(find.text('Disconnected'), findsOneWidget);
+      expect(find.text(AppStrings.noDeviceConnected), findsOneWidget);
+    });
 
-      // Emit connected device
-      controller.add(createTestDevice(displayName: 'My Sensor'));
+    testWidgets('should render connected state in light theme', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.light(),
+          home: Scaffold(
+            body: ConnectionStatusWidget(
+              controller: mockController,
+            ),
+          ),
+        ),
+      );
+
+      mockController.emitConnectedDevice(createTestDevice(id: 'device-1', connectionState: BleConnectionState.connected));
       await tester.pump();
 
-      expect(find.text('Connected to My Sensor'), findsOneWidget);
-
-      await controller.close();
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
     });
 
-    testWidgets('should update when device disconnects', (WidgetTester tester) async {
-      final controller = StreamController<BleDeviceModel?>.broadcast();
-      final device = createTestDevice(displayName: 'Test Device');
-
+    testWidgets('should render connected state in dark theme', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData.dark(),
           home: Scaffold(
-            body: StreamBuilder<BleDeviceModel?>(
-              stream: controller.stream,
-              initialData: device,
-              builder: (context, snapshot) {
-                final device = snapshot.data;
-                return device != null
-                    ? Text('Connected to ${device.displayName}')
-                    : const Text('Disconnected');
-              },
+            body: ConnectionStatusWidget(
+              controller: mockController,
             ),
           ),
         ),
       );
 
-      expect(find.text('Connected to Test Device'), findsOneWidget);
-
-      // Emit null (disconnected)
-      controller.add(null);
+      mockController.emitConnectedDevice(createTestDevice(id: 'device-1', connectionState: BleConnectionState.connected));
       await tester.pump();
 
-      expect(find.text('Disconnected'), findsOneWidget);
-
-      await controller.close();
+      expect(find.text(AppStrings.deviceConnected), findsOneWidget);
     });
   });
-
-  group('BleDeviceModel - Connection Properties', () {
-    test('should have connectionDuration when connectedAt is set', () {
-      final now = DateTime.now();
-      final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
-
-      final device = BleDeviceModel(
-        id: 'test-id',
-        name: 'Test',
-        displayName: 'Test Device',
-        connectedAt: fiveMinutesAgo,
-      );
-
-      // connectionDuration should be approximately 5 minutes
-      // (may have small variance due to test execution time)
-      expect(device.connectedAt, fiveMinutesAgo);
-    });
-
-    test('should create device with services', () {
-      final device = BleDeviceModel(
-        id: 'test-id',
-        name: 'Test',
-        displayName: 'Test Device',
-        services: const [],
-      );
-
-      expect(device.services, isEmpty);
-    });
-  });
-}
-
-// Helper widget builder for info rows
-Widget _buildInfoRow(String label, String value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            '$label:',
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ),
-      ],
-    ),
-  );
 }
