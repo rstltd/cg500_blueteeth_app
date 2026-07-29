@@ -6,6 +6,8 @@ import 'services/theme_service.dart';
 import 'controllers/update_controller.dart';
 import 'services/command_parameter_storage_service.dart';
 import 'services/custom_command_service.dart';
+import 'services/notification_service.dart';
+import 'services/role_service.dart';
 import 'core/service_locator.dart';
 import 'utils/logger.dart';
 
@@ -206,7 +208,29 @@ class _AppHomeWrapperState extends State<AppHomeWrapper> {
     // Set context for update dialogs after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.updateManager.setContext(context);
+      // Post-frame: SimpleScannerView is mounted and its notification listener
+      // is subscribed by now, so the SnackBar cannot be missed.
+      _notifyIfDeveloperSessionInterrupted();
     });
+  }
+
+  /// Tell the user when a developer session was ended by a restart rather than
+  /// by them. Android can recreate the FlutterActivity — and with it the Dart
+  /// isolate and every in-memory singleton — without killing the process, so
+  /// developer mode disappears mid-session with no visible restart and the
+  /// command list silently shrinks back to the five whitelisted commands.
+  /// ADR-0005 keeps the role unpersisted; this only makes the drop visible.
+  Future<void> _notifyIfDeveloperSessionInterrupted() async {
+    final wasInterrupted =
+        await getIt<RoleService>().consumeInterruptedDeveloperSession();
+    if (!wasInterrupted) return;
+    // force: bypasses the smart notification filter — this must not be
+    // deduped away behind an unrelated warning.
+    getIt<NotificationService>().showWarning(
+      title: AppStrings.developerModeResetTitle,
+      message: AppStrings.developerModeResetMessage,
+      force: true,
+    );
   }
 
   @override

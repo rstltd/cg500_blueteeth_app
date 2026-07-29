@@ -135,5 +135,37 @@ void main() {
       // Old custom password no longer works
       expect(await service.tryEnableDeveloperMode('custom2'), isFalse);
     });
+
+    // F-008: an Android Activity recreate spawns a new Dart isolate and
+    // rebuilds every singleton inside the same OS process, so developer mode
+    // vanished with no visible restart and no notice.
+    test('a restart while elevated is reported once, then cleared', () async {
+      final before = RoleService();
+      await before.tryEnableDeveloperMode('cg500dev');
+
+      // The isolate restarting: brand-new instance, same SharedPreferences.
+      final after = RoleService();
+      expect(after.currentRole, UserRole.normal,
+          reason: 'ADR-0005 — the role is never restored');
+      expect(await after.consumeInterruptedDeveloperSession(), isTrue);
+      expect(await after.consumeInterruptedDeveloperSession(), isFalse,
+          reason: 'the notice is one-shot');
+    });
+
+    test('an explicit exit is not reported as interrupted', () async {
+      final service = RoleService();
+      await service.tryEnableDeveloperMode('cg500dev');
+      service.disableDeveloperMode();
+      await Future<void>.delayed(Duration.zero); // let the flag write land
+
+      expect(await RoleService().consumeInterruptedDeveloperSession(), isFalse);
+    });
+
+    test('never entering developer mode reports nothing', () async {
+      expect(
+        await RoleService().consumeInterruptedDeveloperSession(),
+        isFalse,
+      );
+    });
   });
 }

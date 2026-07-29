@@ -27,6 +27,12 @@ class RoleService {
 
   static const String _passwordHashKey = 'role_dev_password_hash';
 
+  /// Breadcrumb: set while developer mode is active, removed on an explicit
+  /// exit. It is **not** the role — a leftover `true` never elevates anything,
+  /// it only tells the next launch that the previous run ended while elevated.
+  /// See [consumeInterruptedDeveloperSession].
+  static const String _devSessionFlagKey = 'role_dev_session_active';
+
   /// sha256(`cg500dev`) — factory default password hash.
   /// Used when no custom hash is stored in [SharedPreferences].
   static const String defaultPasswordHashHex =
@@ -55,6 +61,7 @@ class RoleService {
     }
     _currentRole = UserRole.developer;
     _roleController.add(_currentRole);
+    await _setDevSessionFlag(true);
     Logger.diagnostic('[ROLE] developer mode enabled');
     return true;
   }
@@ -64,6 +71,10 @@ class RoleService {
     if (_currentRole == UserRole.normal) return;
     _currentRole = UserRole.normal;
     _roleController.add(_currentRole);
+    // Fire-and-forget: an explicit exit must not be reported as an interrupted
+    // session on the next launch. Kept synchronous so the existing callers
+    // (the switch tile) don't have to become async.
+    unawaited(_setDevSessionFlag(false));
     Logger.diagnostic('[ROLE] developer mode disabled');
   }
 
@@ -103,6 +114,32 @@ class RoleService {
   /// Test-only helper: closes the broadcast stream.
   void dispose() {
     _roleController.close();
+  }
+
+  /// Returns `true` exactly once when the previous run ended while developer
+  /// mode was still active — i.e. the role was dropped by a restart the user
+  /// never asked for. The flag is cleared on read so the notice is one-shot.
+  ///
+  /// ADR-0005 is untouched: the role itself is still never restored and every
+  /// launch begins in [UserRole.normal]. This only lets the UI say what
+  /// happened instead of silently shrinking the command surface.
+  Future<bool> consumeInterruptedDeveloperSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final wasActive = prefs.getBool(_devSessionFlagKey) ?? false;
+    if (wasActive) {
+      await prefs.remove(_devSessionFlagKey);
+      Logger.diagnostic('[ROLE] previous developer session was interrupted');
+    }
+    return wasActive;
+  }
+
+  Future<void> _setDevSessionFlag(bool active) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (active) {
+      await prefs.setBool(_devSessionFlagKey, true);
+    } else {
+      await prefs.remove(_devSessionFlagKey);
+    }
   }
 
   Future<String> _loadStoredHashOrDefault() async {

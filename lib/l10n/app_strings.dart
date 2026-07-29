@@ -212,6 +212,13 @@ abstract class AppStrings {
   /// Developer mode subtitle when disabled
   static const String developerModeDisabled = '一般模式 — 僅顯示基本設備指令';
 
+  /// SnackBar title when a restart dropped an active developer session
+  static const String developerModeResetTitle = '開發者模式已關閉';
+
+  /// SnackBar body for [developerModeResetTitle]
+  static const String developerModeResetMessage =
+      '應用程式重新啟動，已回到一般模式；需要時請重新輸入密碼';
+
   /// Raw BLE diagnostic trace toggle title
   static const String diagnosticLogging = '診斷記錄';
 
