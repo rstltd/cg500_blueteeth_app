@@ -148,6 +148,31 @@ void main() {
         expect(find.byType(SnackBar), findsOneWidget);
       });
 
+      // Regression cover for F-007. SnackBar's ctor does
+      // `persist = persist ?? action != null`, and ScaffoldMessenger skips the
+      // auto-dismiss timer when persist is true -- so an error carrying a
+      // recovery action used to ignore its duration and stay up forever.
+      testWidgets('a SnackBar carrying an action still auto-dismisses',
+          (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(stream: notificationController.stream),
+        );
+        await tester.pumpAndSettle();
+
+        notificationController.add(NotificationModel.error(
+          title: 'Bluetooth Error',
+          message: 'Could not connect',
+          duration: const Duration(seconds: 1),
+          action: NotificationAction(label: 'Retry', onPressed: () {}),
+        ));
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsOneWidget);
+
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
+      });
+
       testWidgets('should use default duration when not specified',
           (tester) async {
         await tester.pumpWidget(

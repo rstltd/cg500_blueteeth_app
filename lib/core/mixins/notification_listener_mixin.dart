@@ -97,6 +97,13 @@ mixin NotificationListenerMixin<T extends StatefulWidget> on State<T> {
         content: Text('${notification.title}: ${notification.message}'),
         backgroundColor: getNotificationColor(notification.type),
         duration: _getNotificationDuration(notification),
+        // SnackBar's constructor does `persist = persist ?? action != null`,
+        // and ScaffoldMessenger skips the auto-dismiss timer when persist is
+        // true. So without this, every notification carrying a recovery action
+        // silently ignores the duration above and stays on screen until the
+        // user taps the action -- a connection-failure bar with "重試" was
+        // observed occluding the bottom of the screen for two minutes.
+        persist: false,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(8),
         shape: RoundedRectangleBorder(
