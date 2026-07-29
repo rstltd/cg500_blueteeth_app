@@ -45,6 +45,11 @@ class MainActivity : FlutterActivity() {
                     Log.d(TAG, "diagnosePermissions result: $diagnosis")
                     result.success(diagnosis)
                 }
+                "openLocationSettings" -> {
+                    val opened = openLocationSourceSettings()
+                    Log.d(TAG, "openLocationSettings result: $opened")
+                    result.success(opened)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -454,7 +459,22 @@ class MainActivity : FlutterActivity() {
             Log.d(TAG, "Install permission already granted or not required")
         }
     }
-    
+
+    // Opens the system-level location settings page (the OS-wide location
+    // toggle), as opposed to this app's own permission settings. Android has
+    // no dedicated FlutterPlugin API for this, so it goes through a direct
+    // Settings intent — same approach as requestInstallPermission() above.
+    private fun openLocationSourceSettings(): Boolean {
+        return try {
+            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to open location source settings: ${e.message}", e)
+            false
+        }
+    }
+
     private fun diagnosePermissions(): Map<String, Any> {
         val diagnosis = mutableMapOf<String, Any>()
         

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:permission_handler/permission_handler.dart';
 import '../utils/logger.dart';
@@ -49,6 +51,12 @@ class BluetoothEnvironmentStatus {
 /// Use [PermissionService.withDependencies()] or [PermissionService()]
 /// constructor and register via service locator for production use.
 class PermissionService {
+  /// Same MethodChannel MainActivity already exposes for the update flow
+  /// (see `install_manager.dart`). Reused here rather than standing up a
+  /// second channel, since MainActivity registers one handler for the whole
+  /// app.
+  static const _platform = MethodChannel('com.cg500.ble_app/update');
+
   /// Default constructor for dependency injection via service locator.
   PermissionService();
 
@@ -162,12 +170,32 @@ class PermissionService {
 
   /// Open the system settings page that lets the user toggle location
   /// services on. Returns true on success.
+  ///
+  /// permission_handler only exposes openAppSettings(), which lands on the
+  /// app's own permission page — that page has no OS-wide location toggle,
+  /// so a user who disabled location services entirely can never fix it
+  /// from there. On Android this goes through a native MethodChannel call
+  /// that fires Settings.ACTION_LOCATION_SOURCE_SETTINGS instead, landing
+  /// directly on the system location settings page. Falls back to
+  /// openAppSettings() on any failure (including non-Android platforms)
+  /// so the retry button never becomes a dead end.
   Future<bool> openLocationSettings() async {
+    if (Platform.isAndroid) {
+      try {
+        final opened = await _platform.invokeMethod<bool>(
+          'openLocationSettings',
+        );
+        if (opened == true) {
+          return true;
+        }
+      } catch (e) {
+        Logger.error(
+          'Failed to open location source settings via platform channel',
+          error: e,
+        );
+      }
+    }
     try {
-      // permission_handler exposes openAppSettings only; dispatching
-      // to the location-specific page goes through a separate intent.
-      // For now, open the app settings page — Android users can navigate
-      // from there. iOS treats the two screens identically.
       return await ph.openAppSettings();
     } catch (e) {
       Logger.error('Failed to open location settings', error: e);
