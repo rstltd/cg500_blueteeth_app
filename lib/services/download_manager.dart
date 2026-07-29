@@ -128,11 +128,39 @@ class DownloadManager {
       client.idleTimeout = const Duration(minutes: 5);
 
       try {
-        final request = await client.getUrl(Uri.parse(updateInfo.downloadUrl));
+        final downloadUri = Uri.parse(updateInfo.downloadUrl);
+
+        // Defence in depth: the primary protection is that this URL comes from
+        // the GitHub API over TLS, but refuse anything that is not https so a
+        // malformed or tampered asset URL can never downgrade the APK transfer
+        // to plaintext. GitHub's browser_download_url normally 302-redirects
+        // to a different host (objects.githubusercontent.com) before the APK
+        // bytes are actually sent, so every redirect hop HttpClient follows
+        // is also checked below - not just this initial URL.
+        if (downloadUri.scheme != 'https') {
+          throw Exception(
+              'Refusing non-https download URL (scheme: ${downloadUri.scheme})');
+        }
+
+        final request = await client.getUrl(downloadUri);
         request.headers.add('Accept', 'application/octet-stream');
         request.headers.add('User-Agent', 'CG500-BLE-App');
 
         final response = await request.close();
+
+        // Resolve each hop against the one before it. RFC 7231 permits a
+        // relative Location header and dart:io records it here unresolved, so
+        // testing `location.scheme` directly would read a legitimate relative
+        // redirect as scheme-less and abort a perfectly secure download.
+        // Resolving is also exactly what HttpClient does before dialling.
+        var hop = downloadUri;
+        for (final redirect in response.redirects) {
+          hop = hop.resolveUri(redirect.location);
+          if (hop.scheme != 'https') {
+            throw Exception(
+                'Refusing a redirect to a non-https URL during APK download');
+          }
+        }
 
         if (response.statusCode != 200) {
           throw Exception('Download failed with status: ${response.statusCode}');
@@ -169,8 +197,14 @@ class DownloadManager {
         int downloadedBytes = 0;
         final startTime = DateTime.now();
 
-        await response.listen(
-          (List<int> chunk) {
+        // The stream is consumed with `await for` rather than
+        // `listen(onDone:..., onError:...).asFuture()`: `asFuture()` replaces
+        // the onDone/onError handlers passed to `listen`, so any cleanup
+        // written there never runs. The sink must be closed on both the
+        // success and the failure path, otherwise the tail of the APK stays in
+        // the buffer while the checksum/install steps read the file back.
+        try {
+          await for (final chunk in response) {
             sink.add(chunk);
             downloadedBytes += chunk.length;
 
@@ -204,18 +238,14 @@ class DownloadManager {
                 estimatedTimeRemaining: estimatedRemaining,
               ));
             }
-          },
-          onDone: () async {
-            await sink.flush();
-            await sink.close();
-            client.close();
-          },
-          onError: (error) async {
-            await sink.close();
-            client.close();
-            throw error;
-          },
-        ).asFuture();
+          }
+          await sink.flush();
+        } finally {
+          // close() also flushes whatever is still buffered, so the file is
+          // complete on disk before verification, and the handle is released
+          // even when the download throws mid-stream.
+          await sink.close();
+        }
 
         // Verify SHA256 checksum if provided
         if (updateInfo.hasChecksum) {
@@ -239,8 +269,14 @@ class DownloadManager {
           }
           Logger.info('SHA256 checksum verified successfully');
         } else {
-          Logger.debug(
-              'No checksum provided, skipping verification (backward compatible)');
+          // Logger.warning is silent in release builds (see CLAUDE.md's
+          // Diagnostic section / logger.dart's kDebugMode-gated level), so
+          // this uses the diagnostic channel instead - it stays visible when
+          // Logger.diagnosticEnabled is toggled on to investigate a
+          // user-reported release-build issue.
+          Logger.diagnostic(
+              'No checksum provided, skipping verification (backward compatible) - '
+              'the downloaded APK is installed without any integrity check');
         }
 
         // Final progress update

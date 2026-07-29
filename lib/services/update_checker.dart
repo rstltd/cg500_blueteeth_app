@@ -229,13 +229,17 @@ class UpdateChecker {
     return tag.startsWith('v') ? tag.substring(1) : tag;
   }
 
-  /// Determine if this is a forced update based on release notes
+  /// Determine if this is a forced update based on release notes.
+  ///
+  /// Only the official bracketed markers (`[forced]` / `[critical]`, see
+  /// CLAUDE.md "Version Management") trigger a forced update. Loose phrase
+  /// matching (e.g. "security fix") is deliberately not used here — normal
+  /// English release-note prose can contain those words without the release
+  /// actually being forced, which would lock users into an undismissable
+  /// update dialog.
   bool _isForceUpdate(String releaseNotes) {
     final lowerNotes = releaseNotes.toLowerCase();
-    return lowerNotes.contains('[forced]') ||
-        lowerNotes.contains('[critical]') ||
-        lowerNotes.contains('security fix') ||
-        lowerNotes.contains('critical fix');
+    return lowerNotes.contains('[forced]') || lowerNotes.contains('[critical]');
   }
 
   /// Classify the magnitude of the version delta. Recommended for changes that
