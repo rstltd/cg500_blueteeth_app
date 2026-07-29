@@ -58,6 +58,20 @@ class BleService {
   bool _isInitialized = false;
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
   StreamSubscription<List<ScanResult>>? _scanResultsSubscription;
+  /// Timer that force-stops the current scan round. Kept in a field so a new
+  /// scan round can cancel the previous round's timer — otherwise a stale
+  /// timer fires later, sees the global [_isScanning] flag and kills a scan
+  /// round it does not belong to.
+  Timer? _scanTimeoutTimer;
+  /// Subscription to the connected device's connectionState stream.
+  /// flutter_blue_plus opens a NEW stream on every `.listen()` call, so this
+  /// must be cancelled before re-assigning or the listeners accumulate and
+  /// every state change is handled N times.
+  StreamSubscription<BluetoothConnectionState>? _connectionStateSubscription;
+  /// Delays registration of [_connectionStateSubscription] after connect.
+  /// Kept in a field so disconnecting within the delay window cancels the
+  /// pending registration instead of leaking a listener 1s later.
+  Timer? _connectionListenTimer;
   
   // Command communication properties
   // BluetoothDevice? _connectedBluetoothDevice; // Unused - using _bluetoothDevicesCache instead
@@ -237,8 +251,31 @@ class BleService {
       _isScanning = true;
       _scanningController.add(true);
 
+      // flutter_blue_plus hands out a NEW stream on every `.listen()`, so a
+      // subscription surviving from an earlier round (e.g. one whose
+      // stopScan() call failed) must be cancelled here. Overwriting the field
+      // instead would leave the old listener alive and make
+      // _handleScanResults run once per leaked listener.
+      await _cancelScanResultsSubscription();
+
       _scanResultsSubscription = FlutterBluePlus.scanResults.listen(
         (results) => _handleScanResults(results),
+        // flutter_blue_plus pushes scan failures onto this stream and stops
+        // scanning itself. Without a handler the error escapes to the zone
+        // (silently dropped in release) and the UI keeps showing a spinner
+        // until the timeout timer fires.
+        onError: (Object error, StackTrace stack) async {
+          Logger.error('Error in scan results stream', error: error);
+          await _errorHandlingService.handleError(AppError(
+            code: 'SCAN_FAILED',
+            message: error.toString(),
+            category: ErrorCategory.bluetooth,
+            originalError: error,
+            stackTrace: stack,
+            retryAction: () => startScanning(timeout: timeout),
+          ));
+          await _stopScanningInternal();
+        },
       );
 
       await FlutterBluePlus.startScan(
@@ -248,7 +285,8 @@ class BleService {
 
       Logger.ble('Started BLE scanning for ${timeout.inSeconds} seconds');
 
-      Timer(timeout, () {
+      _scanTimeoutTimer?.cancel();
+      _scanTimeoutTimer = Timer(timeout, () {
         if (_isScanning) {
           stopScanning();
         }
@@ -298,17 +336,36 @@ class BleService {
   }
 
   Future<void> _stopScanningInternal() async {
+    _scanTimeoutTimer?.cancel();
+    _scanTimeoutTimer = null;
     if (_isScanning) {
       try {
         await FlutterBluePlus.stopScan();
-        await _scanResultsSubscription?.cancel();
-        _isScanning = false;
-        _scanningController.add(false);
-        Logger.ble('Stopped BLE scanning');
       } catch (e) {
+        // A failing platform call must not strand the local state. Everything
+        // below used to live inside this try, so one transient stopScan()
+        // failure left the subscription alive, _isScanning stuck at true (the
+        // UI spinner never cleared) and every later scan round piled on
+        // another scanResults listener.
         Logger.error('Error stopping scan', error: e);
+      } finally {
+        await _cancelScanResultsSubscription();
+        _isScanning = false;
+        if (!_scanningController.isClosed) {
+          _scanningController.add(false);
+        }
+        Logger.ble('Stopped BLE scanning');
       }
     }
+  }
+
+  /// Cancel and clear [_scanResultsSubscription]. The field is cleared before
+  /// awaiting the cancel so a concurrent caller cannot mistake a subscription
+  /// that is already being torn down for a live one.
+  Future<void> _cancelScanResultsSubscription() async {
+    final subscription = _scanResultsSubscription;
+    _scanResultsSubscription = null;
+    await subscription?.cancel();
   }
 
   Future<bool> connectToDevice(String deviceId) async {
@@ -371,9 +428,19 @@ class BleService {
       Logger.connection('Connection successful: ${connectedDevice.displayName}');
       Logger.connection('Connected device set: ${_connectedDevice?.displayName}');
 
-      // Listen to connection state changes (but avoid immediate override)
-      Timer(const Duration(milliseconds: 1000), () {
-        bluetoothDevice.connectionState.listen((state) {
+      // Listen to connection state changes (but avoid immediate override).
+      // The stale listener is dropped here and now, so the timer callback can
+      // stay synchronous. An async callback would have to await the cancel,
+      // and _cleanupCommandCharacteristics() running inside that await window
+      // would clear the field only for the callback to re-populate it
+      // afterwards with a listener nothing can ever cancel again.
+      _connectionListenTimer?.cancel();
+      _dropConnectionStateSubscription();
+      _connectionListenTimer = Timer(const Duration(milliseconds: 1000), () {
+        _connectionListenTimer = null;
+        _dropConnectionStateSubscription();
+        _connectionStateSubscription =
+            bluetoothDevice.connectionState.listen((state) {
           Logger.connection('Connection state change: $deviceId -> $state');
           _handleConnectionStateChange(deviceId, state);
         });
@@ -665,30 +732,31 @@ class BleService {
               Logger.ble('Generic command characteristic found: ${characteristic.uuid}');
             }
             
-            // Look for response characteristic (notifiable)
-            if (characteristic.properties.notify && _responseCharacteristic == null) {
-              _responseCharacteristic = characteristic;
-              
-              // Subscribe to notifications (cancel any stale subscription
-              // first to avoid orphaned listeners on reconnect).
-              await characteristic.setNotifyValue(true);
-              await _responseSubscription?.cancel();
-              _responseSubscription = null;
-              _assembler?.dispose();
-              _assembler = BleMessageAssembler(
-                onMessage: (message) {
-                  Logger.command('Received response: $message');
-                  _commandResponseController.add(message);
-                },
-              );
-              _responseSubscription =
-                  characteristic.lastValueStream.listen((data) {
-                _assembler?.addChunk(data);
-              });
-              
+            // Look for response characteristic (notifiable). Prefer one that
+            // is not the characteristic already picked as the command
+            // channel, since most GATT profiles separate the two. Devices
+            // that expose only one are handled by the second pass below.
+            if (characteristic.properties.notify &&
+                _responseCharacteristic == null &&
+                !identical(characteristic, _commandCharacteristic)) {
+              await _attachGenericResponseCharacteristic(characteristic);
               Logger.ble('Generic response characteristic found: ${characteristic.uuid}');
             }
           }
+        }
+
+        // Second pass. The preference above is only a preference: transparent
+        // UART bridges expose a single write+notify characteristic, and on
+        // those devices insisting on a separate response channel leaves us
+        // with none at all — no replies ever reach commandResponseStream.
+        if (_responseCharacteristic == null &&
+            _commandCharacteristic != null &&
+            _commandCharacteristic!.properties.notify) {
+          await _attachGenericResponseCharacteristic(_commandCharacteristic!);
+          Logger.ble(
+            'No separate notify characteristic; reusing the command channel '
+            'for responses: ${_commandCharacteristic?.uuid}',
+          );
         }
       }
 
@@ -720,6 +788,37 @@ class BleService {
         stackTrace: stack,
       ));
     }
+  }
+
+  /// Wire [characteristic] up as the response channel for the non-Nordic
+  /// fallback. Shared by both fallback passes so the "reuse the command
+  /// channel" retry cannot drift from the preferred path.
+  Future<void> _attachGenericResponseCharacteristic(
+    BluetoothCharacteristic characteristic,
+  ) async {
+    _responseCharacteristic = characteristic;
+
+    // Subscribe to notifications (cancel any stale subscription
+    // first to avoid orphaned listeners on reconnect).
+    await characteristic.setNotifyValue(true);
+    await _responseSubscription?.cancel();
+    _responseSubscription = null;
+    _assembler?.dispose();
+    _assembler = BleMessageAssembler(
+      onMessage: (message) {
+        Logger.command('Received response: $message');
+        _commandResponseController.add(message);
+      },
+    );
+    // `onValueReceived`, not `lastValueStream`: the latter also emits
+    // OnCharacteristicWritten, so when the second pass below shares the
+    // command characteristic we would feed our own outgoing bytes straight
+    // back into the assembler. Commands carry no CRLF, so such an echo would
+    // not even surface as its own phantom message — it would sit in the
+    // buffer and get glued onto the front of the device's first real reply.
+    _responseSubscription = characteristic.onValueReceived.listen((data) {
+      _assembler?.addChunk(data);
+    });
   }
 
   // Send text command to device
@@ -765,8 +864,23 @@ class BleService {
     };
   }
 
-  // Clean up command communication resources
+  /// Drop the current connection-state listener synchronously. The field is
+  /// cleared before the (unawaited) cancel so callers never have to await —
+  /// every caller runs at a point where an await would open a window for
+  /// [_cleanupCommandCharacteristics] to interleave.
+  void _dropConnectionStateSubscription() {
+    final subscription = _connectionStateSubscription;
+    _connectionStateSubscription = null;
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
+  }
+
+  // Clean up command communication resources and the connection-state listener
   void _cleanupCommandCharacteristics() {
+    _connectionListenTimer?.cancel();
+    _connectionListenTimer = null;
+    _dropConnectionStateSubscription();
     _responseSubscription?.cancel();
     _responseSubscription = null;
     _assembler?.dispose();
@@ -777,8 +891,11 @@ class BleService {
   }
 
   void dispose() {
+    _scanTimeoutTimer?.cancel();
+    _connectionListenTimer?.cancel();
     _adapterStateSubscription?.cancel();
     _scanResultsSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
     _responseSubscription?.cancel();
     _assembler?.dispose();
     _devicesController.close();

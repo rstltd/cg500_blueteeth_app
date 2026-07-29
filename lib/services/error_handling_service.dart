@@ -292,6 +292,8 @@ class ErrorHandlingService {
         return AppStrings.bleDisabledMessage;
       case 'BLE_UNAVAILABLE':
         return AppStrings.bleUnavailableMessage;
+      case 'SCAN_FAILED':
+        return AppStrings.scanFailedMessage;
       case 'DEVICE_NOT_FOUND':
         return AppStrings.deviceNotFoundMessage;
       case 'CONNECTION_FAILED':
