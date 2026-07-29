@@ -1,6 +1,14 @@
+import os
 import re
+import sys
 
-with open('coverage/lcov.info', 'r') as f:
+LCOV_PATH = 'coverage/lcov.info'
+if not os.path.exists(LCOV_PATH):
+    sys.exit(f"[ERROR] {LCOV_PATH} not found. It is generated output and is no "
+             "longer tracked in git -- run `flutter test --coverage` from the "
+             "project root first.")
+
+with open(LCOV_PATH, 'r') as f:
     content = f.read()
 
 # Parse each file's coverage

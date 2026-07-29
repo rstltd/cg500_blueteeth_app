@@ -1,8 +1,16 @@
+import os
 import re
 import sys
 
+LCOV_PATH = 'coverage/lcov.info'
+
 def analyze_coverage():
-    with open('coverage/lcov.info', 'r') as f:
+    if not os.path.exists(LCOV_PATH):
+        sys.exit(f"[ERROR] {LCOV_PATH} not found. It is generated output and is "
+                 "no longer tracked in git -- run `flutter test --coverage` from "
+                 "the project root first.")
+
+    with open(LCOV_PATH, 'r') as f:
         content = f.read()
 
     files = content.split('end_of_record')
