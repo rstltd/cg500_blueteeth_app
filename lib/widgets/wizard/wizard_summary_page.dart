@@ -13,12 +13,18 @@ class WizardSummaryPage extends StatelessWidget {
     super.key,
     required this.commands,
     required this.hasAnyChange,
+    required this.isConnected,
     required this.onConfirm,
     required this.onBack,
   });
 
   final List<SetupCommand> commands;
   final bool hasAnyChange;
+
+  /// Whether a device is currently connected. The confirm action is disabled
+  /// when it is not: sending would fail at the first command anyway, and the
+  /// operator should learn that before doing the work, not after.
+  final bool isConnected;
   final VoidCallback onConfirm;
   final VoidCallback onBack;
 
@@ -73,6 +79,26 @@ class WizardSummaryPage extends StatelessWidget {
           ],
 
           SizedBox(height: DesignTokens.spacingM),
+          if (hasAnyChange && !isConnected)
+            Padding(
+              padding: EdgeInsets.only(bottom: DesignTokens.spacingSM),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.bluetooth_disabled,
+                    color: colorScheme.error,
+                    size: DesignTokens.iconS,
+                  ),
+                  SizedBox(width: DesignTokens.spacingS),
+                  Expanded(
+                    child: Text(
+                      AppStrings.pleaseConnectBleDeviceFirst,
+                      style: TextStyle(color: colorScheme.error),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               Expanded(
@@ -85,7 +111,7 @@ class WizardSummaryPage extends StatelessWidget {
               if (hasAnyChange)
                 Expanded(
                   child: FilledButton(
-                    onPressed: onConfirm,
+                    onPressed: isConnected ? onConfirm : null,
                     child: const Text(AppStrings.confirmAndExecute),
                   ),
                 ),

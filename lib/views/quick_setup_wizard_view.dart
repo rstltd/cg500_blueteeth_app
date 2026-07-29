@@ -4,10 +4,12 @@ import '../controllers/command_manager.dart';
 import '../core/service_locator.dart' show getIt;
 import '../design/design_system.dart';
 import '../l10n/app_strings.dart';
+import '../models/ble_device.dart';
 import '../models/command/command.dart';
 import '../models/device_info.dart';
 import '../repositories/command_repository.dart';
 import '../view_models/quick_setup_view_model.dart';
+import '../widgets/ble/connection_status_widget.dart';
 import '../widgets/wizard/wizard_execution_page.dart';
 import '../widgets/wizard/wizard_step_form.dart';
 import '../widgets/wizard/wizard_summary_page.dart';
@@ -105,6 +107,17 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+        actions: [
+          // The wizard is full-screen, so it hides the connection status the
+          // views underneath show. Without this an operator can fill in all
+          // four steps without ever learning the device dropped.
+          ConnectionStatusWidget(
+            controller: widget.controller,
+            compact: true,
+            showDeviceInfo: false,
+          ),
+          SizedBox(width: DesignTokens.spacingM),
+        ],
       ),
       body: _buildBody(),
     );
@@ -115,11 +128,19 @@ class _QuickSetupWizardViewState extends State<QuickSetupWizardView> {
       case WizardPhase.form:
         return _buildFormPages();
       case WizardPhase.summary:
-        return WizardSummaryPage(
-          commands: _viewModel.pendingCommands,
-          hasAnyChange: _viewModel.hasAnyChange,
-          onConfirm: _viewModel.executeChanges,
-          onBack: _viewModel.backToForm,
+        return StreamBuilder<BleDeviceModel?>(
+          stream: widget.controller.connectedDeviceStream,
+          builder: (context, snapshot) {
+            final isConnected =
+                (snapshot.data ?? widget.controller.connectedDevice) != null;
+            return WizardSummaryPage(
+              commands: _viewModel.pendingCommands,
+              hasAnyChange: _viewModel.hasAnyChange,
+              isConnected: isConnected,
+              onConfirm: _viewModel.executeChanges,
+              onBack: _viewModel.backToForm,
+            );
+          },
         );
       case WizardPhase.executing:
       case WizardPhase.done:
