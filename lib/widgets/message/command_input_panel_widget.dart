@@ -3,6 +3,7 @@ import '../../controllers/ble_controller_interface.dart';
 import '../../controllers/command_manager.dart';
 import '../../models/ble_device.dart';
 import '../../l10n/app_strings.dart';
+import '../../utils/app_colors.dart';
 
 /// Widget for entering and sending BLE commands with history navigation.
 ///
@@ -41,7 +42,7 @@ class CommandInputPanelWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardColor(context),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -124,7 +125,9 @@ class _CommandInputRow extends StatelessWidget {
             onPressed: hasHistory ? onOpenHistorySheet : null,
             icon: const Icon(Icons.history),
             tooltip: AppStrings.commandHistoryTooltip,
-            color: hasHistory ? Colors.blue.shade600 : Colors.grey.shade400,
+            color: hasHistory
+                ? AppColors.infoColor(context)
+                : AppColors.textTertiary(context),
           ),
           const SizedBox(width: 4),
         ],
@@ -164,7 +167,7 @@ class _CommandTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.neutralContainer(context),
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
           color:
@@ -178,8 +181,11 @@ class _CommandTextField extends StatelessWidget {
         decoration: InputDecoration(
           hintText:
               canSendCommands ? AppStrings.enterCommand : disabledHint,
+          // Not decorative: when input is disabled this hint is the only
+          // thing telling the operator why (connect first, or developer mode
+          // required), so it has to stay legible on both surfaces.
           hintStyle: TextStyle(
-            color: Colors.grey.shade500,
+            color: AppColors.textTertiary(context),
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -188,10 +194,17 @@ class _CommandTextField extends StatelessWidget {
           ),
           prefixIcon: Icon(
             Icons.keyboard,
-            color: canSendCommands ? Colors.blue.shade600 : Colors.grey.shade400,
+            color: canSendCommands
+                ? AppColors.infoColor(context)
+                : AppColors.textTertiary(context),
           ),
         ),
         onSubmitted: canSendCommands ? (_) => onSubmitted() : null,
+        // No explicit color: TextField merges `style` last, so setting one
+        // here would beat the disabled-state style and the field would stay
+        // full-strength while it is not editable. The M3 default already
+        // resolves to a theme-correct colour, which is all the dark-mode fix
+        // needed — the container was the actual bug.
         style: const TextStyle(
           fontSize: 16,
           fontFamily: 'monospace',
@@ -285,7 +298,7 @@ class _HistoryNavigationButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.neutralContainer(context),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -323,13 +336,13 @@ class _HistoryCountIndicator extends StatelessWidget {
         Icon(
           Icons.history,
           size: 16,
-          color: Colors.grey.shade600,
+          color: AppColors.textSecondary(context),
         ),
         const SizedBox(width: 4),
         Text(
           '$count 個指令',
           style: TextStyle(
-            color: Colors.grey.shade600,
+            color: AppColors.textSecondary(context),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),

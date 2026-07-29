@@ -129,7 +129,7 @@ class _DeviceHeader extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Colors.blue.shade800,
+                  color: AppColors.infoColor(context),
                 ),
               ),
               const SizedBox(height: 2),
@@ -137,7 +137,7 @@ class _DeviceHeader extends StatelessWidget {
                 device.id,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey.shade600,
+                  color: AppColors.textSecondary(context),
                   fontFamily: 'monospace',
                 ),
               ),
