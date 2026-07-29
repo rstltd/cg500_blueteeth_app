@@ -186,6 +186,31 @@ void main() {
       group('Host:Port validation', () {
         final param = CommandParameter.hostPort(id: 'addr', label: 'Address');
 
+        // Regression cover for F-003: ":9000" (host cleared, port still set)
+        // put the colon at index 0, and the old `colonIndex > 0` test sent the
+        // whole string down the host branch, reporting a domain-format error
+        // for what is really an empty required host.
+        test('empty host with a valid port reports a host error, not a domain-format one', () {
+          final err = param.validate(':9000');
+          expect(err, isNotNull);
+          expect(err, isNot(contains('網域名稱格式錯誤')));
+          expect(err, contains('主機位址'));
+        });
+
+        test('validateHostPortParts attributes each error to its own field', () {
+          final emptyHost = param.validateHostPortParts(':9000');
+          expect(emptyHost.host, isNotNull);
+          expect(emptyHost.port, isNull, reason: '9000 is a valid port');
+
+          final badPort = param.validateHostPortParts('example.com:0');
+          expect(badPort.host, isNull, reason: 'example.com is a valid domain');
+          expect(badPort.port, isNotNull);
+
+          final bothOk = param.validateHostPortParts('example.com:9000');
+          expect(bothOk.host, isNull);
+          expect(bothOk.port, isNull);
+        });
+
         test('accepts valid IP:Port', () {
           expect(param.validate('192.168.1.1:8080'), isNull);
           expect(param.validate('0.0.0.0:1'), isNull);

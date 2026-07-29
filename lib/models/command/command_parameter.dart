@@ -291,41 +291,48 @@ class CommandParameter {
     return null;
   }
 
+  /// Validates a "host:port" value per sub-field, so the UI can highlight only
+  /// the field that is actually wrong instead of reddening both.
+  ({String? host, String? port}) validateHostPortParts(String value) {
+    final (host, port) = _splitHostPort(value);
+    return (host: _validateHost(host), port: _validatePort(port));
+  }
+
   String? _validateHostPort(String value) {
-    // Allow "host" (no port) or "host:port" formats.
+    final (host, port) = _splitHostPort(value);
+    return _validateHost(host) ?? _validatePort(port);
+  }
+
+  /// Splits "host" (no port) or "host:port" into its two parts.
+  ///
+  /// The colon index must be tested with `>= 0`, not `> 0`: a value of
+  /// ":9000" (host cleared, port still filled in) has the colon at index 0,
+  /// and `> 0` sent the whole ":9000" down the host branch, which then failed
+  /// domain validation and reported "網域名稱格式錯誤" for what is really an
+  /// empty required host.
+  (String, String?) _splitHostPort(String value) {
     final colonIndex = value.lastIndexOf(':');
-    final String host;
-    final String? port;
-
-    if (colonIndex > 0) {
-      host = value.substring(0, colonIndex);
-      port = value.substring(colonIndex + 1);
-    } else {
-      host = value;
-      port = null;
+    if (colonIndex >= 0) {
+      return (value.substring(0, colonIndex), value.substring(colonIndex + 1));
     }
+    return (value, null);
+  }
 
-    // Validate host (can be IP or domain)
+  /// Validates the host portion of a host:port parameter (IP or domain).
+  String? _validateHost(String host) {
     if (host.isEmpty) {
       return '主機位址不可為空';
     }
 
-    // Check if it looks like an IP address
     if (_looksLikeIpAddress(host)) {
-      final ipError = _validateIpAddress(host);
-      if (ipError != null) {
-        return ipError;
-      }
-    } else {
-      // Validate as domain
-      final domainError = _validateDomain(host);
-      if (domainError != null) {
-        return domainError;
-      }
+      return _validateIpAddress(host);
     }
+    return _validateDomain(host);
+  }
 
-    // Port is required — the device needs an explicit port even for the
-    // HTTP default (80).
+  /// Validates the port portion of a host:port parameter. Port is required —
+  /// the device needs an explicit port even for the HTTP default (80).
+  String? _validatePort(String? port) {
     if (port == null || port.isEmpty) {
       return 'Port 不可為空（HTTP 預設為 80）';
     }

@@ -37,7 +37,8 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
   late final TextEditingController _portController;
   late final FocusNode _hostFocusNode;
   late final FocusNode _portFocusNode;
-  String? _errorMessage;
+  String? _hostError;
+  String? _portError;
 
   @override
   void initState() {
@@ -85,11 +86,14 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
 
   void _onValueChanged() {
     final value = _buildValue();
-    final error = widget.parameter.validate(value);
+    // Validate per sub-field so only the field that is actually wrong is
+    // marked, instead of reddening both whenever either one fails.
+    final parts = widget.parameter.validateHostPortParts(value);
 
-    if (error != _errorMessage) {
+    if (parts.host != _hostError || parts.port != _portError) {
       setState(() {
-        _errorMessage = error;
+        _hostError = parts.host;
+        _portError = parts.port;
       });
     }
 
@@ -114,7 +118,8 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final hasError = _errorMessage != null;
+    final hasHostError = _hostError != null;
+    final hasPortError = _portError != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +159,20 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
           ),
         ),
         SizedBox(height: DesignTokens.spacingXS),
-        _buildHostField(context, hasError),
+        _buildHostField(context, hasHostError),
+
+        // Host error — rendered directly under the host field so it cannot be
+        // mistaken for a Port error.
+        if (hasHostError) ...[
+          SizedBox(height: DesignTokens.spacingS),
+          Text(
+            _hostError!,
+            style: TextStyle(
+              fontSize: DesignTokens.fontS,
+              color: colorScheme.error,
+            ),
+          ),
+        ],
 
         SizedBox(height: DesignTokens.spacingM),
 
@@ -169,14 +187,14 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
         SizedBox(height: DesignTokens.spacingXS),
         SizedBox(
           width: 120,
-          child: _buildPortField(context, hasError),
+          child: _buildPortField(context, hasPortError),
         ),
 
-        // Error message
-        if (hasError) ...[
+        // Port error
+        if (hasPortError) ...[
           SizedBox(height: DesignTokens.spacingS),
           Text(
-            _errorMessage!,
+            _portError!,
             style: TextStyle(
               fontSize: DesignTokens.fontS,
               color: colorScheme.error,
@@ -185,7 +203,9 @@ class _HostPortParameterInputState extends State<HostPortParameterInput> {
         ],
 
         // Hint
-        if (widget.parameter.hint != null && !hasError) ...[
+        if (widget.parameter.hint != null &&
+            !hasHostError &&
+            !hasPortError) ...[
           SizedBox(height: DesignTokens.spacingS),
           Text(
             widget.parameter.hint!,
