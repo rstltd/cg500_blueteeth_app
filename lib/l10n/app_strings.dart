@@ -206,6 +206,13 @@ abstract class AppStrings {
   /// Developer mode subtitle when disabled
   static const String developerModeDisabled = '一般模式 — 僅顯示基本設備指令';
 
+  /// Raw BLE diagnostic trace toggle title
+  static const String diagnosticLogging = '診斷記錄';
+
+  /// Diagnostic trace subtitle — states the cost so it is not left on
+  static const String diagnosticLoggingSubtitle =
+      '將原始 BLE 位元組寫入系統記錄，僅在重現問題時開啟';
+
   /// Password dialog title
   static const String enterDeveloperPassword = '輸入開發者密碼';
 

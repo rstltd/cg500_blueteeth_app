@@ -4,6 +4,7 @@ import '../core/service_locator.dart' show getIt;
 import '../l10n/app_strings.dart';
 import '../models/role/user_role.dart';
 import '../services/role_service.dart';
+import '../utils/logger.dart';
 import '../widgets/dev_mode/change_password_dialog.dart';
 import '../widgets/dev_mode/dev_mode_password_dialog.dart';
 import 'custom_commands_view.dart';
@@ -76,6 +77,21 @@ class _DeveloperOptionsViewState extends State<DeveloperOptionsView> {
                       builder: (_) => const CustomCommandsView(),
                     ),
                   ),
+                ),
+                // Logger.diagnosticEnabled defaults to kDebugMode and had no
+                // other write site, so the raw-BLE trace was unreachable in
+                // the release build field engineers actually run — which is
+                // why response-corruption reports could not be diagnosed.
+                // In-memory only, resets on cold start (same posture as the
+                // developer-mode role itself, ADR-0005).
+                SwitchListTile(
+                  secondary: const Icon(Icons.bug_report),
+                  title: const Text(AppStrings.diagnosticLogging),
+                  subtitle: const Text(AppStrings.diagnosticLoggingSubtitle),
+                  value: Logger.diagnosticEnabled,
+                  activeThumbColor: Colors.orange.shade700,
+                  onChanged: (value) =>
+                      setState(() => Logger.diagnosticEnabled = value),
                 ),
               ],
             ],

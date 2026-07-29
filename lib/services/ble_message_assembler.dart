@@ -70,11 +70,13 @@ class BleMessageAssembler {
     _quietTimer?.cancel();
     _quietTimer = null;
     if (_buffer.isEmpty) return;
-    final message = _decode(_buffer);
+    // Route through _emitLine so a flush that lands between the \r and the \n
+    // of a CRLF strips the orphaned \r, same as the line-delimited path.
+    // Emitting the raw buffer left a stray 0x0D on the end of the message,
+    // which Flutter renders as a hard line break.
+    final pending = List<int>.of(_buffer);
     _buffer.clear();
-    if (message.isNotEmpty) {
-      onMessage(message);
-    }
+    _emitLine(pending);
   }
 
   /// Discard buffered bytes and cancel the timer without emitting.
@@ -143,12 +145,11 @@ class BleMessageAssembler {
     return utf8.decode(bytes, allowMalformed: true);
   }
 
+  /// Full chunk, uncapped. The trace is only usable as evidence if it is
+  /// byte-exact — the previous 64-byte cap hid everything past the first line
+  /// of an MTU-517 notification, which is exactly the region you need when
+  /// chasing a corrupted response. Only runs when Logger.diagnosticEnabled.
   String _toHex(List<int> bytes) {
-    const max = 64;
-    final display = bytes.length > max ? bytes.sublist(0, max) : bytes;
-    final hex = display
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join(' ');
-    return bytes.length > max ? '$hex ...(+${bytes.length - max})' : hex;
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
   }
 }

@@ -130,6 +130,23 @@ void main() {
         expect(emitted, ['A']);
       });
     });
+
+    // A flush landing between the \r and the \n of a CRLF used to emit the
+    // orphaned \r, which Flutter renders as a hard line break.
+    test('quiet flush between CR and LF does not leak the CR', () {
+      FakeAsync().run((async) {
+        final emitted = <String>[];
+        final a = BleMessageAssembler(
+          onMessage: emitted.add,
+          quietTimeout: const Duration(milliseconds: 50),
+        );
+        a.addChunk('Reset hour  : 0\r'.codeUnits);
+        async.elapse(const Duration(milliseconds: 60));
+        expect(emitted, ['Reset hour  : 0']);
+        expect(emitted.single.codeUnits, isNot(contains(0x0D)));
+      });
+    });
+
   });
 
   group('BleMessageAssembler — overflow safety', () {
@@ -167,6 +184,25 @@ void main() {
       expect(emitted.length, 1);
       expect(emitted.single, isNotEmpty);
     });
+
+    // Locks in the property that made the receive path innocent for F-002:
+    // bytes are buffered and decoded ONCE PER LINE, so a malformed sequence
+    // straddling a chunk boundary degrades only itself. A refactor to
+    // per-chunk decoding would drop ASCII here and fail loudly.
+    test('malformed UTF-8 split across chunks loses no ASCII', () {
+      final emitted = <String>[];
+      final a = BleMessageAssembler(onMessage: emitted.add);
+      a.addChunk([...'Reset hour  : 0\r\nGateway : '.codeUnits, 0xC0]);
+      a.addChunk([0xA8, 0xFF, 0xE4]);
+      a.addChunk('\r\nIMEI    : 860123456789012\r\n'.codeUnits);
+
+      expect(emitted.first, 'Reset hour  : 0');
+      expect(
+        emitted.join().replaceAll('\uFFFD', ''),
+        'Reset hour  : 0Gateway : IMEI    : 860123456789012',
+      );
+    });
+
   });
 
   group('BleMessageAssembler — lifecycle', () {
