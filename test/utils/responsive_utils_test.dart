@@ -579,6 +579,43 @@ void main() {
       );
     });
 
+    testWidgets('getResponsiveFontSize should not apply the user text scale',
+        (WidgetTester tester) async {
+      // Flutter's Text/RichText already scales fontSize by
+      // MediaQuery.textScalerOf at paint time. If this helper multiplied the
+      // user scale in as well it would be applied twice (scale squared), so
+      // the returned value must depend on the device size only.
+      // Not const: Size overrides ==, which a const map key may not do.
+      final cases = <Size, double>{
+        const Size(400, 800): 16.0, // mobile, multiplier 1.0
+        const Size(800, 1024): 16.0 * 1.1, // tablet
+        const Size(1400, 900): 16.0 * 1.2, // desktop
+      };
+
+      for (final entry in cases.entries) {
+        for (final scale in <double>[1.5, 2.0]) {
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(
+                size: entry.key,
+                textScaler: TextScaler.linear(scale),
+              ),
+              child: Builder(
+                builder: (context) {
+                  expect(
+                    ResponsiveUtils.getResponsiveFontSize(context, 16.0),
+                    entry.value,
+                    reason: 'size ${entry.key} at text scale $scale',
+                  );
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
+        }
+      }
+    });
+
     testWidgets('getResponsiveIconSize should scale correctly',
         (WidgetTester tester) async {
       // Mobile
@@ -903,48 +940,6 @@ void main() {
           child: Builder(
             builder: (context) {
               expect(ResponsiveUtils.getStaggeredGridCrossAxisCount(context), 4);
-              return const SizedBox();
-            },
-          ),
-        ),
-      );
-    });
-
-    testWidgets('getFontSize should return correct values',
-        (WidgetTester tester) async {
-      // Mobile
-      await tester.pumpWidget(
-        MediaQuery(
-          data: const MediaQueryData(size: Size(400, 800)),
-          child: Builder(
-            builder: (context) {
-              expect(ResponsiveUtils.getFontSize(context, base: 16.0), 16.0);
-              return const SizedBox();
-            },
-          ),
-        ),
-      );
-
-      // Tablet
-      await tester.pumpWidget(
-        MediaQuery(
-          data: const MediaQueryData(size: Size(800, 1024)),
-          child: Builder(
-            builder: (context) {
-              expect(ResponsiveUtils.getFontSize(context, base: 16.0), 16.0 * 1.1);
-              return const SizedBox();
-            },
-          ),
-        ),
-      );
-
-      // Desktop
-      await tester.pumpWidget(
-        MediaQuery(
-          data: const MediaQueryData(size: Size(1400, 900)),
-          child: Builder(
-            builder: (context) {
-              expect(ResponsiveUtils.getFontSize(context, base: 16.0), 16.0 * 1.2);
               return const SizedBox();
             },
           ),

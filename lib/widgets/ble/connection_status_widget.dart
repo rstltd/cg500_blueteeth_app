@@ -30,6 +30,12 @@ class ConnectionStatusWidget extends StatelessWidget {
     );
   }
 
+  // The non-compact branches below are not dark-mode themed: the panels,
+  // borders and header text are all fixed light shades. Nothing in the app
+  // reaches them today — both production call sites pass compact: true — and
+  // only the device-info card was made theme-aware, because that is where the
+  // theme-aware AppTextStyles land and white-on-white was unreadable. Theme
+  // the rest before putting compact: false into production.
   Widget _buildConnectedStatus(BuildContext context, BleDeviceModel device) {
     if (compact) {
       return _buildCompactConnectedStatus(context, device);
@@ -90,7 +96,7 @@ class ConnectionStatusWidget extends StatelessWidget {
             ' • ${device.displayName}',
             style: TextStyle(
               color: AppColors.textPrimary(context),
-              fontSize: ResponsiveUtils.getFontSize(context, base: 14),
+              fontSize: ResponsiveUtils.getResponsiveFontSize(context, 14),
             ),
           ),
         ],
@@ -189,7 +195,11 @@ class ConnectionStatusWidget extends StatelessWidget {
     return Container(
       padding: DesignTokens.paddingSM,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.7),
+        // Must follow the theme: the rows below use AppTextStyles, whose colors
+        // resolve to white in dark mode. A hard-coded white card made them
+        // invisible. AppColors.textPrimary/textSecondary state their contrast
+        // ratios against exactly this surface.
+        color: AppColors.cardColor(context),
         borderRadius: DesignTokens.borderRadiusS,
         border: Border.all(color: Colors.green.shade100),
       ),

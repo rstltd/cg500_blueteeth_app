@@ -149,11 +149,17 @@ class ResponsiveUtils {
     }
   }
 
-  /// Get responsive font size
+  /// Get responsive font size for the current device type.
+  ///
+  /// Only the device-size multiplier is applied here. The user's text-scale
+  /// preference is deliberately NOT applied: the returned value is assigned to
+  /// [TextStyle.fontSize], and Flutter's `Text`/`RichText` already scale that
+  /// by `MediaQuery.textScalerOf(context)` at paint time. Multiplying it in
+  /// here would apply the user scale twice (base x device x scale^2) and would
+  /// also defeat `MediaQuery.withNoTextScaling` / `TextScaler.noScaling`.
   static double getResponsiveFontSize(BuildContext context, double baseFontSize) {
     final deviceType = getDeviceType(context);
-    final scaleFactor = MediaQuery.of(context).textScaler.scale(1.0);
-    
+
     double multiplier;
     switch (deviceType) {
       case DeviceType.mobile:
@@ -167,7 +173,7 @@ class ResponsiveUtils {
         break;
     }
     
-    return baseFontSize * multiplier * scaleFactor;
+    return baseFontSize * multiplier;
   }
 
   /// Get responsive icon size
@@ -277,20 +283,6 @@ class ResponsiveUtils {
       return 3;
     } else {
       return 4;
-    }
-  }
-
-  /// Get responsive font size based on device type and base size
-  static double getFontSize(BuildContext context, {required double base}) {
-    final deviceType = getDeviceType(context);
-
-    switch (deviceType) {
-      case DeviceType.mobile:
-        return base;
-      case DeviceType.tablet:
-        return base * 1.1;
-      case DeviceType.desktop:
-        return base * 1.2;
     }
   }
 
