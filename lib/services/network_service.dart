@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../l10n/app_strings.dart';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../utils/logger.dart';
@@ -162,13 +163,13 @@ class NetworkService {
   String getStatusDescription() {
     switch (_currentStatus) {
       case NetworkStatus.wifi:
-        return 'Connected via WiFi';
+        return AppStrings.networkConnectedViaWifi;
       case NetworkStatus.mobile:
-        return 'Connected via mobile data';
+        return AppStrings.networkConnectedViaMobile;
       case NetworkStatus.none:
-        return 'No internet connection';
+        return AppStrings.networkNoInternet;
       case NetworkStatus.unknown:
-        return 'Network status unknown';
+        return AppStrings.networkStatusUnknownDesc;
     }
   }
 
@@ -176,20 +177,20 @@ class NetworkService {
   String getNetworkTypeDisplayName() {
     switch (_currentStatus) {
       case NetworkStatus.wifi:
-        return 'WiFi';
+        return AppStrings.networkTypeWifi;
       case NetworkStatus.mobile:
-        return 'Mobile Data';
+        return AppStrings.networkTypeMobile;
       case NetworkStatus.none:
-        return 'No Connection';
+        return AppStrings.networkTypeNone;
       case NetworkStatus.unknown:
-        return 'Unknown';
+        return AppStrings.unknown;
     }
   }
 
   /// Estimate download time based on network type and file size
   String estimateDownloadTime(int fileSizeBytes) {
     if (_currentStatus == NetworkStatus.none) {
-      return 'Cannot download - no connection';
+      return AppStrings.downloadUnavailableNoConnection;
     }
 
     // Rough estimates based on typical speeds

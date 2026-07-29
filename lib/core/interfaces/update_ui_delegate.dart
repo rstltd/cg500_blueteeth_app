@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 
 /// Result of an installation attempt
 enum InstallResult {
@@ -27,7 +28,7 @@ class UpdateUIDelegate {
             SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Installation started. Follow the system prompts to complete.',
+                AppStrings.installStartedSnackBarMessage,
               ),
             ),
           ],
@@ -51,7 +52,7 @@ class UpdateUIDelegate {
             SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Installation failed. Please check permissions and try again.',
+                AppStrings.installFailedSnackBarMessage,
               ),
             ),
           ],
@@ -73,7 +74,7 @@ class UpdateUIDelegate {
           children: [
             const Icon(Icons.warning, color: Colors.white),
             const SizedBox(width: 12),
-            Expanded(child: Text('Installation error: $errorMessage')),
+            Expanded(child: Text(AppStrings.installErrorSnackBarMessage(errorMessage))),
           ],
         ),
         backgroundColor: Colors.orange.shade600,
@@ -94,7 +95,7 @@ class UpdateUIDelegate {
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Skip Version'),
+        title: const Text(AppStrings.skipVersionDialogTitle),
         content: Text(
           'Do you want to skip version $version? '
           'You won\'t be notified about this version again.',
@@ -102,11 +103,11 @@ class UpdateUIDelegate {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: const Text(AppStrings.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Skip'),
+            child: const Text(AppStrings.skip),
           ),
         ],
       ),
@@ -125,9 +126,9 @@ class UpdateUIDelegate {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Version $version skipped'),
+        content: Text(AppStrings.versionSkippedMessage(version)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: AppStrings.undo,
           onPressed: onUndo,
         ),
       ),

@@ -1025,4 +1025,157 @@ abstract class AppStrings {
   static const String nextStep = '下一步';
   static const String finish = '完成';
 
+  // ============================================================
+  // Theme (ThemeService.themeModeDescription)
+  // ============================================================
+  static const String themeModeLight = '亮色模式';
+  static const String themeModeDark = '深色模式';
+  static const String themeModeSystem = '跟隨系統';
+
+  // ============================================================
+  // Network Status Descriptions (NetworkService)
+  // ============================================================
+  static const String networkTypeWifi = 'WiFi';
+  static const String networkTypeMobile = '行動網路';
+  static const String networkTypeNone = '無連線';
+  static const String networkConnectedViaWifi = '已透過 WiFi 連線';
+  static const String networkConnectedViaMobile = '已透過行動網路連線';
+  static const String networkNoInternet = '無網路連線';
+  static const String networkStatusUnknownDesc = '網路狀態未知';
+  static const String downloadUnavailableNoConnection = '無法下載，尚未連線';
+
+  // ============================================================
+  // Signal Quality (BleDeviceModel.rssiDescription)
+  // ============================================================
+  static const String signalQualityExcellent = '極佳';
+  static const String signalQualityVeryGood = '良好';
+  static const String signalQualityGood = '普通';
+  static const String signalQualityFair = '尚可';
+  static const String signalQualityPoor = '微弱';
+
+  // ============================================================
+  // BLE Notification Delegate (BleEvent titles/messages)
+  // ============================================================
+  static const String bleEventControllerReadyTitle = '控制器就緒';
+  static const String bleEventControllerReadyMessage = 'BLE 控制器初始化成功';
+  static const String bleEventInitFailedTitle = '初始化失敗';
+  static const String bleEventInitFailedMessage = '無法初始化 BLE 控制器';
+  static const String bleEventControllerErrorTitle = '控制器錯誤';
+  static const String bleEventControllerErrorMessage = '初始化時發生未預期的錯誤';
+  static String bleEventControllerErrorDetailMessage(String error) =>
+      '初始化時發生未預期的錯誤：$error';
+  static const String bleEventScanStartedTitle = '開始掃描';
+  static const String bleEventScanStartedMessage = '正在搜尋附近的 BLE 裝置...';
+  static const String bleEventScanStoppedTitle = '已停止掃描';
+  static const String bleEventScanStoppedMessage = '裝置掃描已停止';
+  static const String bleEventScanErrorTitle = '掃描錯誤';
+  static const String bleEventScanErrorDefaultMessage = '無法開始掃描';
+  static String bleEventScanErrorMessage(String error) => '無法開始掃描：$error';
+  static const String bleEventStopScanErrorTitle = '停止掃描錯誤';
+  static const String bleEventStopScanErrorDefaultMessage = '無法停止掃描';
+  static String bleEventStopScanErrorMessage(String error) => '無法停止掃描：$error';
+  static const String bleEventConnectingTitle = '連線中';
+  static const String bleEventConnectingMessage = '正在嘗試連線裝置...';
+  static const String bleEventConnectedMessage = '已成功連線裝置';
+  static const String bleEventConnectionFailedTitle = '連線失敗';
+  static const String bleEventConnectionFailedMessage = '無法連線裝置';
+  static const String bleEventDisconnectErrorTitle = '中斷連線錯誤';
+  static const String bleEventDisconnectErrorMessage = '無法中斷裝置連線';
+  static const String bleEventDiscoveringServicesTitle = '探索服務中';
+  static const String bleEventDiscoveringServicesMessage = '正在探索裝置功能...';
+  static const String bleEventServicesFoundTitle = '已找到服務';
+  static const String bleEventServicesFoundDefaultMessage = '已探索到服務';
+  static String bleEventServicesFoundMessage(int count) => '已探索到 $count 個服務';
+  static const String bleEventNoServicesTitle = '沒有服務';
+  static const String bleEventNoServicesMessage = '裝置上找不到任何 GATT 服務';
+  static const String bleEventServiceDiscoveryErrorTitle = '服務探索錯誤';
+  static const String bleEventServiceDiscoveryErrorMessage = '無法探索裝置服務';
+  static const String bleEventEmptyCommandTitle = '指令為空';
+  static const String bleEventEmptyCommandMessage = '請輸入要發送的指令';
+  static const String bleEventCommandErrorTitle = '指令發送失敗';
+  static const String bleEventDevicesClearedTitle = '裝置已清除';
+  static const String bleEventDevicesClearedMessage = '已清除裝置清單';
+  // Note: BleEvent.connected reuses `connected`; commandError message reuses
+  // `commandSendFailed` — both already hold the matching Chinese text.
+
+  // ============================================================
+  // Update Notifications (additional — UpdateController)
+  // ============================================================
+  static String updateAvailableToastMessage(String version) =>
+      '版本 $version 可供更新';
+  static const String updateConfigErrorTitle = '設定錯誤';
+  static const String updateConfigErrorMessage = '尚未載入更新設定，請重新啟動應用程式。';
+
+  // ============================================================
+  // Download Manager Notifications
+  // ============================================================
+  static const String downloadNetworkUnsuitableTitle = '網路不適合下載';
+  static String downloadWifiRequiredMessage(String status) =>
+      '下載需要 WiFi 連線，目前狀態：$status';
+  static const String downloadNoInternetAvailableMessage = '目前沒有可用的網路連線';
+  static const String downloadStatusStarting = '正在開始下載...';
+  static String downloadStatusProgress(String downloaded, String total) =>
+      '下載中... $downloaded/$total';
+  static const String downloadStatusVerifying = '正在驗證下載內容...';
+  static const String downloadVerificationFailedTitle = '驗證失敗';
+  static const String downloadCorruptedMessage = '下載的檔案已損毀，請重新嘗試。';
+  static const String downloadStatusComplete = '下載完成';
+  static const String downloadCompleteTitle = '下載完成';
+  static String downloadReadyToInstallMessage(String size) =>
+      '更新已就緒，可以安裝（$size）';
+  static String downloadStatusFailed(Object error) => '下載失敗：$error';
+  static const String downloadFailedTitle = '下載失敗';
+  static String downloadRetryingMessage(int seconds, int attempt, int maxRetries) =>
+      '將於 $seconds 秒後重試（$attempt/$maxRetries）...';
+  static String downloadExhaustedMessage(int maxRetries) =>
+      '已重試 $maxRetries 次仍無法下載，請檢查網路連線。';
+
+  // ============================================================
+  // Install Manager Notifications
+  // ============================================================
+  static const String installPlatformNotSupportedTitle = '不支援此平台';
+  static const String installAndroidOnlyMessage = 'APK 安裝僅支援 Android 裝置。';
+  static const String installFailedTitle = '安裝失敗';
+  static const String installApkNotFoundMessage = '找不到 APK 檔案，請重新下載。';
+  static const String installPermissionRequiredTitle = '需要授權';
+  static const String installUnknownSourcesMessage = '請在裝置設定中允許安裝不明來源應用程式。';
+  static const String installUnknownSourcesRetryMessage =
+      '請在裝置設定中允許安裝不明來源應用程式後再試一次。';
+  static const String installStartedTitle = '已開始安裝';
+  static const String installFollowPromptsMessage = '請依照安裝提示完成操作。';
+  static const String installFollowPromptsToCompleteMessage = '請依照安裝提示完成更新。';
+  static const String installCouldNotStartMessage = '無法開始安裝 APK，請檢查權限設定。';
+  static const String installErrorTitle = '安裝錯誤';
+  static String installErrorMessage(String error) => '安裝更新失敗：$error';
+  static const String installFileNotFoundTitle = '找不到檔案';
+  static const String installFileAccessErrorTitle = '檔案存取錯誤';
+  static const String installFileAccessErrorMessage =
+      '無法存取要安裝的 APK 檔案，請檢查應用程式權限。';
+  static const String installNotSupportedTitle = '不支援安裝';
+  static const String installNoResolverMessage = '此裝置上找不到可處理 APK 安裝的應用程式。';
+  static String installGenericErrorMessage(String error) => '錯誤：$error';
+
+  // ============================================================
+  // Update UI Delegate (ADR-0003 seam)
+  // ============================================================
+  static const String installStartedSnackBarMessage = '安裝已開始，請依照系統提示完成安裝。';
+  static const String installFailedSnackBarMessage = '安裝失敗，請檢查權限後再試一次。';
+  static String installErrorSnackBarMessage(String error) => '安裝發生錯誤：$error';
+  static const String skipVersionDialogTitle = '略過此版本';
+  static String skipVersionDialogBody(String version) =>
+      '確定要略過版本 $version 嗎？之後將不會再收到此版本的通知。';
+  static String versionSkippedMessage(String version) => '已略過版本 $version';
+  static const String undo = '復原';
+
+  // ============================================================
+  // Message Filter (command interface filter chips)
+  // ============================================================
+  static const String filterCommands = '指令';
+  static const String filterResponses = '回應';
+  static const String filterErrors = '錯誤';
+
+  // ============================================================
+  // Download Progress Widget
+  // ============================================================
+  static String percentComplete(int percent) => '已完成 $percent%';
 }

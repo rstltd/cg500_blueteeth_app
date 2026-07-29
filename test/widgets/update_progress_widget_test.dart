@@ -20,7 +20,7 @@ void main() {
 
       expect(find.text('下載中...'), findsOneWidget);
       expect(find.text('0 MB / 10 MB'), findsOneWidget);
-      expect(find.text('0% complete'), findsOneWidget);
+      expect(find.text('已完成 0%'), findsOneWidget);
     });
 
     testWidgets('should render with 50% progress', (WidgetTester tester) async {
@@ -36,7 +36,7 @@ void main() {
       );
 
       expect(find.text('5 MB / 10 MB'), findsOneWidget);
-      expect(find.text('50% complete'), findsOneWidget);
+      expect(find.text('已完成 50%'), findsOneWidget);
     });
 
     testWidgets('should render with 100% progress', (WidgetTester tester) async {
@@ -52,7 +52,7 @@ void main() {
       );
 
       expect(find.text('10 MB / 10 MB'), findsOneWidget);
-      expect(find.text('100% complete'), findsOneWidget);
+      expect(find.text('已完成 100%'), findsOneWidget);
     });
 
     testWidgets('should display LinearProgressIndicator', (WidgetTester tester) async {
@@ -87,7 +87,7 @@ void main() {
         ),
       );
 
-      expect(find.text('0% complete'), findsOneWidget);
+      expect(find.text('已完成 0%'), findsOneWidget);
       expect(find.text('Starting...'), findsOneWidget);
     });
 
@@ -103,7 +103,7 @@ void main() {
         ),
       );
 
-      expect(find.text('99% complete'), findsOneWidget);
+      expect(find.text('已完成 99%'), findsOneWidget);
     });
 
     testWidgets('should have proper layout structure', (WidgetTester tester) async {
@@ -150,7 +150,7 @@ void main() {
         ),
       );
 
-      expect(find.text('0% complete'), findsOneWidget);
+      expect(find.text('已完成 0%'), findsOneWidget);
     });
 
     testWidgets('should render progress indicator with correct min height', (WidgetTester tester) async {

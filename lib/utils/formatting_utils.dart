@@ -7,9 +7,9 @@ class FormattingUtils {
   FormattingUtils._();
 
   /// Format a DateTime for display
-  /// Returns format: DD/MM/YYYY HH:MM
+  /// Returns format: YYYY/M/D HH:MM (zh-TW convention)
   static String formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return '${dateTime.year}/${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
   /// Format a Duration for display

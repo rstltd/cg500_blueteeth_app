@@ -1,4 +1,5 @@
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import '../l10n/app_strings.dart';
 import 'ble_service.dart';
 import 'connection_state.dart';
 
@@ -37,7 +38,7 @@ class BleDeviceModel {
       name: device.platformName,
       displayName: device.platformName.isNotEmpty 
           ? device.platformName 
-          : 'Unknown Device',
+          : AppStrings.unknownDevice,
       rssi: rssi,
       services: services?.map((s) => BleServiceModel.fromBluetoothService(s)).toList() ?? [],
       lastSeen: DateTime.now(),
@@ -112,11 +113,11 @@ class BleDeviceModel {
   // Adjusted thresholds based on real-world BLE testing:
   // -60 dBm at ~10cm, -80 dBm at ~1m
   String get rssiDescription {
-    if (rssi >= -65) return 'Excellent';
-    if (rssi >= -75) return 'Very Good';
-    if (rssi >= -85) return 'Good';
-    if (rssi >= -95) return 'Fair';
-    return 'Poor';
+    if (rssi >= -65) return AppStrings.signalQualityExcellent;
+    if (rssi >= -75) return AppStrings.signalQualityVeryGood;
+    if (rssi >= -85) return AppStrings.signalQualityGood;
+    if (rssi >= -95) return AppStrings.signalQualityFair;
+    return AppStrings.signalQualityPoor;
   }
 
   double get signalStrength {

@@ -863,7 +863,7 @@ void main() {
       expect(messages[1]['isError'], isTrue);
       // Note: CommandManager currently uses hardcoded English string
       // This should be updated to use AppStrings.commandSendFailed in the future
-      expect(messages[1]['text'], 'Failed to send command');
+      expect(messages[1]['text'], '指令發送失敗');
     });
 
     test('sendCommand tracks sent commands in controller', () async {

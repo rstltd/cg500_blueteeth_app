@@ -1,4 +1,5 @@
 import '../../services/notification_service.dart';
+import '../../l10n/app_strings.dart';
 
 /// Verbosity level for BLE notifications.
 /// Controls how much detail is shown to the user.
@@ -21,69 +22,69 @@ const String bleNotificationVerbosityKey = 'ble_notification_verbosity';
 enum BleEvent {
   // Initialization events
   initializeSuccess(isError: false, isWarning: false, isImportant: true,
-      defaultTitle: 'Controller Ready',
-      defaultMessage: 'BLE Controller initialized successfully'),
+      defaultTitle: AppStrings.bleEventControllerReadyTitle,
+      defaultMessage: AppStrings.bleEventControllerReadyMessage),
   initializeFailed(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Initialization Failed',
-      defaultMessage: 'Failed to initialize BLE Controller'),
+      defaultTitle: AppStrings.bleEventInitFailedTitle,
+      defaultMessage: AppStrings.bleEventInitFailedMessage),
   initializeError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Controller Error',
-      defaultMessage: 'Unexpected error during initialization'),
+      defaultTitle: AppStrings.bleEventControllerErrorTitle,
+      defaultMessage: AppStrings.bleEventControllerErrorMessage),
 
   // Scanning events
   scanStarted(isError: false, isWarning: false, isImportant: false,
-      defaultTitle: 'Scanning Started',
-      defaultMessage: 'Looking for BLE devices nearby...'),
+      defaultTitle: AppStrings.bleEventScanStartedTitle,
+      defaultMessage: AppStrings.bleEventScanStartedMessage),
   scanStopped(isError: false, isWarning: false, isImportant: false,
-      defaultTitle: 'Scanning Stopped',
-      defaultMessage: 'Device scanning has been stopped'),
+      defaultTitle: AppStrings.bleEventScanStoppedTitle,
+      defaultMessage: AppStrings.bleEventScanStoppedMessage),
   scanError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Scan Error',
-      defaultMessage: 'Failed to start scanning'),
+      defaultTitle: AppStrings.bleEventScanErrorTitle,
+      defaultMessage: AppStrings.bleEventScanErrorDefaultMessage),
   stopScanError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Stop Scan Error',
-      defaultMessage: 'Failed to stop scanning'),
+      defaultTitle: AppStrings.bleEventStopScanErrorTitle,
+      defaultMessage: AppStrings.bleEventStopScanErrorDefaultMessage),
 
   // Connection events
   connecting(isError: false, isWarning: false, isImportant: false,
-      defaultTitle: 'Connecting',
-      defaultMessage: 'Attempting to connect to device...'),
+      defaultTitle: AppStrings.bleEventConnectingTitle,
+      defaultMessage: AppStrings.bleEventConnectingMessage),
   connected(isError: false, isWarning: false, isImportant: true,
-      defaultTitle: 'Connected',
-      defaultMessage: 'Successfully connected to device'),
+      defaultTitle: AppStrings.connected,
+      defaultMessage: AppStrings.bleEventConnectedMessage),
   connectionError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Connection Failed',
-      defaultMessage: 'Failed to connect to device'),
+      defaultTitle: AppStrings.bleEventConnectionFailedTitle,
+      defaultMessage: AppStrings.bleEventConnectionFailedMessage),
   disconnectError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Disconnect Error',
-      defaultMessage: 'Failed to disconnect device'),
+      defaultTitle: AppStrings.bleEventDisconnectErrorTitle,
+      defaultMessage: AppStrings.bleEventDisconnectErrorMessage),
 
   // Service discovery events
   discoveringServices(isError: false, isWarning: false, isImportant: false,
-      defaultTitle: 'Discovering Services',
-      defaultMessage: 'Exploring device capabilities...'),
+      defaultTitle: AppStrings.bleEventDiscoveringServicesTitle,
+      defaultMessage: AppStrings.bleEventDiscoveringServicesMessage),
   servicesFound(isError: false, isWarning: false, isImportant: true,
-      defaultTitle: 'Services Found',
-      defaultMessage: 'Discovered services'),
+      defaultTitle: AppStrings.bleEventServicesFoundTitle,
+      defaultMessage: AppStrings.bleEventServicesFoundDefaultMessage),
   noServicesFound(isError: false, isWarning: true, isImportant: false,
-      defaultTitle: 'No Services',
-      defaultMessage: 'No GATT services found on device'),
+      defaultTitle: AppStrings.bleEventNoServicesTitle,
+      defaultMessage: AppStrings.bleEventNoServicesMessage),
   serviceDiscoveryError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Service Discovery Error',
-      defaultMessage: 'Failed to discover services'),
+      defaultTitle: AppStrings.bleEventServiceDiscoveryErrorTitle,
+      defaultMessage: AppStrings.bleEventServiceDiscoveryErrorMessage),
 
   // Command events
   emptyCommand(isError: false, isWarning: true, isImportant: false,
-      defaultTitle: 'Empty Command',
-      defaultMessage: 'Please enter a command to send'),
+      defaultTitle: AppStrings.bleEventEmptyCommandTitle,
+      defaultMessage: AppStrings.bleEventEmptyCommandMessage),
   commandError(isError: true, isWarning: false, isImportant: true,
-      defaultTitle: 'Command Failed',
-      defaultMessage: 'Failed to send command'),
+      defaultTitle: AppStrings.bleEventCommandErrorTitle,
+      defaultMessage: AppStrings.commandSendFailed),
 
   // Device list events
   devicesCleared(isError: false, isWarning: false, isImportant: false,
-      defaultTitle: 'Devices Cleared',
-      defaultMessage: 'Cleared device list'),
+      defaultTitle: AppStrings.bleEventDevicesClearedTitle,
+      defaultMessage: AppStrings.bleEventDevicesClearedMessage),
   ;
 
   final bool isError;
@@ -190,7 +191,7 @@ class BleNotificationDelegate {
 
   void onInitializeError(String error) =>
       _notify(BleEvent.initializeError,
-          customMessage: 'Unexpected error during initialization: $error');
+          customMessage: AppStrings.bleEventControllerErrorDetailMessage(error));
 
   // ============================================
   // Scanning notifications
@@ -201,10 +202,10 @@ class BleNotificationDelegate {
   void onScanStopped() => _notify(BleEvent.scanStopped);
 
   void onScanError(String error) =>
-      _notify(BleEvent.scanError, customMessage: 'Failed to start scanning: $error');
+      _notify(BleEvent.scanError, customMessage: AppStrings.bleEventScanErrorMessage(error));
 
   void onStopScanError(String error) =>
-      _notify(BleEvent.stopScanError, customMessage: 'Failed to stop scanning: $error');
+      _notify(BleEvent.stopScanError, customMessage: AppStrings.bleEventStopScanErrorMessage(error));
 
   // ============================================
   // Connection notifications
@@ -227,7 +228,7 @@ class BleNotificationDelegate {
   void onDiscoveringServices() => _notify(BleEvent.discoveringServices);
 
   void onServicesFound(int count) =>
-      _notify(BleEvent.servicesFound, customMessage: 'Discovered $count service(s)');
+      _notify(BleEvent.servicesFound, customMessage: AppStrings.bleEventServicesFoundMessage(count));
 
   void onNoServicesFound() => _notify(BleEvent.noServicesFound);
 

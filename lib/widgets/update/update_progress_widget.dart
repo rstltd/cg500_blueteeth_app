@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/theme_service.dart';
 
 /// Widget for displaying download progress with animated indicator
@@ -48,7 +49,7 @@ class UpdateProgressWidget extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '${(progress * 100).toInt()}% complete',
+          AppStrings.percentComplete((progress * 100).toInt()),
           style: TextStyle(
             color: AppColors.textSecondary(context),
             fontSize: 12,

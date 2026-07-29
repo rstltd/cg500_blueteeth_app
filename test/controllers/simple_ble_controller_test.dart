@@ -743,7 +743,7 @@ void main() {
       await diController.initialize();
       final notifications = mockNotificationService.allNotifications;
       expect(notifications, isNotEmpty);
-      expect(notifications.last.title, 'Controller Ready');
+      expect(notifications.last.title, '控制器就緒');
     });
 
     test('startScanning should use injected BleService', () async {
@@ -756,7 +756,7 @@ void main() {
       await diController.startScanning();
       final notifications = mockNotificationService.allNotifications;
       expect(notifications, isNotEmpty);
-      expect(notifications.last.title, 'Scanning Started');
+      expect(notifications.last.title, '開始掃描');
     });
 
     test('stopScanning should use injected BleService', () async {
@@ -771,7 +771,7 @@ void main() {
       await diController.stopScanning();
       final notifications = mockNotificationService.allNotifications;
       expect(notifications, isNotEmpty);
-      expect(notifications.last.title, 'Scanning Stopped');
+      expect(notifications.last.title, '已停止掃描');
     });
 
     test('clearDevices should use injected BleService', () {
@@ -784,7 +784,7 @@ void main() {
       diController.clearDevices();
       final notifications = mockNotificationService.allNotifications;
       expect(notifications, isNotEmpty);
-      expect(notifications.last.title, 'Devices Cleared');
+      expect(notifications.last.title, '裝置已清除');
     });
 
     test('getCommandInfo should use injected BleService', () {
@@ -799,7 +799,7 @@ void main() {
       expect(result, false);
       final notifications = mockNotificationService.allNotifications;
       expect(notifications, isNotEmpty);
-      expect(notifications.last.title, 'Empty Command');
+      expect(notifications.last.title, '指令為空');
     });
 
     test('connectToDevice should use injected BleService', () async {
@@ -812,7 +812,7 @@ void main() {
       mockNotificationService.clear();
       await diController.connectToDevice('test-device-id');
       final notifications = mockNotificationService.allNotifications;
-      expect(notifications.any((n) => n.title == 'Connecting'), true);
+      expect(notifications.any((n) => n.title == '連線中'), true);
     });
 
     test('disconnectDevice should use injected BleService', () async {

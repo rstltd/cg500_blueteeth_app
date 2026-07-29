@@ -289,18 +289,18 @@ void main() {
 
     test('getStatusDescription should contain connection info', () {
       final description = service.getStatusDescription();
+      // The descriptions are Traditional Chinese now (F-006); assert against
+      // the actual strings rather than English substrings.
       expect(
-        description.toLowerCase().contains('connect') ||
-        description.toLowerCase().contains('wifi') ||
-        description.toLowerCase().contains('mobile') ||
-        description.toLowerCase().contains('unknown'),
+        const ['已透過 WiFi 連線', '已透過行動網路連線', '無網路連線', '網路狀態未知']
+            .contains(description),
         true,
       );
     });
 
     test('getNetworkTypeDisplayName should be one of known values', () {
       final displayName = service.getNetworkTypeDisplayName();
-      final knownNames = ['WiFi', 'Mobile Data', 'No Connection', 'Unknown'];
+      final knownNames = ['WiFi', '行動網路', '無連線', '未知'];
       expect(knownNames.contains(displayName), true);
     });
 

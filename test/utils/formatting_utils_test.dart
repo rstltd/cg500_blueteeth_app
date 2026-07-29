@@ -11,42 +11,42 @@ void main() {
         final dateTime = DateTime(2024, 3, 15, 14, 30);
         final result = FormattingUtils.formatDateTime(dateTime);
 
-        expect(result, '15/3/2024 14:30');
+        expect(result, '2024/3/15 14:30');
       });
 
       test('should pad single digit minutes with zero', () {
         final dateTime = DateTime(2024, 1, 5, 9, 5);
         final result = FormattingUtils.formatDateTime(dateTime);
 
-        expect(result, '5/1/2024 9:05');
+        expect(result, '2024/1/5 9:05');
       });
 
       test('should handle midnight correctly', () {
         final dateTime = DateTime(2024, 12, 31, 0, 0);
         final result = FormattingUtils.formatDateTime(dateTime);
 
-        expect(result, '31/12/2024 0:00');
+        expect(result, '2024/12/31 0:00');
       });
 
       test('should handle noon correctly', () {
         final dateTime = DateTime(2024, 6, 15, 12, 0);
         final result = FormattingUtils.formatDateTime(dateTime);
 
-        expect(result, '15/6/2024 12:00');
+        expect(result, '2024/6/15 12:00');
       });
 
       test('should handle end of day correctly', () {
         final dateTime = DateTime(2024, 6, 15, 23, 59);
         final result = FormattingUtils.formatDateTime(dateTime);
 
-        expect(result, '15/6/2024 23:59');
+        expect(result, '2024/6/15 23:59');
       });
 
       test('should handle leap year date', () {
         final dateTime = DateTime(2024, 2, 29, 10, 15);
         final result = FormattingUtils.formatDateTime(dateTime);
 
-        expect(result, '29/2/2024 10:15');
+        expect(result, '2024/2/29 10:15');
       });
     });
 

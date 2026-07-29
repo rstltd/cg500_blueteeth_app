@@ -153,17 +153,17 @@ void main() {
     group('themeModeDescription', () {
       test('should return "Light Mode" for light theme', () {
         themeService.setThemeMode(AppThemeMode.light);
-        expect(themeService.themeModeDescription, 'Light Mode');
+        expect(themeService.themeModeDescription, '亮色模式');
       });
 
       test('should return "Dark Mode" for dark theme', () {
         themeService.setThemeMode(AppThemeMode.dark);
-        expect(themeService.themeModeDescription, 'Dark Mode');
+        expect(themeService.themeModeDescription, '深色模式');
       });
 
       test('should return "System Theme" for system theme', () {
         themeService.setThemeMode(AppThemeMode.system);
-        expect(themeService.themeModeDescription, 'System Theme');
+        expect(themeService.themeModeDescription, '跟隨系統');
       });
     });
 

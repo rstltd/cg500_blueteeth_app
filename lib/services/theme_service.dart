@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../l10n/app_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -135,11 +136,11 @@ class ThemeService {
   String get themeModeDescription {
     switch (_currentThemeMode) {
       case AppThemeMode.light:
-        return 'Light Mode';
+        return AppStrings.themeModeLight;
       case AppThemeMode.dark:
-        return 'Dark Mode';
+        return AppStrings.themeModeDark;
       case AppThemeMode.system:
-        return 'System Theme';
+        return AppStrings.themeModeSystem;
     }
   }
 

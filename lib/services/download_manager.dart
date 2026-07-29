@@ -7,6 +7,7 @@ import '../models/update_info.dart';
 import '../models/download_progress.dart';
 import 'notification_service.dart';
 import 'network_service.dart';
+import '../l10n/app_strings.dart';
 
 /// Service responsible for downloading app updates with progress tracking.
 ///
@@ -92,10 +93,10 @@ class DownloadManager {
       if (!_networkService.isSuitableForDownload(wifiOnly: wifiOnly)) {
         final networkStatus = _networkService.getStatusDescription();
         _notificationService.showError(
-          title: 'Network Unsuitable',
+          title: AppStrings.downloadNetworkUnsuitableTitle,
           message: wifiOnly
-              ? 'WiFi connection required for downloads. Currently: $networkStatus'
-              : 'No internet connection available',
+              ? AppStrings.downloadWifiRequiredMessage(networkStatus)
+              : AppStrings.downloadNoInternetAvailableMessage,
         );
         return null;
       }
@@ -118,7 +119,7 @@ class DownloadManager {
         totalBytes: updateInfo.downloadSize > 0
             ? updateInfo.downloadSize
             : 10 * 1024 * 1024, // Default 10MB if unknown
-        status: 'Starting download...',
+        status: AppStrings.downloadStatusStarting,
       ));
 
       // Use HttpClient for better progress tracking
@@ -198,7 +199,7 @@ class DownloadManager {
                 downloadedBytes: downloadedBytes,
                 totalBytes: contentLength,
                 status:
-                    'Downloading... ${_formatBytes(downloadedBytes)}/${_formatBytes(contentLength)}',
+                    AppStrings.downloadStatusProgress(_formatBytes(downloadedBytes), _formatBytes(contentLength)),
                 speed: speed,
                 estimatedTimeRemaining: estimatedRemaining,
               ));
@@ -222,7 +223,7 @@ class DownloadManager {
             progress: 1.0,
             downloadedBytes: downloadedBytes,
             totalBytes: contentLength,
-            status: 'Verifying download...',
+            status: AppStrings.downloadStatusVerifying,
           ));
 
           final isValid =
@@ -231,8 +232,8 @@ class DownloadManager {
             Logger.error('SHA256 checksum verification failed');
             await file.delete();
             _notificationService.showError(
-              title: 'Verification Failed',
-              message: 'Downloaded file is corrupted. Please try again.',
+              title: AppStrings.downloadVerificationFailedTitle,
+              message: AppStrings.downloadCorruptedMessage,
             );
             return null;
           }
@@ -247,7 +248,7 @@ class DownloadManager {
           progress: 1.0,
           downloadedBytes: downloadedBytes,
           totalBytes: contentLength,
-          status: 'Download complete',
+          status: AppStrings.downloadStatusComplete,
           filePath: filePath,
         ));
 
@@ -255,8 +256,8 @@ class DownloadManager {
             'APK downloaded successfully: $filePath (${_formatBytes(downloadedBytes)})');
 
         _notificationService.showSuccess(
-          title: 'Download Complete',
-          message: 'Update ready to install (${_formatBytes(downloadedBytes)})',
+          title: AppStrings.downloadCompleteTitle,
+          message: AppStrings.downloadReadyToInstallMessage(_formatBytes(downloadedBytes)),
         );
 
         return filePath;
@@ -271,7 +272,7 @@ class DownloadManager {
         progress: 0.0,
         downloadedBytes: 0,
         totalBytes: 1,
-        status: 'Download failed: $e',
+        status: AppStrings.downloadStatusFailed(e),
       ));
 
       // Retry if we haven't exceeded max retries with exponential backoff
@@ -281,18 +282,18 @@ class DownloadManager {
             'Retrying download in ${retryDelay.inSeconds} seconds... (${attemptNumber + 2}/$_maxRetries)');
 
         _notificationService.showInfo(
-          title: 'Download Failed',
+          title: AppStrings.downloadFailedTitle,
           message:
-              'Retrying in ${retryDelay.inSeconds}s (${attemptNumber + 2}/$_maxRetries)...',
+              AppStrings.downloadRetryingMessage(retryDelay.inSeconds, attemptNumber + 2, _maxRetries),
         );
 
         await Future.delayed(retryDelay);
         return _downloadWithRetry(updateInfo, attemptNumber + 1, wifiOnly);
       } else {
         _notificationService.showError(
-          title: 'Download Failed',
+          title: AppStrings.downloadFailedTitle,
           message:
-              'Unable to download after $_maxRetries attempts. Check network connection.',
+              AppStrings.downloadExhaustedMessage(_maxRetries),
         );
         return null;
       }

@@ -1,3 +1,5 @@
+import '../l10n/app_strings.dart';
+
 enum BleConnectionState {
   disconnected,
   connecting,
@@ -9,13 +11,13 @@ extension BleConnectionStateExtension on BleConnectionState {
   String get displayName {
     switch (this) {
       case BleConnectionState.disconnected:
-        return 'Disconnected';
+        return AppStrings.disconnected;
       case BleConnectionState.connecting:
-        return 'Connecting...';
+        return AppStrings.connecting;
       case BleConnectionState.connected:
-        return 'Connected';
+        return AppStrings.connected;
       case BleConnectionState.disconnecting:
-        return 'Disconnecting...';
+        return AppStrings.disconnecting;
     }
   }
 

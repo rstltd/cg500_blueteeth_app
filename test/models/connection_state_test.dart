@@ -27,19 +27,19 @@ void main() {
 
     group('displayName extension', () {
       test('disconnected should display "Disconnected"', () {
-        expect(BleConnectionState.disconnected.displayName, 'Disconnected');
+        expect(BleConnectionState.disconnected.displayName, '已斷線');
       });
 
       test('connecting should display "Connecting..."', () {
-        expect(BleConnectionState.connecting.displayName, 'Connecting...');
+        expect(BleConnectionState.connecting.displayName, '連線中...');
       });
 
       test('connected should display "Connected"', () {
-        expect(BleConnectionState.connected.displayName, 'Connected');
+        expect(BleConnectionState.connected.displayName, '已連線');
       });
 
       test('disconnecting should display "Disconnecting..."', () {
-        expect(BleConnectionState.disconnecting.displayName, 'Disconnecting...');
+        expect(BleConnectionState.disconnecting.displayName, '斷線中...');
       });
     });
 

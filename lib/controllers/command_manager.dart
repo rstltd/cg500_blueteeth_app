@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../controllers/ble_controller_interface.dart';
 import '../utils/logger.dart';
 
@@ -91,7 +92,7 @@ class CommandManager {
       Logger.ui('Failed to send command: $command');
       // Add error message to chat
       final errorMessage = {
-        'text': 'Failed to send command',
+        'text': AppStrings.commandSendFailed,
         'isCommand': false,
         'isError': true,
         'timestamp': DateTime.now(),

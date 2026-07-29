@@ -110,7 +110,7 @@ void main() {
         await tester.pump();
 
         expect(find.text('${AppStrings.connectionStatus}:'), findsOneWidget);
-        expect(find.text('Connected'), findsOneWidget);
+        expect(find.text('已連線'), findsOneWidget);
       });
 
       testWidgets('should show services count', (tester) async {
@@ -397,7 +397,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Disconnected'), findsOneWidget);
+        expect(find.text('已斷線'), findsOneWidget);
       });
 
       testWidgets('shows Connecting state', (tester) async {
@@ -410,7 +410,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Connecting...'), findsOneWidget);
+        expect(find.text('連線中...'), findsOneWidget);
       });
 
       testWidgets('shows Connected state', (tester) async {
@@ -423,7 +423,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Connected'), findsOneWidget);
+        expect(find.text('已連線'), findsOneWidget);
       });
 
       testWidgets('shows Disconnecting state', (tester) async {
@@ -436,7 +436,7 @@ void main() {
         await tester.pumpWidget(createDirectDialog(device));
         await tester.pump();
 
-        expect(find.text('Disconnecting...'), findsOneWidget);
+        expect(find.text('斷線中...'), findsOneWidget);
       });
     });
   });

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_strings.dart';
 import '../../design/design_system.dart';
 
 /// Filter options for messages in the command interface.
 enum MessageFilter {
-  all('All'),
-  commands('Commands'),
-  responses('Responses'),
-  errors('Errors');
+  all(AppStrings.all),
+  commands(AppStrings.filterCommands),
+  responses(AppStrings.filterResponses),
+  errors(AppStrings.filterErrors);
 
   const MessageFilter(this.label);
   final String label;

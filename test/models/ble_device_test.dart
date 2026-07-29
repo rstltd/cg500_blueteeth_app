@@ -244,32 +244,32 @@ void main() {
     group('rssiDescription', () {
       test('should return Excellent for rssi >= -65', () {
         final device = testDevice.copyWith(rssi: -60);
-        expect(device.rssiDescription, 'Excellent');
+        expect(device.rssiDescription, '極佳');
       });
 
       test('should return Excellent for rssi = -65', () {
         final device = testDevice.copyWith(rssi: -65);
-        expect(device.rssiDescription, 'Excellent');
+        expect(device.rssiDescription, '極佳');
       });
 
       test('should return Very Good for rssi >= -75', () {
         final device = testDevice.copyWith(rssi: -70);
-        expect(device.rssiDescription, 'Very Good');
+        expect(device.rssiDescription, '良好');
       });
 
       test('should return Good for rssi >= -85', () {
         final device = testDevice.copyWith(rssi: -80);
-        expect(device.rssiDescription, 'Good');
+        expect(device.rssiDescription, '普通');
       });
 
       test('should return Fair for rssi >= -95', () {
         final device = testDevice.copyWith(rssi: -90);
-        expect(device.rssiDescription, 'Fair');
+        expect(device.rssiDescription, '尚可');
       });
 
       test('should return Poor for rssi < -95', () {
         final device = testDevice.copyWith(rssi: -100);
-        expect(device.rssiDescription, 'Poor');
+        expect(device.rssiDescription, '微弱');
       });
     });
 
@@ -724,42 +724,42 @@ void main() {
       // -60 dBm at ~10cm, -80 dBm at ~1m
       test('should return Excellent at boundary -65', () {
         final device = testDevice.copyWith(rssi: -65);
-        expect(device.rssiDescription, 'Excellent');
+        expect(device.rssiDescription, '極佳');
       });
 
       test('should return Very Good at -66', () {
         final device = testDevice.copyWith(rssi: -66);
-        expect(device.rssiDescription, 'Very Good');
+        expect(device.rssiDescription, '良好');
       });
 
       test('should return Very Good at boundary -75', () {
         final device = testDevice.copyWith(rssi: -75);
-        expect(device.rssiDescription, 'Very Good');
+        expect(device.rssiDescription, '良好');
       });
 
       test('should return Good at -76', () {
         final device = testDevice.copyWith(rssi: -76);
-        expect(device.rssiDescription, 'Good');
+        expect(device.rssiDescription, '普通');
       });
 
       test('should return Good at boundary -85', () {
         final device = testDevice.copyWith(rssi: -85);
-        expect(device.rssiDescription, 'Good');
+        expect(device.rssiDescription, '普通');
       });
 
       test('should return Fair at -86', () {
         final device = testDevice.copyWith(rssi: -86);
-        expect(device.rssiDescription, 'Fair');
+        expect(device.rssiDescription, '尚可');
       });
 
       test('should return Fair at boundary -95', () {
         final device = testDevice.copyWith(rssi: -95);
-        expect(device.rssiDescription, 'Fair');
+        expect(device.rssiDescription, '尚可');
       });
 
       test('should return Poor at -96', () {
         final device = testDevice.copyWith(rssi: -96);
-        expect(device.rssiDescription, 'Poor');
+        expect(device.rssiDescription, '微弱');
       });
     });
 

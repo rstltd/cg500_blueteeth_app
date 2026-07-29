@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../l10n/app_strings.dart';
 
 enum NotificationType {
   info,
@@ -154,7 +155,7 @@ class NotificationFilter {
         'Communication Ready',
       },
       criticalTitles: {
-        'Connection Failed',
+        AppStrings.bleEventConnectionFailedTitle,
         'Bluetooth Not Supported',
         'Permissions Required',
         'Send Failed',

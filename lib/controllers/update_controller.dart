@@ -233,8 +233,8 @@ class UpdateController with ChangeNotifier {
           _showUpdateDialog(updateInfo);
         } else {
           _notificationService.showInfo(
-            title: 'Update Available',
-            message: 'Version ${updateInfo.latestVersion} is available',
+            title: AppStrings.updateAvailable,
+            message: AppStrings.updateAvailableToastMessage(updateInfo.latestVersion),
           );
         }
         return updateInfo;
@@ -405,8 +405,8 @@ class UpdateController with ChangeNotifier {
       Logger.error(
           'Update preferences not loaded, cannot check network suitability');
       _notificationService.showError(
-        title: 'Configuration Error',
-        message: 'Update settings not loaded. Please restart the app.',
+        title: AppStrings.updateConfigErrorTitle,
+        message: AppStrings.updateConfigErrorMessage,
       );
       return null;
     }

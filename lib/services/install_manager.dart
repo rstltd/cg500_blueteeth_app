@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import '../utils/logger.dart';
 import 'notification_service.dart';
+import '../l10n/app_strings.dart';
 
 /// Service responsible for installing APK updates on Android devices.
 ///
@@ -32,8 +33,8 @@ class InstallManager {
     if (!Platform.isAndroid) {
       Logger.warning('APK installation only supported on Android');
       _notificationService.showError(
-        title: 'Platform Not Supported',
-        message: 'APK installation is only available on Android devices.',
+        title: AppStrings.installPlatformNotSupportedTitle,
+        message: AppStrings.installAndroidOnlyMessage,
       );
       return false;
     }
@@ -47,8 +48,8 @@ class InstallManager {
       if (!await file.exists()) {
         Logger.error('APK file does not exist at path: $apkPath');
         _notificationService.showError(
-          title: 'Installation Failed',
-          message: 'APK file not found. Please try downloading again.',
+          title: AppStrings.installFailedTitle,
+          message: AppStrings.installApkNotFoundMessage,
         );
         return false;
       }
@@ -62,9 +63,9 @@ class InstallManager {
       if (!canInstall) {
         Logger.warning('Unknown sources permission not granted');
         _notificationService.showError(
-          title: 'Permission Required',
+          title: AppStrings.installPermissionRequiredTitle,
           message:
-              'Please allow installation from unknown sources in device settings.',
+              AppStrings.installUnknownSourcesMessage,
         );
 
         // Request permission
@@ -88,8 +89,8 @@ class InstallManager {
         if (success) {
           Logger.info('✅ APK installation started successfully');
           _notificationService.showSuccess(
-            title: 'Installation Started',
-            message: 'Please follow the installation prompts.',
+            title: AppStrings.installStartedTitle,
+            message: AppStrings.installFollowPromptsMessage,
           );
           return true;
         } else {
@@ -107,23 +108,23 @@ class InstallManager {
         // Legacy boolean result handling
         Logger.info('✅ APK installation triggered successfully (legacy result)');
         _notificationService.showSuccess(
-          title: 'Installation Started',
-          message: 'Follow the installation prompts to complete the update.',
+          title: AppStrings.installStartedTitle,
+          message: AppStrings.installFollowPromptsToCompleteMessage,
         );
         return true;
       } else {
         Logger.warning('❌ APK installation trigger returned: $result');
         _notificationService.showError(
-          title: 'Installation Failed',
-          message: 'Could not start APK installation. Please check permissions.',
+          title: AppStrings.installFailedTitle,
+          message: AppStrings.installCouldNotStartMessage,
         );
         return false;
       }
     } catch (e) {
       Logger.error('❌ Failed to install APK via platform channel', error: e);
       _notificationService.showError(
-        title: 'Installation Error',
-        message: 'Failed to install update: ${e.toString()}',
+        title: AppStrings.installErrorTitle,
+        message: AppStrings.installErrorMessage(e.toString()),
       );
       return false;
     }
@@ -135,38 +136,38 @@ class InstallManager {
       case 'PERMISSION_DENIED':
         Logger.warning('Permission denied - requesting install permission');
         _notificationService.showError(
-          title: 'Permission Required',
+          title: AppStrings.installPermissionRequiredTitle,
           message:
-              'Please allow installation from unknown sources in device settings, then try again.',
+              AppStrings.installUnknownSourcesRetryMessage,
         );
         // Automatically request permission
         await _platform.invokeMethod('requestInstallPermission');
         break;
       case 'FILE_NOT_FOUND':
         _notificationService.showError(
-          title: 'File Not Found',
+          title: AppStrings.installFileNotFoundTitle,
           message:
-              'The APK file could not be found. Please try downloading again.',
+              AppStrings.installApkNotFoundMessage,
         );
         break;
       case 'FILEPROVIDER_ERROR':
         _notificationService.showError(
-          title: 'File Access Error',
+          title: AppStrings.installFileAccessErrorTitle,
           message:
-              'Could not access the APK file for installation. Check app permissions.',
+              AppStrings.installFileAccessErrorMessage,
         );
         break;
       case 'NO_RESOLVER':
         _notificationService.showError(
-          title: 'Installation Not Supported',
+          title: AppStrings.installNotSupportedTitle,
           message:
-              'No app found to handle APK installation on this device.',
+              AppStrings.installNoResolverMessage,
         );
         break;
       default:
         _notificationService.showError(
-          title: 'Installation Failed',
-          message: 'Error: $error',
+          title: AppStrings.installFailedTitle,
+          message: AppStrings.installGenericErrorMessage(error),
         );
     }
   }
