@@ -539,6 +539,17 @@ abstract class AppStrings {
   /// Required field validation error
   static String requiredField(String label) => '$label 為必填項目';
 
+  /// Text parameter rejected because it contains a protocol delimiter.
+  /// Commands are joined with ',' and terminated with CRLF, so a value
+  /// carrying either would be re-read by the device as extra fields or
+  /// as a second command.
+  static const String textParameterContainsDelimiter = '此欄位不可包含逗號或換行字元';
+
+  /// Shown when the value reported by the device is absent from the
+  /// dropdown's option list, so nothing is pre-selected.
+  static String dropdownUnmatchedValueWarning(String value) =>
+      '目前裝置回報的值「$value」不在可選清單中';
+
   // ============================================================
   // Search
   // ============================================================
@@ -882,6 +893,10 @@ abstract class AppStrings {
   /// Bluetooth: BLE_UNAVAILABLE — hardware doesn't support BLE
   static const String bleUnavailableMessage = '此裝置不支援 Bluetooth Low Energy。';
 
+  /// Bluetooth: SCAN_FAILED — the platform rejected or aborted the scan
+  static const String scanFailedMessage =
+      '掃描失敗，請確認藍牙與位置服務皆已開啟後再試一次。';
+
   /// Bluetooth: DEVICE_NOT_FOUND
   static const String deviceNotFoundMessage =
       '找不到所選的裝置，可能已超出範圍或已關機。';
@@ -1024,6 +1039,8 @@ abstract class AppStrings {
   static const String previousStep = '上一步';
   static const String nextStep = '下一步';
   static const String finish = '完成';
+
+  static const String cannotLeaveWhileExecuting = '設定執行中，無法離開';
 
   // ============================================================
   // Theme (ThemeService.themeModeDescription)
