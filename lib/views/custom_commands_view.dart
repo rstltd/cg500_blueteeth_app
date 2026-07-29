@@ -63,7 +63,7 @@ class _CustomCommandsBody extends StatelessWidget {
                   padding: const EdgeInsets.only(
                       top: 8, bottom: 96, left: 8, right: 8),
                   itemCount: viewModel.commands.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final cmd = viewModel.commands[index];
                     return _CommandListTile(

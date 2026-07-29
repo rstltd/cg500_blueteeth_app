@@ -40,7 +40,14 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Bluetooth Low Energy package
+  # Bluetooth Low Energy package.
+  #
+  # Held on the 1.x line deliberately. 2.0.0 replaced BSD-3 with the
+  # "FlutterBluePlus License", under which any use by or for a for-profit
+  # company — explicitly including development, testing and evaluation —
+  # requires purchasing a commercial licence. 1.x is the last BSD-3 release.
+  # Do NOT run `flutter pub upgrade --major-versions`, and do not bump this
+  # constraint, without a purchasing decision first.
   flutter_blue_plus: ^1.32.12
   
   # Permission handler for requesting Bluetooth permissions

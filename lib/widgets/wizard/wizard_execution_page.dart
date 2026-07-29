@@ -113,7 +113,7 @@ class WizardExecutionPage extends StatelessWidget {
 
     return ListView.separated(
       itemCount: totalItems,
-      separatorBuilder: (_, __) => SizedBox(height: DesignTokens.spacingS),
+      separatorBuilder: (_, _) => SizedBox(height: DesignTokens.spacingS),
       itemBuilder: (context, index) {
         final isInfoStep = index == commands.length;
         final label = isInfoStep ? r'$INFO（確認結果）' : commands[index].label;
@@ -159,7 +159,7 @@ class WizardExecutionPage extends StatelessWidget {
 
     return ListView.separated(
       itemCount: entries.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final e = entries[index];
         return ListTile(

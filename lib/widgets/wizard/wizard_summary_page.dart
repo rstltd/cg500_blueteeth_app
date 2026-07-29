@@ -70,7 +70,7 @@ class WizardSummaryPage extends StatelessWidget {
             Expanded(
               child: ListView.separated(
                 itemCount: commands.length,
-                separatorBuilder: (_, __) =>
+                separatorBuilder: (_, _) =>
                     SizedBox(height: DesignTokens.spacingSM),
                 itemBuilder: (context, index) =>
                     _buildChangeCard(context, commands[index]),
