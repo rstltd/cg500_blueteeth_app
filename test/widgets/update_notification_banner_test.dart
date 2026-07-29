@@ -10,6 +10,8 @@ import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/notification_service.dart';
 import 'package:cg500_blueteeth_app/l10n/app_strings.dart';
+import 'package:cg500_blueteeth_app/models/update_info.dart';
+import 'package:cg500_blueteeth_app/models/update_type.dart';
 import '../mocks/mock_services.dart';
 
 /// Helper function to create test UpdateController with mock services
@@ -28,6 +30,34 @@ UpdateController createTestManager({
     preferencesStore: preferencesStore ?? UpdatePreferencesStore(),
     networkService: networkService ?? MockNetworkService(),
     notificationService: notificationService ?? MockNotificationService(),
+  );
+}
+
+/// Builds a minimal but valid [UpdateInfo] for tests that need the banner
+/// to actually render its "update available" content instead of collapsing
+/// to `SizedBox.shrink()`.
+UpdateInfo _makeUpdateInfo({
+  String version = '26.08.0',
+  UpdateType type = UpdateType.recommended,
+  bool isForced = false,
+}) {
+  return UpdateInfo(
+    latestVersion: version,
+    currentVersion: '26.07.0',
+    downloadUrl: 'https://example.com/app.apk',
+    downloadSize: 1024,
+    releaseNotes: 'Test release notes',
+    isForced: isForced,
+    updateType: type,
+    releaseDate: DateTime(2026, 7, 1),
+  );
+}
+
+Widget _wrapBanner(UpdateController manager) {
+  return MaterialApp(
+    home: Scaffold(
+      body: UpdateNotificationBanner(updateManager: manager),
+    ),
   );
 }
 
@@ -721,6 +751,209 @@ void main() {
       final result = AppStrings.updateDescription('2.0.0');
       expect(result, contains('版本'));
       expect(result, contains('2.0.0'));
+    });
+  });
+
+  // The 726 lines above this point only ever exercise the banner with
+  // `latestUpdateInfo == null`, so the entire "banner is actually visible"
+  // path — including the ListenableBuilder rebuild and the post-frame
+  // slide-in reveal introduced by the rewrite — has zero coverage. These
+  // groups fill that gap.
+  group('UpdateNotificationBanner visible state', () {
+    testWidgets(
+        'shows the banner content once latestUpdateInfo becomes available',
+        (WidgetTester tester) async {
+      final info = _makeUpdateInfo(
+        version: '26.08.0',
+        type: UpdateType.recommended,
+      );
+      final checker = MockUpdateChecker()..setPendingUpdate(info);
+      final manager = createTestManager(updateChecker: checker);
+
+      await tester.pumpWidget(_wrapBanner(manager));
+
+      // No update known yet: banner must be collapsed.
+      expect(find.text(AppStrings.updateAvailable), findsNothing);
+
+      await manager.checkForUpdatesSilently();
+      await tester.pump();
+
+      // Recommended (non-forced) update: title, version text, dismiss (X)
+      // button and the "Update" (not "Update Now") button should all be
+      // present.
+      expect(find.text(AppStrings.updateAvailable), findsOneWidget);
+      expect(find.textContaining('26.08.0'), findsOneWidget);
+      expect(find.text(AppStrings.update), findsOneWidget);
+      expect(find.text(AppStrings.updateNow), findsNothing);
+      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.byIcon(Icons.system_update), findsOneWidget);
+    });
+
+    testWidgets(
+        'shows "Update Now" and hides the dismiss button for a forced update',
+        (WidgetTester tester) async {
+      final info = _makeUpdateInfo(
+        version: '26.09.0',
+        type: UpdateType.forced,
+        isForced: true,
+      );
+      final checker = MockUpdateChecker()..setPendingUpdate(info);
+      final manager = createTestManager(updateChecker: checker);
+
+      await tester.pumpWidget(_wrapBanner(manager));
+      await manager.checkForUpdatesSilently();
+      await tester.pump();
+
+      expect(find.text(AppStrings.updateNow), findsOneWidget);
+      expect(find.text(AppStrings.update), findsNothing);
+      // Forced updates must not offer a dismiss button.
+      expect(find.byIcon(Icons.close), findsNothing);
+    });
+
+    testWidgets(
+        'banner disappears once the controller clears latestUpdateInfo (skip flow)',
+        (WidgetTester tester) async {
+      final info = _makeUpdateInfo(version: '26.10.0');
+      final checker = MockUpdateChecker()..setPendingUpdate(info);
+      final uiDelegate = MockUpdateUIDelegate()
+        ..skipVersionConfirmationResult = true;
+      final manager = UpdateController.withDependencies(
+        updateChecker: checker,
+        downloadManager: MockDownloadManager(),
+        installManager: MockInstallManager(),
+        preferencesStore: UpdatePreferencesStore(),
+        networkService: MockNetworkService(),
+        notificationService: MockNotificationService(),
+        uiDelegate: uiDelegate,
+      );
+
+      await tester.pumpWidget(_wrapBanner(manager));
+      await manager.checkForUpdatesSilently();
+      await tester.pump();
+
+      expect(find.text(AppStrings.updateAvailable), findsOneWidget);
+      expect(manager.latestUpdateInfo, isNotNull);
+
+      // Drive the real skip-version flow (this is the exact scenario the
+      // rewrite fixes: skipping a version must make the banner vanish and
+      // must not let it push the just-skipped version back at the user).
+      final context = tester.element(find.byType(Scaffold));
+      await manager.skipVersion(info, context, null);
+      await tester.pump();
+
+      expect(manager.latestUpdateInfo, isNull);
+      expect(find.text(AppStrings.updateAvailable), findsNothing);
+      expect(find.textContaining('26.10.0'), findsNothing);
+    });
+
+    testWidgets(
+        'slide-in animation advances the banner into place after the reveal callback fires',
+        (WidgetTester tester) async {
+      final info = _makeUpdateInfo();
+      final checker = MockUpdateChecker()..setPendingUpdate(info);
+      final manager = createTestManager(updateChecker: checker);
+
+      await tester.pumpWidget(_wrapBanner(manager));
+      await manager.checkForUpdatesSilently();
+
+      // This single pump both (a) rebuilds the banner now that
+      // latestUpdateInfo is non-null, which schedules the post-frame reveal
+      // callback, and (b) — because Flutter runs scheduled post-frame
+      // callbacks at the end of the very same frame — executes that
+      // callback, which calls AnimationController.forward(). The ticker
+      // itself has not advanced yet, so the banner should still be sitting
+      // at its off-screen starting position.
+      await tester.pump();
+
+      final titleFinder = find.text(AppStrings.updateAvailable);
+      expect(titleFinder, findsOneWidget);
+      final startY = tester.getTopLeft(titleFinder).dy;
+
+      // The underlying Ticker stamps its own start time on its first
+      // subsequent tick, so the very next pump reports zero elapsed time
+      // and the banner does not appear to move yet; it only primes the
+      // ticker's baseline for the pump after it.
+      await tester.pump(const Duration(milliseconds: 10));
+
+      // With a real baseline established, elapsing further time now
+      // actually drives the animation forward.
+      await tester.pump(const Duration(milliseconds: 140));
+      final midY = tester.getTopLeft(titleFinder).dy;
+      expect(
+        midY,
+        greaterThan(startY),
+        reason:
+            'slide-in animation should have moved the banner toward its resting position by ~150ms',
+      );
+
+      // Let the animation finish.
+      await tester.pumpAndSettle();
+      final endY = tester.getTopLeft(titleFinder).dy;
+      expect(endY, greaterThan(midY));
+    });
+
+    testWidgets(
+        'does not throw when the widget is torn down before a pending update notification is rendered',
+        (WidgetTester tester) async {
+      final info = _makeUpdateInfo();
+      final checker = MockUpdateChecker()..setPendingUpdate(info);
+      final manager = createTestManager(updateChecker: checker);
+
+      await tester.pumpWidget(_wrapBanner(manager));
+
+      // checkForUpdatesSilently() calls notifyListeners() synchronously,
+      // which marks the banner's ListenableBuilder dirty — but nothing has
+      // pumped a frame yet, so the rebuild (and the post-frame reveal
+      // callback it would schedule) is still only "pending".
+      await manager.checkForUpdatesSilently();
+
+      // Tear the whole tree down (worst case for the addPostFrameCallback
+      // pattern: the widget is gone before its pending, update-triggered
+      // rebuild/reveal ever gets a chance to run).
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+
+      // Pump a few more frames in case anything was left scheduled; must
+      // not throw even though the State that would have handled it is
+      // long disposed.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'local dismissal persists even when the controller notifies again with the same update',
+        (WidgetTester tester) async {
+      final info = _makeUpdateInfo(version: '26.11.0');
+      final checker = MockUpdateChecker()..setPendingUpdate(info);
+      final manager = createTestManager(updateChecker: checker);
+
+      await tester.pumpWidget(_wrapBanner(manager));
+      await manager.checkForUpdatesSilently();
+      await tester.pump();
+
+      expect(find.text(AppStrings.updateAvailable), findsOneWidget);
+
+      // Tap the close (X) button: _dismissBanner() reverses the animation
+      // and then sets the widget-local `_isDismissed` flag.
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.updateAvailable), findsNothing);
+
+      // Simulate a background re-check that finds the same update still
+      // available (the MockUpdateChecker still has the same pending info)
+      // and notifies listeners again.
+      await manager.checkForUpdatesSilently();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // The controller itself does not know the banner was dismissed
+      // locally, so latestUpdateInfo is still set...
+      expect(manager.latestUpdateInfo, isNotNull);
+      // ...but the widget-local dismissal must stick: the banner must not
+      // resurrect itself.
+      expect(find.text(AppStrings.updateAvailable), findsNothing);
     });
   });
 }

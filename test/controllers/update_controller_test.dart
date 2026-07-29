@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:cg500_blueteeth_app/controllers/update_controller.dart';
 import 'package:cg500_blueteeth_app/models/download_progress.dart';
 import 'package:cg500_blueteeth_app/models/update_info.dart';
+import 'package:cg500_blueteeth_app/models/update_preferences.dart';
 import 'package:cg500_blueteeth_app/services/network_service.dart';
 import 'package:cg500_blueteeth_app/services/update_preferences_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,26 @@ UpdateInfo _info({
     downloadSize: 1024 * 1024,
     releaseDate: DateTime(2026, 1, 1),
   );
+}
+
+/// [MockUpdateChecker] plus a call counter, so tests can prove how many
+/// times the controller actually reached the checker. The counter lives
+/// here instead of in the shared mock to keep `test/mocks/mock_services.dart`
+/// untouched.
+class _CountingUpdateChecker extends MockUpdateChecker {
+  int checkCallCount = 0;
+
+  @override
+  Future<UpdateInfo?> checkForUpdates({
+    List<String> skippedVersions = const [],
+    UpdateChannel channel = UpdateChannel.stable,
+  }) {
+    checkCallCount++;
+    return super.checkForUpdates(
+      skippedVersions: skippedVersions,
+      channel: channel,
+    );
+  }
 }
 
 UpdateController _newController({
@@ -169,16 +190,32 @@ void main() {
         controller.dispose();
       });
 
-      test(
-          'in-flight check is bypassed when force=true; concurrent calls are coalesced otherwise',
+      test('concurrent calls are coalesced into a single checker call',
           () async {
-        final controller = _newController();
+        final updateChecker = _CountingUpdateChecker();
+        final controller = _newController(updateChecker: updateChecker);
         await controller.initialize();
 
         final f1 = controller.checkForUpdatesWithUI();
         final f2 = controller.checkForUpdatesWithUI();
 
         await Future.wait([f1, f2]);
+
+        expect(updateChecker.checkCallCount, 1);
+        controller.dispose();
+      });
+
+      test('force=true bypasses the in-flight guard', () async {
+        final updateChecker = _CountingUpdateChecker();
+        final controller = _newController(updateChecker: updateChecker);
+        await controller.initialize();
+
+        final f1 = controller.checkForUpdatesWithUI();
+        final f2 = controller.checkForUpdatesWithUI(force: true);
+
+        await Future.wait([f1, f2]);
+
+        expect(updateChecker.checkCallCount, 2);
         controller.dispose();
       });
 
@@ -237,7 +274,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
 
         expect(controller.downloadProgress, 1.0);
-        expect(controller.downloadStatus, contains('1000'));
+        // The reported status wins over the byte counter, so callers can
+        // surface "Verifying" / "Download failed" instead of a size string.
+        expect(controller.downloadStatus, 'Complete');
         controller.dispose();
       });
 
@@ -356,7 +395,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(store.current!.skippedVersions, contains('3.0.0'));
-        expect(ui.closeDialogsCalls, contains(2));
+        // Only the parent update dialog needs closing — the confirmation
+        // dialog already popped itself when the user chose "Skip".
+        expect(ui.closeDialogsCalls, contains(1));
         expect(ui.versionSkippedCalls, contains('3.0.0'));
         controller.dispose();
       });

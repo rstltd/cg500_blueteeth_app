@@ -167,6 +167,16 @@ class UpdateController with ChangeNotifier {
     });
   }
 
+  // No check here consults `UpdatePreferences.autoCheckEnabled`. The toggle
+  // that wrote it was removed from the settings UI in 804f7fa as a developer
+  // concern rather than a user-facing one, which left it with no writer and
+  // no way back to true. Gating on it would strand anyone who had turned it
+  // off before that release: no startup check, no WiFi recheck, no periodic
+  // poll, and — because forced updates ride the same silent path — no way to
+  // push them a critical fix either. Callers that genuinely want to stop
+  // background polling call `setAutoUpdatesEnabled(false)`, which cancels the
+  // timer outright.
+
   // ---- Stream handlers ----
 
   void _onNetworkStatusChanged(NetworkStatus status) {
@@ -176,16 +186,18 @@ class UpdateController with ChangeNotifier {
     if (status == NetworkStatus.wifi) {
       Logger.debug('WiFi connected, scheduling silent update check');
       _wifiRecheckTimer?.cancel();
-      _wifiRecheckTimer = Timer(
-        const Duration(seconds: 2),
-        checkForUpdatesSilently,
-      );
+      _wifiRecheckTimer = Timer(const Duration(seconds: 2), () {
+        checkForUpdatesSilently();
+      });
     }
   }
 
   void _onDownloadProgress(DownloadProgress progress) {
     _downloadProgress = progress.progress;
-    _downloadStatus = progress.sizeText;
+    // Prefer the reported status ("Verifying", "Download failed", ...);
+    // fall back to the byte counter only when there is no status text.
+    _downloadStatus =
+        progress.status.isNotEmpty ? progress.status : progress.sizeText;
     notifyListeners();
   }
 
@@ -284,15 +296,13 @@ class UpdateController with ChangeNotifier {
     }
   }
 
-  /// Single shared path that gates a check against the autoCheck preference
-  /// and forwards to UpdateChecker with the user's skipped-version list and
-  /// channel selection.
+  /// Single shared path that forwards to UpdateChecker with the user's
+  /// skipped-version list and channel selection.
+  ///
+  /// Ungated by design. No path consults `autoCheckEnabled` any more — see
+  /// the note beside [_scheduleInitialUpdateCheck] for why.
   Future<UpdateInfo?> _runUpdateCheck() async {
     final prefs = _preferencesStore.current;
-    if (prefs != null && !prefs.autoCheckEnabled) {
-      Logger.debug('Auto check disabled by user preferences');
-      return null;
-    }
     return _updateChecker.checkForUpdates(
       skippedVersions: prefs?.skippedVersions ?? const [],
       channel: prefs?.updateChannel ?? UpdateChannel.stable,
@@ -410,10 +420,16 @@ class UpdateController with ChangeNotifier {
       );
       return null;
     }
-    return _downloadManager.downloadUpdate(
+    final path = await _downloadManager.downloadUpdate(
       info,
       wifiOnly: prefs.wifiOnlyDownload,
     );
+    if (path != null) {
+      // Drop APKs left behind by earlier updates; the file we just
+      // fetched is preserved so the installer can still read it.
+      await _downloadManager.cleanupDownloads(keepVersion: info.latestVersion);
+    }
+    return path;
   }
 
   Future<void> _installUpdate(String apkPath, BuildContext context) async {
@@ -456,10 +472,18 @@ class UpdateController with ChangeNotifier {
 
     if (!confirmed || !context.mounted) return;
 
-    // Close the confirmation dialog AND the parent update dialog.
-    _uiDelegate.closeDialogs(context, count: 2);
+    // Only the parent update dialog is left to close — the confirmation
+    // dialog already popped itself when the user made a choice.
+    _uiDelegate.closeDialogs(context, count: 1);
 
     await _preferencesStore.skipVersion(info.latestVersion);
+
+    // Drop the cached info so the notification banner disappears and can't
+    // push the just-skipped version back at the user. Undo restores it.
+    final previousInfo = _latestUpdateInfo;
+    _latestUpdateInfo = null;
+    notifyListeners();
+
     onComplete?.call();
 
     if (context.mounted) {
@@ -468,6 +492,14 @@ class UpdateController with ChangeNotifier {
         info.latestVersion,
         () {
           _preferencesStore.unskipVersion(info.latestVersion);
+          // Only restore if nothing newer arrived while the snackbar was up.
+          // A background check can land inside that window, and putting the
+          // older version back would leave the banner advertising it until
+          // the next poll hours later.
+          if (_latestUpdateInfo == null) {
+            _latestUpdateInfo = previousInfo;
+            notifyListeners();
+          }
         },
       );
     }
@@ -484,6 +516,14 @@ class UpdateController with ChangeNotifier {
   bool get autoDownloadEnabled =>
       _preferencesStore.current?.autoDownloadEnabled ?? false;
 
+  /// Starts or stops the six-hourly poll.
+  ///
+  /// This covers the periodic timer only. The post-init check and the
+  /// WiFi-reconnect check keep running, because nothing calls this today and
+  /// gating them on the persisted `autoCheckEnabled` is precisely what left
+  /// older users unable to receive updates. Reinstating a real auto-update
+  /// toggle means gating all three entry points on a controller-owned flag
+  /// rather than on the stranded preference.
   Future<void> setAutoUpdatesEnabled(bool enabled) async {
     if (_preferencesStore.current == null) return;
     await _preferencesStore.setAutoCheckEnabled(enabled);

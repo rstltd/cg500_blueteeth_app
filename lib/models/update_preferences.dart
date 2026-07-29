@@ -9,6 +9,12 @@ class UpdatePreferences {
   static const String _keyUpdateFrequency = 'update_frequency';
   static const String _keyUpdateChannel = 'update_channel';
 
+  /// Persisted but no longer consulted when deciding whether to check.
+  ///
+  /// The settings toggle that wrote it was removed in 804f7fa, leaving it
+  /// with no writer and no way back to `true`. `UpdateController` therefore
+  /// ignores it rather than stranding anyone who turned it off before that
+  /// release. Kept on the model so existing stored preferences still load.
   bool autoCheckEnabled;
   bool autoDownloadEnabled;
   bool wifiOnlyDownload;

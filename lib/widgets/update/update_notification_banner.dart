@@ -20,9 +20,8 @@ class UpdateNotificationBanner extends StatefulWidget {
   State<UpdateNotificationBanner> createState() => _UpdateNotificationBannerState();
 }
 
-class _UpdateNotificationBannerState extends State<UpdateNotificationBanner> 
+class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
     with SingleTickerProviderStateMixin {
-  UpdateInfo? _updateInfo;
   late AnimationController _animationController;
   late Animation<double> _slideAnimation;
   bool _isDismissed = false;
@@ -30,13 +29,13 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
   @override
   void initState() {
     super.initState();
-    
+
     // Setup animation
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _slideAnimation = Tween<double>(
       begin: -1.0,
       end: 0.0,
@@ -44,9 +43,6 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
       parent: _animationController,
       curve: Curves.easeOut,
     ));
-
-    // Listen for update information
-    _checkForUpdateInfo();
   }
 
   @override
@@ -55,14 +51,21 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
     super.dispose();
   }
 
-  void _checkForUpdateInfo() {
-    // Get latest update info from manager
-    _updateInfo = widget.updateManager.latestUpdateInfo;
-    
-    if (_updateInfo != null && !_isDismissed) {
-      Logger.debug('Showing update notification banner for version ${_updateInfo!.latestVersion}');
+  /// Play the slide-in once the banner becomes visible. Scheduled after the
+  /// frame because starting an animation during build would mark widgets
+  /// dirty mid-build.
+  void _revealBanner() {
+    if (_animationController.status != AnimationStatus.dismissed) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isDismissed) return;
+      final info = widget.updateManager.latestUpdateInfo;
+      if (info == null) return;
+      if (_animationController.status != AnimationStatus.dismissed) return;
+      Logger.debug(
+          'Showing update notification banner for version ${info.latestVersion}');
       _animationController.forward();
-    }
+    });
   }
 
   void _dismissBanner() {
@@ -70,30 +73,38 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
       if (mounted) {
         setState(() {
           _isDismissed = true;
-          _updateInfo = null;
         });
       }
     });
   }
 
   void _showUpdateDialog() {
-    if (_updateInfo != null) {
-      Logger.debug('Opening update dialog from banner');
-      widget.updateManager.showUpdateDialogIfAvailable();
-    }
+    Logger.debug('Opening update dialog from banner');
+    widget.updateManager.showUpdateDialogIfAvailable();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Refresh update info on each build
-    if (!_isDismissed && _updateInfo == null) {
-      _checkForUpdateInfo();
-    }
+    // The controller is the single owner of update state — read it on every
+    // notification instead of caching a private copy, so a skipped or
+    // completed update makes the banner disappear immediately.
+    return ListenableBuilder(
+      listenable: widget.updateManager,
+      builder: (context, _) {
+        final updateInfo = widget.updateManager.latestUpdateInfo;
 
-    if (_updateInfo == null || _isDismissed) {
-      return const SizedBox.shrink();
-    }
+        if (updateInfo == null || _isDismissed) {
+          return const SizedBox.shrink();
+        }
 
+        _revealBanner();
+
+        return _buildBanner(updateInfo);
+      },
+    );
+  }
+
+  Widget _buildBanner(UpdateInfo updateInfo) {
     return AnimatedBuilder(
       animation: _slideAnimation,
       builder: (context, child) {
@@ -104,7 +115,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: _getGradientColors(),
+                colors: _getGradientColors(updateInfo),
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -134,20 +145,20 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          _getUpdateIcon(),
+                          _getUpdateIcon(updateInfo),
                           color: AppColors.textOnPrimary(context),
                           size: 24,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      
+
                       // Update information
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _getUpdateTitle(),
+                              _getUpdateTitle(updateInfo),
                               style: TextStyle(
                                 color: AppColors.textOnPrimary(context),
                                 fontWeight: FontWeight.bold,
@@ -156,7 +167,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _getUpdateMessage(),
+                              _getUpdateMessage(updateInfo),
                               style: TextStyle(
                                 color: AppColors.whiteOverlay90(context),
                                 fontSize: 14,
@@ -165,9 +176,9 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                           ],
                         ),
                       ),
-                      
+
                       // Action buttons
-                      if (!_updateInfo!.isForced) ...[
+                      if (!updateInfo.isForced) ...[
                         IconButton(
                           onPressed: _dismissBanner,
                           icon: Icon(
@@ -178,7 +189,7 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                           tooltip: AppStrings.close,
                         ),
                       ],
-                      
+
                       // Update button
                       Container(
                         decoration: BoxDecoration(
@@ -188,14 +199,14 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
                         child: TextButton(
                           onPressed: _showUpdateDialog,
                           style: TextButton.styleFrom(
-                            foregroundColor: _getPrimaryColor(),
+                            foregroundColor: _getPrimaryColor(updateInfo),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 8,
                             ),
                           ),
                           child: Text(
-                            _updateInfo!.isForced ? AppStrings.updateNow : AppStrings.update,
+                            updateInfo.isForced ? AppStrings.updateNow : AppStrings.update,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
@@ -213,8 +224,8 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
     );
   }
 
-  List<Color> _getGradientColors() {
-    switch (_updateInfo!.updateType) {
+  List<Color> _getGradientColors(UpdateInfo updateInfo) {
+    switch (updateInfo.updateType) {
       case UpdateType.critical:
         return [AppColors.updateForcedColor(context), AppColors.errorColor(context)];
       case UpdateType.forced:
@@ -226,8 +237,8 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
     }
   }
 
-  IconData _getUpdateIcon() {
-    switch (_updateInfo!.updateType) {
+  IconData _getUpdateIcon(UpdateInfo updateInfo) {
+    switch (updateInfo.updateType) {
       case UpdateType.critical:
         return Icons.warning;
       case UpdateType.forced:
@@ -239,8 +250,8 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
     }
   }
 
-  String _getUpdateTitle() {
-    switch (_updateInfo!.updateType) {
+  String _getUpdateTitle(UpdateInfo updateInfo) {
+    switch (updateInfo.updateType) {
       case UpdateType.critical:
         return AppStrings.importantUpdateAvailable;
       case UpdateType.forced:
@@ -252,12 +263,12 @@ class _UpdateNotificationBannerState extends State<UpdateNotificationBanner>
     }
   }
 
-  String _getUpdateMessage() {
-    return AppStrings.updateDescription(_updateInfo!.latestVersion);
+  String _getUpdateMessage(UpdateInfo updateInfo) {
+    return AppStrings.updateDescription(updateInfo.latestVersion);
   }
 
-  Color _getPrimaryColor() {
-    switch (_updateInfo!.updateType) {
+  Color _getPrimaryColor(UpdateInfo updateInfo) {
+    switch (updateInfo.updateType) {
       case UpdateType.critical:
         return AppColors.updateForcedColor(context);
       case UpdateType.forced:
