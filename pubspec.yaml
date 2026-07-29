@@ -25,7 +25,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 26.05.0+31
 
 environment:
-  sdk: ^3.8.1
+  # Keep in step with the `sdks: dart:` floor recorded in pubspec.lock. If this
+  # is lower than the lockfile's floor, an older toolchain silently re-resolves
+  # instead of erroring, which defeats the point of committing the lockfile.
+  sdk: ^3.10.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
